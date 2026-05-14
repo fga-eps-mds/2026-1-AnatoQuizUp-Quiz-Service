@@ -1,0 +1,79 @@
+{
+  "name": "anatoquizup-quiz-service",
+  "version": "1.0.0",
+  "description": "Quiz Service of the AnatoQuizUp project.",
+  "private": true,
+  "main": "dist/src/server.js",
+  "scripts": {
+    "dev": "tsx watch -r tsconfig-paths/register src/server.ts",
+    "build": "tsc --project tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "start": "npx prisma migrate deploy && node dist/src/server.js",
+    "lint": "eslint . --ext .ts",
+    "test": "jest",
+    "format": "prettier . --write",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fga-eps-mds/2026-1-AnatoQuizUp-Quiz-Service.git"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "keywords": [
+    "nodejs",
+    "typescript",
+    "express",
+    "prisma",
+    "postgresql"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fga-eps-mds/2026-1-AnatoQuizUp-Quiz-Service/issues"
+  },
+  "homepage": "https://github.com/fga-eps-mds/2026-1-AnatoQuizUp-Quiz-Service#readme",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1043.0",
+    "@prisma/client": "^6.17.1",
+    "@types/jsonwebtoken": "^9.0.10",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "minio": "^8.0.7",
+    "pino": "^10.0.0",
+    "pino-http": "^11.0.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.2",
+    "@babel/preset-typescript": "^7.28.5",
+    "@eslint/js": "^9.38.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.8.1",
+    "@types/supertest": "^7.2.0",
+    "babel-jest": "^30.3.0",
+    "babel-plugin-module-resolver": "^5.0.3",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "jest": "^30.3.0",
+    "prettier": "^3.6.2",
+    "prisma": "^6.17.1",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.9",
+    "tsc-alias": "^1.8.16",
+    "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.1"
+  }
+}
