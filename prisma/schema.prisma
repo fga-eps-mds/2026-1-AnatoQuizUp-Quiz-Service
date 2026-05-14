@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoQuestao {
+  MULTIPLA_ESCOLHA
+  CERTO_ERRADO
+}
+
+enum AlternativaQuestao {
+  A
+  B
+  C
+  D
+  E
+}
+
+enum StatusQuestao {
+  ATIVO
+  INATIVO
+}
+
+enum Dificuldade {
+  FACIL
+  MEDIA
+  DIFICIL
+}
+
+model Tema {
+  id   String @id @default(cuid())
+  nome String
+
+  questoes Questao[]
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@map("temas")
+}
+
+model Questao {
+  id              String             @id @default(cuid())
+  enunciado       String
+  tipoQuestao     TipoQuestao
+  respostaCorreta AlternativaQuestao
+  saibaMais       String?
+  status          StatusQuestao      @default(ATIVO)
+  feitoPorIa      Boolean            @default(false)
+  urlImagem       String?
+
+  criadoPorId String
+  temaId      String
+
+  questaoOriginalId String?
+  questaoOriginal   Questao?  @relation("VersoesQuestao", fields: [questaoOriginalId], references: [id])
+  versoes           Questao[] @relation("VersoesQuestao")
+
+  tema         Tema                @relation(fields: [temaId], references: [id], onDelete: Restrict)
+  alternativas QuestaoAlternativa?
+  resolucoes   ResolucaoQuestao[]
+
+  dificuldade Dificuldade @default(MEDIA)
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@map("questoes")
+}
+
+model QuestaoAlternativa {
+  id String @id @default(cuid())
+
+  alternativaA String
+  alternativaB String
+  alternativaC String
+  alternativaD String
+  alternativaE String
+
+  questaoId String  @unique
+  questao   Questao @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@map("questoes_alternativas")
+}
+
+model ResolucaoQuestao {
+  id              String             @id @default(cuid())
+  respostaMarcada AlternativaQuestao
+
+  usuarioId String
+  questaoId String
+
+  questao Questao @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@map("resolucoes_questoes")
+}
