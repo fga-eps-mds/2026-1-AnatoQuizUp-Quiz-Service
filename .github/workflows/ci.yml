@@ -20,11 +20,7 @@ jobs:
           POSTGRES_DB: anatoquizup_quiz_test
         ports:
           - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d anatoquizup_quiz_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        options: --health-cmd=pg_isready --health-interval=10s --health-timeout=5s --health-retries=5
 
     env:
       NODE_ENV: test
