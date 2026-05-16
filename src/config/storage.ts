@@ -87,7 +87,7 @@ export async function configurarStorage() {
         Statement: [
           {
             Action: ["s3:GetObject"],
-            Effect: "Allow",
+            Effect: ["Allow"],
             Principal: ["*"],
             Resource: [`arn:aws:s3:::${bucketName}/*`],
           },
