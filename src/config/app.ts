@@ -6,6 +6,7 @@ import { criarOpcoesCors } from "@/config/cors";
 import { env } from "@/config/env";
 import { loggerHttp } from "@/config/logger";
 import { questaoRouter } from "@/modules/questao";
+import { turmaRouter } from "@/modules/turma";
 import { MENSAGENS } from "@/shared/constants/mensagens";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
@@ -35,6 +36,7 @@ aplicacao.get("/health", (_request, response) => {
 aplicacao.use("/api", middlewareTokenInterno);
 roteadorApi.use(middlewareAutenticacao);
 roteadorApi.use("/questoes", questaoRouter);
+roteadorApi.use('/turmas', turmaRouter);
 aplicacao.use("/api/v1", roteadorApi);
 
 aplicacao.use((_request, _response, next) => {
