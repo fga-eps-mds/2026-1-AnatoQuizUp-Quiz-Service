@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, ResolucaoQuestao } from "@prisma/client";
 import type { FiltroQuestaoQuizQueryDto } from "./dto/filtro_questao_quiz_query_dto";
 import type {
   FiltroListarQuestoesQueryDto,
@@ -7,6 +7,7 @@ import type {
 import { mapearTipoApiParaBanco } from "../questao/dto/questao.types";
 import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
+import type { ResponderQuestaoQuizDto } from "./dto/responder_questao_quiz_dto";
 
 const includeQuestaoCompleta = {
   tema: true,
@@ -14,7 +15,9 @@ const includeQuestaoCompleta = {
 };
 
 export class QuizRepository {
-  async filtrar_aleatorio(filtros: FiltroQuestaoQuizQueryDto): Promise<RegistroQuestaoCompleta | null> {
+  async filtrar_aleatorio(
+    filtros: FiltroQuestaoQuizQueryDto,
+  ): Promise<RegistroQuestaoCompleta | null> {
     const where: Prisma.QuestaoWhereInput = {
       excluidoEm: null,
       status: "ATIVO",
@@ -45,10 +48,7 @@ export class QuizRepository {
     return questao;
   }
 
-  async filtrar_questoes_quiz(
-    paginacao: ParametrosPaginacao,
-    filtros: FiltroListarQuestoesQueryDto,
-  ) {
+  async filtrarQuestoesQuiz(paginacao: ParametrosPaginacao, filtros: FiltroListarQuestoesQueryDto) {
     const where: Prisma.QuestaoWhereInput = {
       excluidoEm: null,
       status: "ATIVO",
@@ -78,5 +78,22 @@ export class QuizRepository {
     ]);
 
     return { data: data as RegistroQuestaoCompleta[], total };
+  }
+
+  async registrarTentativa(data: ResponderQuestaoQuizDto, usuarioId: string) {
+    return (await prisma.resolucaoQuestao.create({
+      data: {
+        respostaMarcada: data.respostaMarcada,
+        questaoId: data.questaoId,
+        usuarioId: usuarioId,
+      },
+    })) as ResolucaoQuestao;
+  }
+
+  async buscarResposta(id: string) {
+    return await prisma.questao.findUnique({
+      where: { id, excluidoEm: null },
+      select: { respostaCorreta: true, saibaMais: true },
+    });
   }
 }

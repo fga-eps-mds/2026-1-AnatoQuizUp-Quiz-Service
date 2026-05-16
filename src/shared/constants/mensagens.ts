@@ -1,50 +1,103 @@
-export const MENSAGENS = {
-  apiEmExecucao: "API do AnatoQuizUp em execucao.",
-  erroInterno: "Ocorreu um erro interno inesperado.",
-  erroValidacao: "Falha na validacao da requisicao.",
-  rotaNaoEncontrada: "A rota solicitada nao foi encontrada.",
-  exemploCriado: "Exemplo criado com sucesso.",
-  exemploNaoEncontrado: "Exemplo nao encontrado.",
-  exemploEncontrado: "Exemplo encontrado com sucesso.",
-  questaoCriada: "Questao criada com sucesso.",
-  questaoEncontrada: "Questao encontrada com sucesso.",
-  questaoAtualizada: "Questao atualizada com sucesso.",
-  questaoRemovida: "Questao removida com sucesso.",
-  questaoNaoEncontrada: "Questao nao encontrada.",
-  questaoAlternativasObrigatorias: "A questao deve possuir alternativas validas.",
-  questaoGabaritoObrigatorio: "A questao deve possuir gabarito definido.",
-  usuarioNaoEncontrado: "Usuario nao encontrado.",
-  usuarioEncontrado: "Usuario encontrado com sucesso.",
-  usuarioStatusAlterado: "Status do usuario alterado com sucesso.",
-  usuarioStatusInvalido: "A transicao de status solicitada nao e permitida.",
-  usuarioAutoDesativacaoNaoPermitida: "Nao e permitido desativar o proprio usuario.",
-  usuarioAdminNaoPodeSerAlterado: "Nao e permitido alterar o status de outro administrador.",
-  contextoAdminObrigatorio:
+export const MENSAGENS = {
+
+  apiEmExecucao: "API do AnatoQuizUp em execucao.",
+
+  erroInterno: "Ocorreu um erro interno inesperado.",
+
+  erroValidacao: "Falha na validacao da requisicao.",
+
+  rotaNaoEncontrada: "A rota solicitada nao foi encontrada.",
+
+  exemploCriado: "Exemplo criado com sucesso.",
+
+  exemploNaoEncontrado: "Exemplo nao encontrado.",
+
+  exemploEncontrado: "Exemplo encontrado com sucesso.",
+
+  questaoCriada: "Questao criada com sucesso.",
+
+  questaoEncontrada: "Questao encontrada com sucesso.",
+
+  questaoAtualizada: "Questao atualizada com sucesso.",
+
+  questaoRemovida: "Questao removida com sucesso.",
+
+  questaoNaoEncontrada: "Questao nao encontrada.",
+
+  questaoAlternativasObrigatorias: "A questao deve possuir alternativas validas.",
+
+  questaoGabaritoObrigatorio: "A questao deve possuir gabarito definido.",
+
+  usuarioNaoEncontrado: "Usuario nao encontrado.",
+
+  usuarioEncontrado: "Usuario encontrado com sucesso.",
+
+  usuarioStatusAlterado: "Status do usuario alterado com sucesso.",
+
+  usuarioStatusInvalido: "A transicao de status solicitada nao e permitida.",
+
+  usuarioAutoDesativacaoNaoPermitida: "Nao e permitido desativar o proprio usuario.",
+
+  usuarioAdminNaoPodeSerAlterado: "Nao e permitido alterar o status de outro administrador.",
+
+  contextoAdminObrigatorio:
+
     "Os cabecalhos x-user-id e x-user-papel sao obrigatorios para esta operacao.",
-  usuarioCadastrado: "Usuario cadastrado com sucesso.",
-  emailJaCadastrado: "Email ja cadastrado.",
-  siapeJaCadastrado: "SIAPE ja cadastrado.",
-  professorCadastradoPendente: "Cadastro realizado. Aguarde aprovacao do administrador.",
-  nicknameJaCadastrado: "Ja existe um usuario cadastrado com este nickname.",
-  nacionalidadesListadas: "Nacionalidades listadas com sucesso.",
-  opcoesAcademicasListadas: "Opcoes academicas listadas com sucesso.",
-  emailDisponivel: "Email disponivel para uso.",
-  nicknameDisponivel: "Nickname disponivel para uso.",
-  instrucoesRecuperacaoSenhaEnviadas: "Se o email existir no sistema, enviamos instrucoes.",
-  senhaRedefinida: "Senha redefinida com sucesso.",
-  linkRedefinicaoSenhaInvalido: "Link expirado ou invalido.",
-  estadosListados: "Estados listados com sucesso.",
-  cidadesListadas: "Cidades listadas com sucesso.",
-  origemCorsNaoPermitida: "Origem nao permitida pelo CORS.",
-  loginRealizado: "Login realizado com sucesso.",
-  sessaoRenovada: "Sessao renovada com sucesso.",
-  usuarioAutenticadoEncontrado: "Usuario autenticado retornado com sucesso.",
-  credenciaisInvalidas: "Email ou senha invalidos.",
-  tokenInvalido: "Token invalido.",
-  cadastroEmAnalise: "Seu cadastro esta em analise pelo administrador.",
-  contaDesativada: "Conta desativada. Entre em contato com o administrador.",
-  cadastroRecusado: "Cadastro recusado. Entre em contato com o administrador.",
-  autenticacaoNaoImplementada: "O middleware de autenticacao ainda nao foi implementado.",
-  permissaoPorPapelNaoImplementada:
-    "O middleware de permissao por papel ainda nao foi implementado.",
-} as const;
+  usuarioCadastrado: "Usuario cadastrado com sucesso.",
+
+  emailJaCadastrado: "Email ja cadastrado.",
+
+  siapeJaCadastrado: "SIAPE ja cadastrado.",
+
+  professorCadastradoPendente: "Cadastro realizado. Aguarde aprovacao do administrador.",
+
+  nicknameJaCadastrado: "Ja existe um usuario cadastrado com este nickname.",
+
+  nacionalidadesListadas: "Nacionalidades listadas com sucesso.",
+
+  opcoesAcademicasListadas: "Opcoes academicas listadas com sucesso.",
+
+  emailDisponivel: "Email disponivel para uso.",
+
+  nicknameDisponivel: "Nickname disponivel para uso.",
+
+  instrucoesRecuperacaoSenhaEnviadas: "Se o email existir no sistema, enviamos instrucoes.",
+
+  senhaRedefinida: "Senha redefinida com sucesso.",
+
+  linkRedefinicaoSenhaInvalido: "Link expirado ou invalido.",
+
+  estadosListados: "Estados listados com sucesso.",
+
+  cidadesListadas: "Cidades listadas com sucesso.",
+
+  origemCorsNaoPermitida: "Origem nao permitida pelo CORS.",
+
+  loginRealizado: "Login realizado com sucesso.",
+
+  sessaoRenovada: "Sessao renovada com sucesso.",
+
+  usuarioAutenticadoEncontrado: "Usuario autenticado retornado com sucesso.",
+
+  credenciaisInvalidas: "Email ou senha invalidos.",
+
+  tokenInvalido: "Token invalido.",
+
+  cadastroEmAnalise: "Seu cadastro esta em analise pelo administrador.",
+
+  contaDesativada: "Conta desativada. Entre em contato com o administrador.",
+
+  cadastroRecusado: "Cadastro recusado. Entre em contato com o administrador.",
+
+  autenticacaoNaoImplementada: "O middleware de autenticacao ainda nao foi implementado.",
+
+  permissaoPorPapelNaoImplementada:
+
+    "O middleware de permissao por papel ainda nao foi implementado.",
+
+  erroTentativa: "Erro ao registrar tentativa de resposta",
+
+  erroFeedback: "Erro no feedback da questão"
+
+} as const;
+

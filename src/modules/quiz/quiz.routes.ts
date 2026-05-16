@@ -6,7 +6,7 @@ import { QuizController } from "./quiz.controller";
 import { QuizService } from "./quiz.service";
 import { QuizRepository } from "./quiz.repository";
 import { validarRequisicao } from "@/shared/middlewares/validacao.middleware";
-import { schemaBuscarQuestaoQuiz } from "./quiz.schemas";
+import { schemaBuscarQuestaoQuiz, schemaResponderQuestaoQuiz } from "./quiz.schemas";
 
 const quizRepository = new QuizRepository();
 const quizService = new QuizService(quizRepository);
@@ -19,7 +19,13 @@ quizRouter.use(middlewarePapeis(PAPEIS.ALUNO, PAPEIS.ADMINISTRADOR, PAPEIS.PROFE
 quizRouter.get(
   "/",
   validarRequisicao(schemaBuscarQuestaoQuiz, "query"),
-  quizController.buscar_questoes_quiz,
+  quizController.buscarQuestoesQuiz,
+);
+
+quizRouter.post(
+  "/responder",
+  validarRequisicao(schemaResponderQuestaoQuiz, "body"),
+  quizController.responderQuestaoQuiz,
 );
 
 export { quizRouter };
