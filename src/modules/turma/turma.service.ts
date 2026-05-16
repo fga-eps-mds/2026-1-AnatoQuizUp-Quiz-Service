@@ -1,6 +1,6 @@
-import { TurmaRepository } from './turma.repository';
+import type { TurmaRepository } from './turma.repository';
 import { ErroAplicacao } from '@/shared/errors/erro-aplicacao';
-import { FiltrosListagemTurma } from './dto/turma.types';
+import type { FiltrosListagemTurma } from './dto/turma.types';
 
 export class TurmaService {
   constructor(private readonly turmaRepository: TurmaRepository) {}

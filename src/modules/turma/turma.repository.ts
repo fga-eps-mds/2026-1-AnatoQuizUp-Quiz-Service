@@ -1,6 +1,6 @@
-import { PrismaClient, Turma } from '@prisma/client';
+import type { Turma } from '@prisma/client';
 import { prisma } from '@/config/db';
-import { FiltrosListagemTurma } from './dto/turma.types';
+import type { FiltrosListagemTurma } from './dto/turma.types';
 
 export type TurmaComContagem = Turma & {
   _count: { alunos: number };

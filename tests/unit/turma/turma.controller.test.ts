@@ -1,8 +1,7 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { TurmaController } from '@/modules/turma/turma.controller';
-import { TurmaService } from '@/modules/turma/turma.service';
+import type { TurmaService } from '@/modules/turma/turma.service';
 
-// Mock tipado do TurmaService
 const mockTurmaService = {
   listar: jest.fn(),
   obterPorId: jest.fn(),
@@ -22,19 +21,19 @@ describe('TurmaController', () => {
       usuario: { id: 'prof-123' }, 
       params: {},
       query: {},
-    } as any;
+    } as unknown as Request;
 
     mockRes = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
       send: jest.fn(),
-    } as any;
+    } as unknown as Response;
   });
 
   describe('listar', () => {
     it('deve retornar 200 e a lista de turmas na propriedade dados', async () => {
       const mockTurmas = [{ id: 'turma-1', nome: 'Anatomia' }];
-      mockTurmaService.listar.mockResolvedValue(mockTurmas as any);
+      mockTurmaService.listar.mockResolvedValue(mockTurmas as unknown as never);
 
       mockReq.query = { status: 'ATIVA', busca: 'Anat' };
 
@@ -56,7 +55,7 @@ describe('TurmaController', () => {
   describe('buscarPorId', () => {
     it('deve retornar 200 e a turma pesquisada', async () => {
       const mockTurma = { id: 'turma-123', nome: 'Anatomia' };
-      mockTurmaService.obterPorId.mockResolvedValue(mockTurma as any);
+      mockTurmaService.obterPorId.mockResolvedValue(mockTurma as unknown as never);
 
       mockReq.params = { id: 'turma-123' };
 

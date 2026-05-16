@@ -1,5 +1,5 @@
 import { TurmaService } from '@/modules/turma/turma.service';
-import { TurmaRepository } from '@/modules/turma/turma.repository';
+import type { TurmaRepository } from '@/modules/turma/turma.repository';
 import { ErroAplicacao } from '@/shared/errors/erro-aplicacao';
 import { StatusTurma } from '@prisma/client';
 
@@ -37,7 +37,7 @@ describe('TurmaService', () => {
 
   describe('listar', () => {
     it('deve chamar o repository com os filtros corretos e retornar os dados', async () => {
-      mockTurmaRepository.listarComFiltros.mockResolvedValue([mockTurma] as any);
+      mockTurmaRepository.listarComFiltros.mockResolvedValue([mockTurma] as unknown as never);
 
       const filtros = { professorId: professorDonoId, status: StatusTurma.ATIVA };
       const resultado = await service.listar(filtros);
@@ -50,7 +50,7 @@ describe('TurmaService', () => {
 
   describe('obterPorId', () => {
     it('deve retornar a turma quando ela existir e pertencer ao professor', async () => {
-      mockTurmaRepository.buscarPorId.mockResolvedValue(mockTurma as any);
+      mockTurmaRepository.buscarPorId.mockResolvedValue(mockTurma as unknown as never);
 
       const resultado = await service.obterPorId('turma-123', professorDonoId);
 
@@ -74,7 +74,7 @@ describe('TurmaService', () => {
     });
 
     it('deve lançar ErroAplicacao (403) quando o professor tentar acessar turma de outro', async () => {
-      mockTurmaRepository.buscarPorId.mockResolvedValue(mockTurma as any);
+      mockTurmaRepository.buscarPorId.mockResolvedValue(mockTurma as unknown as never);
 
       await expect(service.obterPorId('turma-123', professorInvasorId))
         .rejects
@@ -91,7 +91,7 @@ describe('TurmaService', () => {
 
   describe('deletar', () => {
     it('deve buscar a turma e chamar a deleção lógica do repository se o professor for o dono', async () => {
-      mockTurmaRepository.buscarPorId.mockResolvedValue(mockTurma as any);
+      mockTurmaRepository.buscarPorId.mockResolvedValue(mockTurma as unknown as never);
       mockTurmaRepository.deletarLogico.mockResolvedValue(undefined);
 
       await service.deletar('turma-123', professorDonoId);
@@ -102,7 +102,7 @@ describe('TurmaService', () => {
     });
 
     it('NÃO deve chamar a deleção lógica se a validação do dono falhar', async () => {
-      mockTurmaRepository.buscarPorId.mockResolvedValue(mockTurma as any);
+      mockTurmaRepository.buscarPorId.mockResolvedValue(mockTurma as unknown as never);
 
       await expect(service.deletar('turma-123', professorInvasorId))
         .rejects

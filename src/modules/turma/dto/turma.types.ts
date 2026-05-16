@@ -1,4 +1,4 @@
-import { StatusTurma } from '@prisma/client';
+import type { StatusTurma } from '@prisma/client';
 
 export interface FiltrosListagemTurma {
   professorId: string; 
