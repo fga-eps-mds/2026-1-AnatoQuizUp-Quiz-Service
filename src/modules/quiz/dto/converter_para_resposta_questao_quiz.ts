@@ -2,7 +2,9 @@ import type { RegistroQuestaoCompleta } from "@/modules/questao/dto/questao.type
 import type { RespostaQuestaoQuizDto } from "./resposta_questao_quiz_dto";
 import { mapearTipoBancoParaApi, TIPO_QUESTAO_API } from "@/modules/questao/dto/questao.types";
 
-export function converterParaRespostaQuestaoQuiz(questao: RegistroQuestaoCompleta): RespostaQuestaoQuizDto {
+export function converterParaRespostaQuestaoQuiz(
+  questao: RegistroQuestaoCompleta,
+): RespostaQuestaoQuizDto {
   const tipo = mapearTipoBancoParaApi(questao.tipoQuestao);
   const alternativas =
     tipo === TIPO_QUESTAO_API.VERDADEIRO_FALSO

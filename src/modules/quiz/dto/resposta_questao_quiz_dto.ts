@@ -1,8 +1,11 @@
-import type { AlternativasMultiplaEscolhaDto, DificuldadeApi, TipoQuestaoApi } from "@/modules/questao/dto/questao.types";
+import type {
+  AlternativasMultiplaEscolhaDto,
+  DificuldadeApi,
+  TipoQuestaoApi,
+} from "@/modules/questao/dto/questao.types";
 import type { StatusQuestao } from "@prisma/client";
 
 export type RespostaQuestaoQuizDto = {
-
   id: string;
   tema: {
     id: string;

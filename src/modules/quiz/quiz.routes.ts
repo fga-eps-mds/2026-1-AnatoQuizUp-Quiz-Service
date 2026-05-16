@@ -17,9 +17,9 @@ const quizRouter = Router();
 quizRouter.use(middlewarePapeis(PAPEIS.ALUNO, PAPEIS.ADMINISTRADOR, PAPEIS.PROFESSOR));
 
 quizRouter.get(
-    "/",
-    validarRequisicao(schemaBuscarQuestaoQuiz, "query"),
-    quizController.buscar_questoes_quiz
+  "/",
+  validarRequisicao(schemaBuscarQuestaoQuiz, "query"),
+  quizController.buscar_questoes_quiz,
 );
 
 export { quizRouter };
