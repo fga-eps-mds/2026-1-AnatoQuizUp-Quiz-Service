@@ -2,6 +2,7 @@ import { prisma } from "@/config/db";
 import type { FiltroListarQuestoesQueryDto } from "@/modules/questao/dto/questao.types";
 import { DIFICULDADE_API, TIPO_QUESTAO_API } from "@/modules/questao/dto/questao.types";
 import { QuizRepository } from "@/modules/quiz/quiz.repository";
+import { AlternativaQuestao } from "@prisma/client";
 
 jest.mock("@/config/db", () => ({
   prisma: {
@@ -10,8 +11,10 @@ jest.mock("@/config/db", () => ({
     questao: {
       findMany: jest.fn(),
       count: jest.fn(),
-      findFirst: jest.fn(),
-      update: jest.fn(),
+      findUnique: jest.fn(),
+    },
+    resolucaoQuestao: {
+      create: jest.fn(),
     },
   },
 }));
@@ -23,7 +26,6 @@ describe("Testa QuizRepository", () => {
 
   beforeEach(() => {
     repository = new QuizRepository();
-
     jest.clearAllMocks();
   });
 
@@ -41,7 +43,7 @@ describe("Testa QuizRepository", () => {
 
     const paginacao = { skip: 0, limit: 5, page: 1 };
 
-    const resposta = await repository.filtrar_questoes_quiz(paginacao, filtros);
+    const resposta = await repository.filtrarQuestoesQuiz(paginacao, filtros);
 
     expect(prisma.questao.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -72,5 +74,33 @@ describe("Testa QuizRepository", () => {
     );
 
     expect(resposta).toEqual({ data: registros, total: totalRegistros });
+  });
+
+  test("Deve criar novo registro de resposta à questão de quiz", async () => {
+    const usuario_id = "usuario_id";
+    const tentativa = {
+      questaoId: "questao-id",
+      tipo: TIPO_QUESTAO_API.VERDADEIRO_FALSO,
+      respostaMarcada: AlternativaQuestao.E,
+    };
+
+    await repository.registrarTentativa(tentativa, usuario_id);
+
+    expect(prisma.resolucaoQuestao.create).toHaveBeenCalledWith({
+      data: {
+        questaoId: "questao-id",
+        respostaMarcada: AlternativaQuestao.E,
+        usuarioId: usuario_id,
+      },
+    });
+  });
+
+  test("Deve buscar um registro de tentativa de resposta", async () => {
+    const id = "id-tentativa";
+    await repository.buscarResposta(id);
+    expect(prisma.questao.findUnique).toHaveBeenCalledWith({
+      where: { id, excluidoEm: null },
+      select: { respostaCorreta: true, saibaMais: true },
+    });
   });
 });

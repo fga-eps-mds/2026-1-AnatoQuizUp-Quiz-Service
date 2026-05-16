@@ -62,7 +62,7 @@ describe("Testa Quiz Controller", () => {
 
     const { response, status, json } = criarResponseMock();
 
-    await controller.buscar_questoes_quiz(request, response, next);
+    await controller.buscarQuestoesQuiz(request, response, next);
 
     expect(quizService.buscar_questoes_quiz).toHaveBeenCalledWith(
       expect.objectContaining({

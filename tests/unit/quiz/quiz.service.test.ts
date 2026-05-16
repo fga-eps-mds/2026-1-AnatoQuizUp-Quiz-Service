@@ -10,6 +10,8 @@ import {
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { MENSAGENS } from "@/shared/constants/mensagens";
+import type { ResponderQuestaoQuizDto } from "@/modules/quiz/dto/responder_questao_quiz_dto";
+import { AlternativaQuestao, type ResolucaoQuestao } from "@prisma/client";
 
 function criarQuestoes(
   ids: string[] = ["id-1", "id-2", "id-3", "id-4"],
@@ -62,9 +64,39 @@ function converterArrayParaQuestoesQuiz(
   return questoes_completas.map(converterParaRespostaQuestaoQuiz);
 }
 
+function criarTentativa() {
+  const agora = new Date("2026-05-09T12:00:00.000Z");
+  return {
+    id: "tentativa-id",
+    criadoEm: agora,
+    atualizadoEm: agora,
+    excluidoEm: null,
+    questaoId: "questao-id",
+    respostaMarcada: AlternativaQuestao.E,
+    usuarioId: "usuario-id",
+  };
+}
+
+function criarFeedback(alternativa: AlternativaQuestao = AlternativaQuestao.E) {
+  return {
+    respostaCorreta: alternativa,
+    saibaMais: "explicação",
+  };
+}
+
+function criarResponderQuestaoQuizDto(): ResponderQuestaoQuizDto {
+  return {
+    questaoId: "questa-id",
+    tipo: "MULTIPLA_ESCOLHA",
+    respostaMarcada: "E",
+  };
+}
+
 function criarRepositoryMock() {
   return {
-    filtrar_questoes_quiz: jest.fn<QuizRepository["filtrar_questoes_quiz"]>(),
+    filtrarQuestoesQuiz: jest.fn<QuizRepository["filtrarQuestoesQuiz"]>(),
+    registrarTentativa: jest.fn<QuizRepository["registrarTentativa"]>(),
+    buscarResposta: jest.fn<QuizRepository["registrarTentativa"]>(),
   } as unknown as jest.Mocked<QuizRepository>;
 }
 
@@ -81,7 +113,7 @@ describe("Testa Quiz Service", () => {
 
   test("Filtrar questoes para quiz", async () => {
     const mockRepositoryResponse = { data: criarQuestoes(), total: 4 };
-    repository.filtrar_questoes_quiz.mockResolvedValue(mockRepositoryResponse);
+    repository.filtrarQuestoesQuiz.mockResolvedValue(mockRepositoryResponse);
 
     const filtro: FiltroListarQuestoesQueryDto = {
       page: 1,
@@ -93,7 +125,7 @@ describe("Testa Quiz Service", () => {
 
     const resultado = await quizService.buscar_questoes_quiz(filtro);
 
-    expect(repository.filtrar_questoes_quiz).toHaveBeenCalledWith(
+    expect(repository.filtrarQuestoesQuiz).toHaveBeenCalledWith(
       expect.objectContaining({
         skip: 0,
         limit: 4,
@@ -108,8 +140,11 @@ describe("Testa Quiz Service", () => {
   });
 
   test("Deve lançar erro caso nenhuma questão seja encotrada", async () => {
-    const mockRepositoryResponse = { data: undefined as unknown as RegistroQuestaoCompleta[], total: 0 };
-    repository.filtrar_questoes_quiz.mockResolvedValue(mockRepositoryResponse);
+    const mockRepositoryResponse = {
+      data: undefined as unknown as RegistroQuestaoCompleta[],
+      total: 0,
+    };
+    repository.filtrarQuestoesQuiz.mockResolvedValue(mockRepositoryResponse);
 
     const filtro: FiltroListarQuestoesQueryDto = {
       page: 1,
@@ -120,16 +155,16 @@ describe("Testa Quiz Service", () => {
     };
 
     const not_nound_error = new ErroAplicacao({
-            codigoStatus: 422,
-            codigo: CodigoDeErro.NAO_ENCONTRADO,
-            mensagem: MENSAGENS.questaoNaoEncontrada,
-          });
+      codigoStatus: 422,
+      codigo: CodigoDeErro.NAO_ENCONTRADO,
+      mensagem: MENSAGENS.questaoNaoEncontrada,
+    });
     await expect(quizService.buscar_questoes_quiz(filtro)).rejects.toThrow(not_nound_error);
   });
 
   test("Testa embaralhamento", async () => {
     const mockRepositoryResponse = { data: criarQuestoes(), total: 4 };
-    repository.filtrar_questoes_quiz.mockResolvedValue(mockRepositoryResponse);
+    repository.filtrarQuestoesQuiz.mockResolvedValue(mockRepositoryResponse);
     const questoes_quiz = converterArrayParaQuestoesQuiz(mockRepositoryResponse.data);
 
     const filtro: FiltroListarQuestoesQueryDto = {
@@ -143,5 +178,62 @@ describe("Testa Quiz Service", () => {
     const resultado = await quizService.buscar_questoes_quiz(filtro);
 
     expect(resultado.dados).not.toEqual(questoes_quiz);
+  });
+
+  test("Testa resposta correta de questão deve retornar boolean true", async () => {
+    repository.registrarTentativa.mockResolvedValue(criarTentativa());
+    repository.buscarResposta.mockResolvedValue(criarFeedback());
+    const resultado = await quizService.responderQuestaoQuiz(
+      criarResponderQuestaoQuizDto(),
+      "usuario-id",
+    );
+
+    expect(resultado.correcao).toBe(true);
+  });
+
+  test("Testa resposta errada de questão deve retornar boolean false", async () => {
+    repository.registrarTentativa.mockResolvedValue(criarTentativa());
+    repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.C));
+    const resultado = await quizService.responderQuestaoQuiz(
+      criarResponderQuestaoQuizDto(),
+      "usuario-id",
+    );
+    expect(resultado.correcao).toBe(false);
+  });
+
+  test("Lança erro caso id do usuário não seja informado", async () => {
+    const error = new ErroAplicacao({
+      codigoStatus: 401,
+      codigo: CodigoDeErro.NAO_AUTORIZADO,
+      mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+    });
+    await expect(
+      quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), ""),
+    ).rejects.toThrow(error);
+  });
+
+  test("Lança erro caso registro da tentativa falhe", async () => {
+    const error = new ErroAplicacao({
+      codigoStatus: 401,
+      codigo: CodigoDeErro.ERRO_TENTATIVA,
+      mensagem: MENSAGENS.erroTentativa,
+    });
+    repository.registrarTentativa.mockResolvedValue(null as unknown as ResolucaoQuestao);
+    await expect(
+      quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), "usuario-id"),
+    ).rejects.toThrow(error);
+  });
+
+  test("Lança erro caso busca do gabarito falhe", async () => {
+    const error = new ErroAplicacao({
+      codigoStatus: 401,
+      codigo: CodigoDeErro.ERRO_FEEDBACK,
+      mensagem: MENSAGENS.erroFeedback,
+    });
+    repository.registrarTentativa.mockResolvedValue(criarTentativa());
+    repository.buscarResposta.mockResolvedValue(null);
+    await expect(
+      quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), "usuario-id"),
+    ).rejects.toThrow(error);
   });
 });
