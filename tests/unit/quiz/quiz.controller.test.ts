@@ -3,7 +3,7 @@ import type { QuizService } from "@/modules/quiz/quiz.service";
 import type { Request, Response, NextFunction } from "express";
 import { QuizController } from "@/modules/quiz/quiz.controller";
 
-import { DIFICULDADE_API, TIPO_QUESTAO_API } from "@/modules/questao/dto/questao.types";
+import { DIFICULDADE_API, TIPO_QUESTAO_API } from "@/modules/questoes/dto/question.types";
 
 function criarQuestaoResposta(): RespostaQuestaoQuizDto {
   return {

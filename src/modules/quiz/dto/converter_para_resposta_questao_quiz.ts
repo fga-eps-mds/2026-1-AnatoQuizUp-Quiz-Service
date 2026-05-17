@@ -1,6 +1,6 @@
-import type { RegistroQuestaoCompleta } from "@/modules/questao/dto/questao.types";
+import type { RegistroQuestaoCompleta } from "@/modules/questoes/dto/question.types";
 import type { RespostaQuestaoQuizDto } from "./resposta_questao_quiz_dto";
-import { mapearTipoBancoParaApi, TIPO_QUESTAO_API } from "@/modules/questao/dto/questao.types";
+import { mapearTipoBancoParaApi, TIPO_QUESTAO_API } from "@/modules/questoes/dto/question.types";
 
 export function converterParaRespostaQuestaoQuiz(
   questao: RegistroQuestaoCompleta,

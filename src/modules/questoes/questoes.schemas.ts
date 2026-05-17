@@ -4,7 +4,7 @@ import { TIPO_QUESTAO_API, DIFICULDADE_API } from "./dto/question.types";
 
 const alternativa = z.string().trim().min(1).max(1000);
 
-const VALORES_DIFICULDADE = [
+export const VALORES_DIFICULDADE = [
   DIFICULDADE_API.FACIL,
   DIFICULDADE_API.MEDIA,
   DIFICULDADE_API.DIFICIL,

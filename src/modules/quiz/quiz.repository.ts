@@ -3,8 +3,8 @@ import type { FiltroQuestaoQuizQueryDto } from "./dto/filtro_questao_quiz_query_
 import type {
   FiltroListarQuestoesQueryDto,
   RegistroQuestaoCompleta,
-} from "../questao/dto/questao.types";
-import { mapearTipoApiParaBanco } from "../questao/dto/questao.types";
+} from "@/modules/questoes/dto/question.types";
+import { mapearTipoApiParaBanco } from "@/modules/questoes/dto/question.types";
 import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
 
@@ -78,5 +78,26 @@ export class QuizRepository {
     ]);
 
     return { data: data as RegistroQuestaoCompleta[], total };
+  }
+
+  async contarQuestoesQuiz(filtros: FiltroListarQuestoesQueryDto) {
+    const where: Prisma.QuestaoWhereInput = {
+      excluidoEm: null,
+      status: "ATIVO",
+    };
+
+    if (filtros.tema) {
+      where.tema = { nome: { contains: filtros.tema, mode: "insensitive" } };
+    }
+
+    if (filtros.dificuldade) {
+      where.dificuldade = filtros.dificuldade;
+    }
+
+    if (filtros.tipo) {
+      where.tipoQuestao = mapearTipoApiParaBanco(filtros.tipo);
+    }
+
+    return await prisma.questao.count({where});
   }
 }

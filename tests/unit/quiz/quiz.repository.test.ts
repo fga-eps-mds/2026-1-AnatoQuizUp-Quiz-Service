@@ -1,6 +1,6 @@
 import { prisma } from "@/config/db";
-import type { FiltroListarQuestoesQueryDto } from "@/modules/questao/dto/questao.types";
-import { DIFICULDADE_API, TIPO_QUESTAO_API } from "@/modules/questao/dto/questao.types";
+import type { FiltroListarQuestoesQueryDto } from "@/modules/questoes/dto/question.types";
+import { DIFICULDADE_API, TIPO_QUESTAO_API } from "@/modules/questoes/dto/question.types";
 import { QuizRepository } from "@/modules/quiz/quiz.repository";
 
 jest.mock("@/config/db", () => ({
@@ -73,4 +73,34 @@ describe("Testa QuizRepository", () => {
 
     expect(resposta).toEqual({ data: registros, total: totalRegistros });
   });
+
+  test("deve contar questões filtradas por tema, dificuldade e tipo", async () => {
+
+  const filtros: FiltroListarQuestoesQueryDto = {
+    tema: "Sistema Cardiovascular",
+    dificuldade: DIFICULDADE_API.MEDIA,
+    tipo: TIPO_QUESTAO_API.MULTIPLA_ESCOLHA,
+  };
+
+
+  await repository.contarQuestoesQuiz(filtros);
+
+  expect(prisma.questao.count).toHaveBeenCalledWith(
+    expect.objectContaining({
+      where: expect.objectContaining({
+        status: "ATIVO",
+        excluidoEm: null,
+        dificuldade: "MEDIA",
+        tipoQuestao: "MULTIPLA_ESCOLHA",
+        tema: {
+          nome: {
+            contains: "Sistema Cardiovascular",
+            mode: "insensitive",
+          },
+        },
+      }),
+    }),
+  );
+
+});
 });

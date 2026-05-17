@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { TIPO_QUESTAO_API } from "../questao/dto/questao.types";
-import { VALORES_DIFICULDADE } from "../questao/questao.schemas";
+import { TIPO_QUESTAO_API } from "../questoes/dto/question.types";
+import { VALORES_DIFICULDADE } from "../questoes/questoes.schemas";
 
 export const schemaBuscarQuestaoQuiz = z.object({
   tema: z.string().trim().optional(),

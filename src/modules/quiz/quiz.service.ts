@@ -3,7 +3,7 @@ import { MENSAGENS } from "@/shared/constants/mensagens";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { converterParaRespostaQuestaoQuiz } from "./dto/converter_para_resposta_questao_quiz";
-import type { FiltroListarQuestoesQueryDto } from "../questao/dto/questao.types";
+import type { FiltroListarQuestoesQueryDto } from "@/modules/questoes/dto/question.types";
 import {
   montarMetadadosPaginacao,
   resolverParametrosPaginacao,
@@ -17,7 +17,14 @@ export class QuizService {
   async buscar_questoes_quiz(
     query: FiltroListarQuestoesQueryDto,
   ): Promise<RespostaPaginada<RespostaQuestaoQuizDto>> {
-    const paginacao = resolverParametrosPaginacao(query);
+
+    let paginacao = resolverParametrosPaginacao(query);
+    
+    const num_questoes_quiz = await this.quizRepository.contarQuestoesQuiz(query);
+    if(num_questoes_quiz){
+      const randomSkip = Math.floor(Math.random() * num_questoes_quiz);
+      paginacao.skip = randomSkip;
+    }
     const { data, total } = await this.quizRepository.filtrar_questoes_quiz(paginacao, query);
 
     if (!data) {
