@@ -2,19 +2,36 @@ import type { Request, Response } from 'express';
 import type { TurmaService } from './turma.service';
 import type { StatusTurma } from '@prisma/client';
 
+type RequestAutenticada = Request & { usuario: { id: string } };
+
 export class TurmaController {
   constructor(private readonly turmaService: TurmaService) {}
 
+  criar = async (req: Request, res: Response) => {
+    const professorId = (req as RequestAutenticada).usuario.id;
+
+    const turma = await this.turmaService.criar(req.body, professorId);
+
+    return res.status(201).json({
+      mensagem: 'Turma criada com sucesso.',
+      dados: turma
+    });
+  };
+
   listar = async (req: Request, res: Response) => {
-    const professorId = (req as Request & { usuario: { id: string } }).usuario.id;
+    const professorId = (req as RequestAutenticada).usuario.id;
     
     const status = req.query.status ? (req.query.status as StatusTurma) : undefined;
     const busca = req.query.busca ? (req.query.busca as string) : undefined;
+    const semestre = req.query.semestre ? (req.query.semestre as string) : undefined;
+    const ano = req.query.ano !== undefined ? Number(req.query.ano) : undefined;
 
     const turmas = await this.turmaService.listar({
       professorId,
       status,
-      busca
+      busca,
+      semestre,
+      ano
     });
 
     return res.status(200).json({
@@ -25,8 +42,7 @@ export class TurmaController {
 
   buscarPorId = async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    // Trocamos o 'any' aqui também
-    const professorId = (req as Request & { usuario: { id: string } }).usuario.id;
+    const professorId = (req as RequestAutenticada).usuario.id;
 
     const turma = await this.turmaService.obterPorId(id, professorId);
 
@@ -36,12 +52,59 @@ export class TurmaController {
     });
   };
 
+  atualizar = async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const professorId = (req as RequestAutenticada).usuario.id;
+
+    const turma = await this.turmaService.atualizar(id, professorId, req.body);
+
+    return res.status(200).json({
+      mensagem: 'Turma atualizada com sucesso.',
+      dados: turma
+    });
+  };
+
   deletar = async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    const professorId = (req as Request & { usuario: { id: string } }).usuario.id;
+    const professorId = (req as RequestAutenticada).usuario.id;
 
     await this.turmaService.deletar(id, professorId);
 
     return res.status(204).send(); 
+  };
+
+  listarAlunos = async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const professorId = (req as RequestAutenticada).usuario.id;
+
+    const alunos = await this.turmaService.listarAlunos(id, professorId);
+
+    return res.status(200).json({
+      mensagem: 'Alunos vinculados listados com sucesso.',
+      dados: alunos
+    });
+  };
+
+  vincularAluno = async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const professorId = (req as RequestAutenticada).usuario.id;
+    const alunoId = req.body.alunoId as string;
+
+    const vinculo = await this.turmaService.vincularAluno(id, professorId, alunoId);
+
+    return res.status(201).json({
+      mensagem: 'Aluno vinculado à turma com sucesso.',
+      dados: vinculo
+    });
+  };
+
+  desvincularAluno = async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const alunoId = req.params.alunoId as string;
+    const professorId = (req as RequestAutenticada).usuario.id;
+
+    await this.turmaService.desvincularAluno(id, professorId, alunoId);
+
+    return res.status(204).send();
   };
 }
