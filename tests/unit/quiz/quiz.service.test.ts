@@ -1,7 +1,7 @@
 import { QuizService } from "@/modules/quiz/quiz.service";
 import { converterParaRespostaQuestaoQuiz } from "@/modules/quiz/dto/converter_para_resposta_questao_quiz";
 import type { RespostaQuestaoQuizDto } from "@/modules/quiz/dto/resposta_questao_quiz_dto";
-import { QuizRepository } from "@/modules/quiz/quiz.repository";
+import type { QuizRepository } from "@/modules/quiz/quiz.repository";
 import {
   DIFICULDADE_API,
   type FiltroListarQuestoesQueryDto,
@@ -98,7 +98,6 @@ function criarRepositoryMock() {
     registrarTentativa: jest.fn<QuizRepository["registrarTentativa"]>(),
     buscarResposta: jest.fn<QuizRepository["registrarTentativa"]>(),
     contarQuestoesQuiz: jest.fn<QuizRepository["contarQuestoesQuiz"]>(),
-
   } as unknown as jest.Mocked<QuizRepository>;
 }
 
@@ -125,7 +124,7 @@ describe("Testa Quiz Service", () => {
       tipo: undefined,
     };
 
-    const resultado = await quizService.buscar_questoes_quiz(filtro);
+    const resultado = await quizService.buscarQuestoesQuiz(filtro);
 
     expect(repository.filtrarQuestoesQuiz).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -156,11 +155,9 @@ describe("Testa Quiz Service", () => {
       limit: 4,
     };
 
-    await quizService.buscar_questoes_quiz(filtro);
+    await quizService.buscarQuestoesQuiz(filtro);
 
-    expect(repository.contarQuestoesQuiz).toHaveBeenCalledWith(
-      filtro,
-    );
+    expect(repository.contarQuestoesQuiz).toHaveBeenCalledWith(filtro);
 
     expect(repository.filtrarQuestoesQuiz).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -172,19 +169,19 @@ describe("Testa Quiz Service", () => {
   });
 
   test("Não deve alterar skip quando não houver questões", async () => {
-  repository.contarQuestoesQuiz.mockResolvedValue(0);
+    repository.contarQuestoesQuiz.mockResolvedValue(0);
 
   repository.filtrarQuestoesQuiz.mockResolvedValue({
     data: criarQuestoes(),
     total: 0,
   });
 
-  const filtro: FiltroListarQuestoesQueryDto = {
-    page: 1,
-    limit: 4,
-  };
+    const filtro: FiltroListarQuestoesQueryDto = {
+      page: 1,
+      limit: 4,
+    };
 
-  await quizService.buscar_questoes_quiz(filtro);
+    await quizService.buscarQuestoesQuiz(filtro);
 
   expect(repository.filtrarQuestoesQuiz).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -215,7 +212,7 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.NAO_ENCONTRADO,
       mensagem: MENSAGENS.questaoNaoEncontrada,
     });
-    await expect(quizService.buscar_questoes_quiz(filtro)).rejects.toThrow(not_nound_error);
+    await expect(quizService.buscarQuestoesQuiz(filtro)).rejects.toThrow(not_nound_error);
   });
 
   test("Testa embaralhamento", async () => {
@@ -231,7 +228,7 @@ describe("Testa Quiz Service", () => {
       tipo: undefined,
     };
 
-    const resultado = await quizService.buscar_questoes_quiz(filtro);
+    const resultado = await quizService.buscarQuestoesQuiz(filtro);
 
     expect(resultado.dados).not.toEqual(questoes_quiz);
   });

@@ -1,5 +1,4 @@
 export const MENSAGENS = {
-
   apiEmExecucao: "API do AnatoQuizUp em execucao.",
 
   erroInterno: "Ocorreu um erro interno inesperado.",
@@ -41,7 +40,6 @@ export const MENSAGENS = {
   usuarioAdminNaoPodeSerAlterado: "Nao e permitido alterar o status de outro administrador.",
 
   contextoAdminObrigatorio:
-
     "Os cabecalhos x-user-id e x-user-papel sao obrigatorios para esta operacao.",
   usuarioCadastrado: "Usuario cadastrado com sucesso.",
 
@@ -92,7 +90,6 @@ export const MENSAGENS = {
   autenticacaoNaoImplementada: "O middleware de autenticacao ainda nao foi implementado.",
 
   permissaoPorPapelNaoImplementada:
-
     "O middleware de permissao por papel ainda nao foi implementado.",
 
   erroTentativa: "Erro ao registrar tentativa de resposta",
@@ -100,4 +97,3 @@ export const MENSAGENS = {
   erroFeedback: "Erro no feedback da questão"
 
 } as const;
-

@@ -41,4 +41,3 @@ if (!parsedEnv.success) {
 
 export const env = parsedEnv.data;
 export const jwtSecretKey = env.JWT_SECRET_KEY;
-

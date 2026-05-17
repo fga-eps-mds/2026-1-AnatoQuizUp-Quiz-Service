@@ -36,7 +36,7 @@ describe("Testa Quiz Controller", () => {
 
   beforeEach(() => {
     quizService = {
-      buscar_questoes_quiz: jest.fn(),
+      buscarQuestoesQuiz: jest.fn(),
     } as unknown as jest.Mocked<QuizService>;
     controller = new QuizController(quizService);
     jest.clearAllMocks();
@@ -48,7 +48,7 @@ describe("Testa Quiz Controller", () => {
       metadados: { total: 1, page: 1, limit: 10, totalPages: 1 },
     };
 
-    quizService.buscar_questoes_quiz.mockResolvedValue(mockResposta);
+    quizService.buscarQuestoesQuiz.mockResolvedValue(mockResposta);
 
     const request = {
       query: {
@@ -64,7 +64,7 @@ describe("Testa Quiz Controller", () => {
 
     await controller.buscarQuestoesQuiz(request, response, next);
 
-    expect(quizService.buscar_questoes_quiz).toHaveBeenCalledWith(
+    expect(quizService.buscarQuestoesQuiz).toHaveBeenCalledWith(
       expect.objectContaining({
         tema: "Cardio",
         dificuldade: "MEDIA",
@@ -73,5 +73,24 @@ describe("Testa Quiz Controller", () => {
 
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith(mockResposta);
+  });
+
+  test("deve chamar next quando o service lançar erro", async () => {
+    const erro = new Error("Erro no serviço");
+
+    quizService.buscarQuestoesQuiz.mockRejectedValue(erro);
+
+    const request = {
+      query: {
+        tema: "Cardio",
+      },
+    } as unknown as Request;
+
+    const { response } = criarResponseMock();
+    const nextMock = jest.fn();
+
+    await controller.buscarQuestoesQuiz(request, response, nextMock);
+
+    expect(nextMock).toHaveBeenCalledWith(erro);
   });
 });

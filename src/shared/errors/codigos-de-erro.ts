@@ -1,5 +1,4 @@
 export const CodigoDeErro = {
-
   REQUISICAO_INVALIDA: "REQUISICAO_INVALIDA",
 
   ERRO_DE_VALIDACAO: "ERRO_DE_VALIDACAO",
@@ -36,7 +35,4 @@ export const CodigoDeErro = {
 
 } as const;
 
-
-
 export type ValorCodigoDeErro = (typeof CodigoDeErro)[keyof typeof CodigoDeErro];
-

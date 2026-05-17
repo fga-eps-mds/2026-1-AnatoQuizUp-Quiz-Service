@@ -26,14 +26,9 @@ const questionRepository = new QuestionRepository();
 
 const minioService = new MinioService();
 
-const questionService = new QuestionService(
-  questionRepository,
-  minioService,
-);
+const questionService = new QuestionService(questionRepository, minioService);
 
-const questionController = new QuestionController(
-  questionService,
-);
+const questionController = new QuestionController(questionService);
 
 // -----------------------------------------------------------------------------
 // Router
@@ -53,21 +48,12 @@ const upload = multer({
   },
 
   fileFilter: (request, file, callback) => {
-    const formatosAceitos = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "image/jpg",
-    ];
+    const formatosAceitos = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
 
     if (formatosAceitos.includes(file.mimetype)) {
       callback(null, true);
     } else {
-      callback(
-        new Error(
-          "Formato de arquivo inválido. Use JPEG, PNG ou WEBP.",
-        ),
-      );
+      callback(new Error("Formato de arquivo inválido. Use JPEG, PNG ou WEBP."));
     }
   },
 });
@@ -76,12 +62,7 @@ const upload = multer({
 // Middlewares
 // -----------------------------------------------------------------------------
 
-questionRouter.use(
-  middlewarePapeis(
-    PAPEIS.PROFESSOR,
-    PAPEIS.ADMINISTRADOR,
-  ),
-);
+questionRouter.use(middlewarePapeis(PAPEIS.PROFESSOR, PAPEIS.ADMINISTRADOR));
 
 // -----------------------------------------------------------------------------
 // Routes
@@ -96,48 +77,33 @@ questionRouter.post(
 
 questionRouter.get(
   "/busca",
-  validarRequisicao(
-    schemaFiltrarQuestoes,
-    "query",
-  ),
+  validarRequisicao(schemaFiltrarQuestoes, "query"),
   questionController.filtrar,
 );
 
 questionRouter.get(
   "/",
-  validarRequisicao(
-    schemaListarQuestoes,
-    "query",
-  ),
+  validarRequisicao(schemaListarQuestoes, "query"),
   questionController.listar,
 );
 
 questionRouter.get(
   "/:id",
-  validarRequisicao(
-    schemaBuscarQuestaoPorId,
-    "params",
-  ),
+  validarRequisicao(schemaBuscarQuestaoPorId, "params"),
   questionController.buscarPorId,
 );
 
 questionRouter.put(
   "/:id",
   upload.single("imagem"),
-  validarRequisicao(
-    schemaBuscarQuestaoPorId,
-    "params",
-  ),
+  validarRequisicao(schemaBuscarQuestaoPorId, "params"),
   validarRequisicao(schemaAtualizarQuestao),
   questionController.atualizar,
 );
 
 questionRouter.delete(
   "/:id",
-  validarRequisicao(
-    schemaBuscarQuestaoPorId,
-    "params",
-  ),
+  validarRequisicao(schemaBuscarQuestaoPorId, "params"),
   questionController.remover,
 );
 

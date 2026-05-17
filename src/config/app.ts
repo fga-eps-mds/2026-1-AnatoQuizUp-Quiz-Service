@@ -33,7 +33,6 @@ aplicacao.get("/health", (_request, response) => {
   });
 });
 
-
 aplicacao.use("/api", middlewareTokenInterno);
 roteadorApi.use(middlewareAutenticacao);
 roteadorApi.use("/quiz", quizRouter);
