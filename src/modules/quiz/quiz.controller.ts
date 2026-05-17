@@ -13,7 +13,7 @@ export class QuizController {
     next: NextFunction,
   ) => {
     try {
-      const questoes_quiz = await this.quizService.buscar_questoes_quiz(request.query);
+      const questoes_quiz = await this.quizService.buscarQuestoesQuiz(request.query);
       return response.status(200).json(questoes_quiz);
     } catch (error) {
       return next(error);
