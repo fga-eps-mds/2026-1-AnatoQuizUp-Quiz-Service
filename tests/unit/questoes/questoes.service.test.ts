@@ -7,9 +7,7 @@ import type {
 } from "../../../src/modules/questoes/dto/question.types";
 import { MENSAGENS } from "@/shared/constants/mensagens";
 
-function criarQuestao(
-  overrides: Partial<RegistroQuestaoCompleta> = {},
-): RegistroQuestaoCompleta {
+function criarQuestao(overrides: Partial<RegistroQuestaoCompleta> = {}): RegistroQuestaoCompleta {
   const agora = new Date("2026-05-09T12:00:00.000Z");
   return {
     id: "questao-1",
@@ -57,7 +55,11 @@ function criarInputValido(): CriarQuestaoDto {
     alternativaCorreta: "B",
     explicacaoPedagogica: "Explicacao",
     alternativas: {
-      A: "A", B: "B", C: "C", D: "D", E: "E",
+      A: "A",
+      B: "B",
+      C: "C",
+      D: "D",
+      E: "E",
     },
   };
 }
@@ -76,7 +78,7 @@ describe("QuestionService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     repository = {
       listar: jest.fn(),
       buscarPorId: jest.fn(),
@@ -86,8 +88,8 @@ describe("QuestionService", () => {
       filtrar: jest.fn(),
     } as unknown as jest.Mocked<QuestionRepository>;
 
-    minioService = { 
-      uploadImagem: jest.fn() 
+    minioService = {
+      uploadImagem: jest.fn(),
     } as unknown as jest.Mocked<MinioService>;
 
     service = new QuestionService(repository, minioService);
@@ -137,33 +139,57 @@ describe("QuestionService", () => {
     });
 
     test("deve lançar 401 se usuarioId for vazio", async () => {
-      await expect(service.criar(criarInputValido(), undefined, "")).rejects.toMatchObject({ codigoStatus: 401 });
+      await expect(service.criar(criarInputValido(), undefined, "")).rejects.toMatchObject({
+        codigoStatus: 401,
+      });
     });
 
     test("validar falta de gabarito", async () => {
-      const input = { ...criarInputValido(), alternativaCorreta: undefined } as unknown as CriarQuestaoDto;
-      await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(MENSAGENS.questaoGabaritoObrigatorio);
+      const input = {
+        ...criarInputValido(),
+        alternativaCorreta: undefined,
+      } as unknown as CriarQuestaoDto;
+      await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(
+        MENSAGENS.questaoGabaritoObrigatorio,
+      );
     });
 
     test("validar alternativas vazias", async () => {
       const input = { ...criarInputValido(), alternativas: {} } as unknown as CriarQuestaoDto;
-      await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(MENSAGENS.questaoAlternativasObrigatorias);
+      await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(
+        MENSAGENS.questaoAlternativasObrigatorias,
+      );
     });
 
     test("validar falta de opções na Multipla Escolha", async () => {
       const input = criarInputValido();
-      delete (input.alternativas as unknown as Record<string, string>).E; 
-      await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(MENSAGENS.questaoAlternativasObrigatorias);
+      delete (input.alternativas as unknown as Record<string, string>).E;
+      await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(
+        MENSAGENS.questaoAlternativasObrigatorias,
+      );
     });
 
     test("validar falta de C ou E no Verdadeiro/Falso", async () => {
-      const input = { ...criarInputValido(), tipo: "VERDADEIRO_FALSO", alternativas: { C: "Certo" } } as unknown as CriarQuestaoDto;
-      await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(MENSAGENS.questaoAlternativasObrigatorias);
+      const input = {
+        ...criarInputValido(),
+        tipo: "VERDADEIRO_FALSO",
+        alternativas: { C: "Certo" },
+      } as unknown as CriarQuestaoDto;
+      await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(
+        MENSAGENS.questaoAlternativasObrigatorias,
+      );
     });
 
     test("validar gabarito incompatível com V/F", async () => {
-      const input = { ...criarInputValido(), tipo: "VERDADEIRO_FALSO", alternativas: { C: "C", E: "E" }, alternativaCorreta: "A" } as unknown as CriarQuestaoDto;
-      await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(MENSAGENS.questaoGabaritoObrigatorio);
+      const input = {
+        ...criarInputValido(),
+        tipo: "VERDADEIRO_FALSO",
+        alternativas: { C: "C", E: "E" },
+        alternativaCorreta: "A",
+      } as unknown as CriarQuestaoDto;
+      await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(
+        MENSAGENS.questaoGabaritoObrigatorio,
+      );
     });
   });
 
@@ -173,7 +199,11 @@ describe("QuestionService", () => {
       repository.buscarPorId.mockResolvedValue(antiga);
       repository.atualizar.mockResolvedValue(antiga);
       await service.atualizar("1", {}, undefined, "u-1");
-      expect(repository.atualizar).toHaveBeenCalledWith("1", expect.objectContaining({ enunciado: antiga.enunciado }), "u-1");
+      expect(repository.atualizar).toHaveBeenCalledWith(
+        "1",
+        expect.objectContaining({ enunciado: antiga.enunciado }),
+        "u-1",
+      );
     });
 
     test("atualizar deve carregar nova imagem se enviada", async () => {
@@ -199,11 +229,17 @@ describe("QuestionService", () => {
 
   describe("Casos de Borda Alternativas", () => {
     test("extrairAlternativasAtuais deve tratar questao sem alternativas", async () => {
-      const q = criarQuestao({ alternativas: null as unknown as RegistroQuestaoCompleta["alternativas"] });
+      const q = criarQuestao({
+        alternativas: null as unknown as RegistroQuestaoCompleta["alternativas"],
+      });
       repository.buscarPorId.mockResolvedValue(q);
       repository.atualizar.mockResolvedValue(q);
       await service.atualizar("1", {}, undefined, "u-1");
-      expect(repository.atualizar).toHaveBeenCalledWith("1", expect.objectContaining({ alternativas: {} }), "u-1");
+      expect(repository.atualizar).toHaveBeenCalledWith(
+        "1",
+        expect.objectContaining({ alternativas: {} }),
+        "u-1",
+      );
     });
 
     test("extrairAlternativasAtuais para CERTO_ERRADO", async () => {
@@ -211,7 +247,13 @@ describe("QuestionService", () => {
       repository.buscarPorId.mockResolvedValue(q);
       repository.atualizar.mockResolvedValue(q);
       await service.atualizar("1", {}, undefined, "u-1");
-      expect(repository.atualizar).toHaveBeenCalledWith("1", expect.objectContaining({ alternativas: { C: q.alternativas?.alternativaC, E: q.alternativas?.alternativaE } }), "u-1");
+      expect(repository.atualizar).toHaveBeenCalledWith(
+        "1",
+        expect.objectContaining({
+          alternativas: { C: q.alternativas?.alternativaC, E: q.alternativas?.alternativaE },
+        }),
+        "u-1",
+      );
     });
   });
 });

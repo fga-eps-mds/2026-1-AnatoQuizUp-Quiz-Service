@@ -17,11 +17,10 @@ export class QuizService {
   async buscar_questoes_quiz(
     query: FiltroListarQuestoesQueryDto,
   ): Promise<RespostaPaginada<RespostaQuestaoQuizDto>> {
+    const paginacao = resolverParametrosPaginacao(query);
 
-    let paginacao = resolverParametrosPaginacao(query);
-    
     const num_questoes_quiz = await this.quizRepository.contarQuestoesQuiz(query);
-    if(num_questoes_quiz){
+    if (num_questoes_quiz) {
       const randomSkip = Math.floor(Math.random() * num_questoes_quiz);
       paginacao.skip = randomSkip;
     }

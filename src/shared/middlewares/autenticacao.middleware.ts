@@ -38,11 +38,7 @@ function validarStatusUsuario(status: string): void {
   });
 }
 
-export function middlewareAutenticacao(
-  request: Request,
-  _response: Response,
-  next: NextFunction,
-) {
+export function middlewareAutenticacao(request: Request, _response: Response, next: NextFunction) {
   const token = obterTokenDoCabecalho(request);
   const payload: PayloadAutenticacao = verificarTokenJwt(token);
 

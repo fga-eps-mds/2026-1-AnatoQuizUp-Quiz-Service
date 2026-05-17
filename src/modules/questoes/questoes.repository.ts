@@ -3,13 +3,16 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
 
-import type { CriarQuestaoDto, FiltroListarQuestoesQueryDto, RegistroQuestaoCompleta } from "./dto/question.types";
+import type {
+  CriarQuestaoDto,
+  FiltroListarQuestoesQueryDto,
+  RegistroQuestaoCompleta,
+} from "./dto/question.types";
 import type {
   AlternativasMultiplaEscolhaDto,
   AlternativasVerdadeiroFalsoDto,
 } from "./dto/question.types";
 import { mapearTipoApiParaBanco } from "./dto/question.types";
-
 
 const includeQuestaoCompleta = {
   tema: true,
@@ -52,14 +55,14 @@ export class QuestionRepository {
       status: "ATIVO",
     };
 
-   if (filtros.tema) {
-      where.tema = { nome: { contains: filtros.tema, mode: 'insensitive' } };
+    if (filtros.tema) {
+      where.tema = { nome: { contains: filtros.tema, mode: "insensitive" } };
     }
-    
+
     if (filtros.dificuldade) {
       where.dificuldade = filtros.dificuldade;
     }
-    
+
     if (filtros.tipo) {
       where.tipoQuestao = mapearTipoApiParaBanco(filtros.tipo);
     }

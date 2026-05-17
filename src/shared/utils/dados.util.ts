@@ -1,3 +1,3 @@
-export function converterParaIsoString(value: Date): string {
-  return value.toISOString();
-}
+export function converterParaIsoString(value: Date): string {
+  return value.toISOString();
+}

@@ -14,7 +14,9 @@ const includeQuestaoCompleta = {
 };
 
 export class QuizRepository {
-  async filtrar_aleatorio(filtros: FiltroQuestaoQuizQueryDto): Promise<RegistroQuestaoCompleta | null> {
+  async filtrar_aleatorio(
+    filtros: FiltroQuestaoQuizQueryDto,
+  ): Promise<RegistroQuestaoCompleta | null> {
     const where: Prisma.QuestaoWhereInput = {
       excluidoEm: null,
       status: "ATIVO",
@@ -98,6 +100,6 @@ export class QuizRepository {
       where.tipoQuestao = mapearTipoApiParaBanco(filtros.tipo);
     }
 
-    return await prisma.questao.count({where});
+    return await prisma.questao.count({ where });
   }
 }

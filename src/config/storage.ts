@@ -1,12 +1,12 @@
 import { S3Client } from "@aws-sdk/client-s3";
-import * as Minio from 'minio';
+import * as Minio from "minio";
 
 declare global {
   var __minio_native__: Minio.Client | undefined;
   var __s3_client__: S3Client | undefined;
 }
 
-const rawEndpoint = process.env.MINIO_ENDPOINT; 
+const rawEndpoint = process.env.MINIO_ENDPOINT;
 const accessKey = process.env.MINIO_ROOT_USER;
 const secretKey = process.env.MINIO_ROOT_PASSWORD;
 const apiPort = process.env.MINIO_API_PORT;
@@ -42,23 +42,27 @@ export function montarEndpointStorage(endpoint: string, portaApi: string) {
 
 export const minioEndpointConfig = montarEndpointStorage(rawEndpoint, apiPort);
 
-export const minioAdmin = global.__minio_native__ ?? new Minio.Client({
-  endPoint: minioEndpointConfig.hostname,
-  port: minioEndpointConfig.port,
-  useSSL: minioEndpointConfig.useSSL,
-  accessKey,
-  secretKey,
-});
+export const minioAdmin =
+  global.__minio_native__ ??
+  new Minio.Client({
+    endPoint: minioEndpointConfig.hostname,
+    port: minioEndpointConfig.port,
+    useSSL: minioEndpointConfig.useSSL,
+    accessKey,
+    secretKey,
+  });
 
-export const s3Client = global.__s3_client__ ?? new S3Client({
-  endpoint: minioEndpointConfig.s3Endpoint,
-  region: "us-east-1",
-  credentials: {
-    accessKeyId: accessKey,
-    secretAccessKey: secretKey,
-  },
-  forcePathStyle: true, 
-});
+export const s3Client =
+  global.__s3_client__ ??
+  new S3Client({
+    endpoint: minioEndpointConfig.s3Endpoint,
+    region: "us-east-1",
+    credentials: {
+      accessKeyId: accessKey,
+      secretAccessKey: secretKey,
+    },
+    forcePathStyle: true,
+  });
 
 if (!isProduction) {
   global.__minio_native__ = minioAdmin;
@@ -66,7 +70,7 @@ if (!isProduction) {
 }
 
 export async function configurarStorage() {
-  const bucketName = 'anatoquizup-imagens';
+  const bucketName = "anatoquizup-imagens";
 
   try {
     const existe = await minioAdmin.bucketExists(bucketName);
@@ -76,12 +80,12 @@ export async function configurarStorage() {
       await minioAdmin.makeBucket(bucketName);
 
       const policy = {
-        Version: '2012-10-17',
+        Version: "2012-10-17",
         Statement: [
           {
-            Action: ['s3:GetObject'],
-            Effect: 'Allow',
-            Principal: "*", 
+            Action: ["s3:GetObject"],
+            Effect: "Allow",
+            Principal: "*",
             Resource: [`arn:aws:s3:::${bucketName}/*`],
           },
         ],

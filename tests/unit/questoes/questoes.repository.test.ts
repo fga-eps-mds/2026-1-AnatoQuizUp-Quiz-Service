@@ -69,7 +69,7 @@ describe("QuestionRepository", () => {
     const filtros = {
       tema: "Sistema Cardiovascular",
       dificuldade: "MEDIA",
-      tipo: "MULTIPLA_ESCOLHA"
+      tipo: "MULTIPLA_ESCOLHA",
     };
 
     const paginacao = { skip: 0, limit: 5 };
@@ -92,7 +92,7 @@ describe("QuestionRepository", () => {
         }),
         skip: 0,
         take: 5,
-      })
+      }),
     );
 
     expect(prisma.questao.count).toHaveBeenCalledWith(
@@ -101,7 +101,7 @@ describe("QuestionRepository", () => {
           status: "ATIVO",
           dificuldade: "MEDIA",
         }),
-      })
+      }),
     );
 
     expect(resposta).toEqual({ data: registros, total: totalRegistros });
@@ -126,7 +126,7 @@ describe("QuestionRepository", () => {
         tema: "Anatomia",
         enunciado: "Enunciado",
         tipo: "MULTIPLA_ESCOLHA",
-        dificuldade:"DIFICIL",
+        dificuldade: "DIFICIL",
         imagem: "https://cdn.example.com/imagem.png",
         alternativaCorreta: "A",
         explicacaoPedagogica: "Explicacao",
@@ -171,45 +171,45 @@ describe("QuestionRepository", () => {
 
   test("atualizar deve criar um NOVO tema se o tema passado não existir", async () => {
     const transacaoMock = {
-      questao: { 
-        update: jest.fn(), 
-        create: jest.fn().mockResolvedValue({ id: "nova-questao-id" }) 
+      questao: {
+        update: jest.fn(),
+        create: jest.fn().mockResolvedValue({ id: "nova-questao-id" }),
       },
-      tema: { 
-        findFirst: jest.fn().mockResolvedValue(null), 
-        create: jest.fn().mockResolvedValue({ id: "tema-novo-id" }) 
+      tema: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: "tema-novo-id" }),
       },
     };
-    
+
     transactionMock.mockImplementation((cb) => cb(transacaoMock));
 
-    const dadosParaAtualizar = { 
-      tema: "Tema Inexistente", 
+    const dadosParaAtualizar = {
+      tema: "Tema Inexistente",
       enunciado: "Novo enunciado",
       alternativas: {
         A: "Opção A",
         B: "Opção B",
         C: "Opção C",
         D: "Opção D",
-        E: "Opção E"
+        E: "Opção E",
       },
       tipo: "MULTIPLA_ESCOLHA" as const,
       dificuldade: "FACIL" as const,
-      alternativaCorreta: "A" as const
+      alternativaCorreta: "A" as const,
     };
 
     await repository.atualizar("id-velho", dadosParaAtualizar, "autor-1");
 
     expect(transacaoMock.tema.create).toHaveBeenCalledWith({
-      data: { nome: "Tema Inexistente" }
+      data: { nome: "Tema Inexistente" },
     });
 
     expect(transacaoMock.questao.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          temaId: "tema-novo-id"
-        })
-      })
+          temaId: "tema-novo-id",
+        }),
+      }),
     );
   });
 });

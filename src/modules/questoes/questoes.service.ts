@@ -20,15 +20,14 @@ import {
   mapearTipoBancoParaApi,
 } from "./dto/question.types";
 import type { QuestionRepository } from "./questoes.repository";
-import type {AlternativaQuestao, Dificuldade } from "@prisma/client";
-import type { MinioService } from './minio.service';
+import type { AlternativaQuestao, Dificuldade } from "@prisma/client";
+import type { MinioService } from "./minio.service";
 
 export class QuestionService {
   constructor(
     private readonly questionRepository: QuestionRepository,
     private readonly minioService: MinioService,
   ) {}
-  
 
   async listar(query: ListarQuestoesQueryDto): Promise<RespostaPaginada<RespostaQuestaoDto>> {
     const paginacao = resolverParametrosPaginacao(query);
@@ -50,7 +49,9 @@ export class QuestionService {
     return converterParaRespostaQuestao(questao);
   }
 
-  async filtrar(query: FiltroListarQuestoesQueryDto): Promise<RespostaPaginada<RespostaQuestaoDto>> {
+  async filtrar(
+    query: FiltroListarQuestoesQueryDto,
+  ): Promise<RespostaPaginada<RespostaQuestaoDto>> {
     const paginacao = resolverParametrosPaginacao(query);
     const { data, total } = await this.questionRepository.filtrar(paginacao, query);
 
@@ -61,11 +62,10 @@ export class QuestionService {
   }
 
   async criar(
-    data: CriarQuestaoDto, 
-    arquivoImagem: Express.Multer.File | undefined, 
-    criadoPorId: string
+    data: CriarQuestaoDto,
+    arquivoImagem: Express.Multer.File | undefined,
+    criadoPorId: string,
   ): Promise<RespostaQuestaoDto> {
-    
     if (!criadoPorId) {
       throw new ErroAplicacao({
         codigoStatus: 401,
@@ -84,7 +84,7 @@ export class QuestionService {
 
     const dadosParaSalvar = {
       ...data,
-      imagem: urlImagemMinio ?? data.imagem ?? "" 
+      imagem: urlImagemMinio ?? data.imagem ?? "",
     };
 
     const questao = await this.questionRepository.criar(dadosParaSalvar, criadoPorId);
@@ -92,20 +92,19 @@ export class QuestionService {
     return converterParaRespostaQuestao(questao);
   }
 
-async atualizar(
-    id: string, 
-    data: AtualizarQuestaoDto, 
-    arquivoImagem: Express.Multer.File | undefined, 
-    usuarioId: string
+  async atualizar(
+    id: string,
+    data: AtualizarQuestaoDto,
+    arquivoImagem: Express.Multer.File | undefined,
+    usuarioId: string,
   ): Promise<RespostaQuestaoDto> {
-    
     const questaoAntiga = await this.questionRepository.buscarPorId(id);
     if (!questaoAntiga) throw this.erroQuestaoNaoEncontrada(id);
 
     let urlImagemFinal = questaoAntiga.urlImagem ?? "";
 
     if (arquivoImagem) {
-      urlImagemFinal = await this.minioService.uploadImagem(arquivoImagem); 
+      urlImagemFinal = await this.minioService.uploadImagem(arquivoImagem);
     }
 
     const dadosNovaQuestao: CriarQuestaoDto = {
@@ -114,9 +113,11 @@ async atualizar(
       tipo: data.tipo ?? mapearTipoBancoParaApi(questaoAntiga.tipoQuestao),
       dificuldade: (data.dificuldade ?? questaoAntiga.dificuldade) as Dificuldade,
       imagem: urlImagemFinal,
-      alternativaCorreta: (data.alternativaCorreta ?? questaoAntiga.respostaCorreta) as AlternativaQuestao,
+      alternativaCorreta: (data.alternativaCorreta ??
+        questaoAntiga.respostaCorreta) as AlternativaQuestao,
       explicacaoPedagogica: data.explicacaoPedagogica ?? questaoAntiga.saibaMais ?? "",
-      alternativas: (data.alternativas ?? this.extrairAlternativasAtuais(questaoAntiga)) as AlternativasQuestaoDto,
+      alternativas: (data.alternativas ??
+        this.extrairAlternativasAtuais(questaoAntiga)) as AlternativasQuestaoDto,
     };
 
     const novaQuestao = await this.questionRepository.atualizar(id, dadosNovaQuestao, usuarioId);

@@ -75,32 +75,29 @@ describe("Testa QuizRepository", () => {
   });
 
   test("deve contar questões filtradas por tema, dificuldade e tipo", async () => {
+    const filtros: FiltroListarQuestoesQueryDto = {
+      tema: "Sistema Cardiovascular",
+      dificuldade: DIFICULDADE_API.MEDIA,
+      tipo: TIPO_QUESTAO_API.MULTIPLA_ESCOLHA,
+    };
 
-  const filtros: FiltroListarQuestoesQueryDto = {
-    tema: "Sistema Cardiovascular",
-    dificuldade: DIFICULDADE_API.MEDIA,
-    tipo: TIPO_QUESTAO_API.MULTIPLA_ESCOLHA,
-  };
+    await repository.contarQuestoesQuiz(filtros);
 
-
-  await repository.contarQuestoesQuiz(filtros);
-
-  expect(prisma.questao.count).toHaveBeenCalledWith(
-    expect.objectContaining({
-      where: expect.objectContaining({
-        status: "ATIVO",
-        excluidoEm: null,
-        dificuldade: "MEDIA",
-        tipoQuestao: "MULTIPLA_ESCOLHA",
-        tema: {
-          nome: {
-            contains: "Sistema Cardiovascular",
-            mode: "insensitive",
+    expect(prisma.questao.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: "ATIVO",
+          excluidoEm: null,
+          dificuldade: "MEDIA",
+          tipoQuestao: "MULTIPLA_ESCOLHA",
+          tema: {
+            nome: {
+              contains: "Sistema Cardiovascular",
+              mode: "insensitive",
+            },
           },
-        },
+        }),
       }),
-    }),
-  );
-
-});
+    );
+  });
 });
