@@ -1,24 +1,12 @@
 import type { RegistroQuestaoCompleta } from "@/modules/questoes/dto/question.types";
 import type { RespostaQuestaoQuizDto } from "./resposta_questao_quiz_dto";
-import { mapearTipoBancoParaApi, TIPO_QUESTAO_API } from "@/modules/questoes/dto/question.types";
+import { mapearTipoBancoParaApi, montarAlternativas } from "@/modules/questoes/dto/question.types";
 
 export function converterParaRespostaQuestaoQuiz(
   questao: RegistroQuestaoCompleta,
 ): RespostaQuestaoQuizDto {
   const tipo = mapearTipoBancoParaApi(questao.tipoQuestao);
-  const alternativas =
-    tipo === TIPO_QUESTAO_API.VERDADEIRO_FALSO
-      ? {
-          C: questao.alternativas?.alternativaC,
-          E: questao.alternativas?.alternativaE,
-        }
-      : {
-          A: questao.alternativas?.alternativaA,
-          B: questao.alternativas?.alternativaB,
-          C: questao.alternativas?.alternativaC,
-          D: questao.alternativas?.alternativaD,
-          E: questao.alternativas?.alternativaE,
-        };
+  const alternativas = montarAlternativas(tipo, questao.alternativas);
 
   return {
     id: questao.id,

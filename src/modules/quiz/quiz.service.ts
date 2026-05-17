@@ -24,7 +24,7 @@ export class QuizService {
       const randomSkip = Math.floor(Math.random() * num_questoes_quiz);
       paginacao.skip = randomSkip;
     }
-    const { data, total } = await this.quizRepository.filtrar_questoes_quiz(paginacao, query);
+    const { data, total } = await this.quizRepository.filtrarQuestoesQuiz(paginacao, query);
 
     if (!data) {
       throw new ErroAplicacao({

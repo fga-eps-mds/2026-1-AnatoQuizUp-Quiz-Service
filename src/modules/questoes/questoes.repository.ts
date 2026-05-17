@@ -7,12 +7,10 @@ import type {
   CriarQuestaoDto,
   FiltroListarQuestoesQueryDto,
   RegistroQuestaoCompleta,
-} from "./dto/question.types";
-import type {
   AlternativasMultiplaEscolhaDto,
   AlternativasVerdadeiroFalsoDto,
 } from "./dto/question.types";
-import { mapearTipoApiParaBanco } from "./dto/question.types";
+import { mapearTipoApiParaBanco, montarFiltroPrisma } from "./dto/question.types";
 
 const includeQuestaoCompleta = {
   tema: true,
@@ -50,22 +48,7 @@ export class QuestionRepository {
   }
 
   async filtrar(paginacao: ParametrosPaginacao, filtros: FiltroListarQuestoesQueryDto) {
-    const where: Prisma.QuestaoWhereInput = {
-      excluidoEm: null,
-      status: "ATIVO",
-    };
-
-    if (filtros.tema) {
-      where.tema = { nome: { contains: filtros.tema, mode: "insensitive" } };
-    }
-
-    if (filtros.dificuldade) {
-      where.dificuldade = filtros.dificuldade;
-    }
-
-    if (filtros.tipo) {
-      where.tipoQuestao = mapearTipoApiParaBanco(filtros.tipo);
-    }
+    const where = montarFiltroPrisma(filtros);
 
     const [data, total] = await prisma.$transaction([
       prisma.questao.findMany({

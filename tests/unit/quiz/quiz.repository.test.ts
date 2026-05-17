@@ -41,7 +41,7 @@ describe("Testa QuizRepository", () => {
 
     const paginacao = { skip: 0, limit: 5, page: 1 };
 
-    const resposta = await repository.filtrar_questoes_quiz(paginacao, filtros);
+    const resposta = await repository.filtrarQuestoesQuiz(paginacao, filtros);
 
     expect(prisma.questao.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

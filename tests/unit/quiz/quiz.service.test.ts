@@ -64,7 +64,7 @@ function converterArrayParaQuestoesQuiz(
 
 function criarRepositoryMock() {
   return {
-    filtrar_questoes_quiz: jest.fn<QuizRepository["filtrar_questoes_quiz"]>(),
+    filtrarQuestoesQuiz: jest.fn<QuizRepository["filtrarQuestoesQuiz"]>(),
     contarQuestoesQuiz: jest.fn<QuizRepository["contarQuestoesQuiz"]>(),
   } as unknown as jest.Mocked<QuizRepository>;
 }
@@ -82,7 +82,7 @@ describe("Testa Quiz Service", () => {
 
   test("Filtrar questoes para quiz", async () => {
     const mockRepositoryResponse = { data: criarQuestoes(), total: 4 };
-    repository.filtrar_questoes_quiz.mockResolvedValue(mockRepositoryResponse);
+    repository.filtrarQuestoesQuiz.mockResolvedValue(mockRepositoryResponse);
 
     const filtro: FiltroListarQuestoesQueryDto = {
       page: 1,
@@ -94,7 +94,7 @@ describe("Testa Quiz Service", () => {
 
     const resultado = await quizService.buscar_questoes_quiz(filtro);
 
-    expect(repository.filtrar_questoes_quiz).toHaveBeenCalledWith(
+    expect(repository.filtrarQuestoesQuiz).toHaveBeenCalledWith(
       expect.objectContaining({
         skip: 0,
         limit: 4,
@@ -111,7 +111,7 @@ describe("Testa Quiz Service", () => {
   test("Deve calcular skip aleatório baseado no total de questões", async () => {
     repository.contarQuestoesQuiz.mockResolvedValue(20);
 
-    repository.filtrar_questoes_quiz.mockResolvedValue({
+    repository.filtrarQuestoesQuiz.mockResolvedValue({
       data: criarQuestoes(),
       total: 20,
     });
@@ -127,7 +127,7 @@ describe("Testa Quiz Service", () => {
 
     expect(repository.contarQuestoesQuiz).toHaveBeenCalledWith(filtro);
 
-    expect(repository.filtrar_questoes_quiz).toHaveBeenCalledWith(
+    expect(repository.filtrarQuestoesQuiz).toHaveBeenCalledWith(
       expect.objectContaining({
         skip: 10,
         limit: 4,
@@ -139,7 +139,7 @@ describe("Testa Quiz Service", () => {
   test("Não deve alterar skip quando não houver questões", async () => {
     repository.contarQuestoesQuiz.mockResolvedValue(0);
 
-    repository.filtrar_questoes_quiz.mockResolvedValue({
+    repository.filtrarQuestoesQuiz.mockResolvedValue({
       data: criarQuestoes(),
       total: 0,
     });
@@ -151,7 +151,7 @@ describe("Testa Quiz Service", () => {
 
     await quizService.buscar_questoes_quiz(filtro);
 
-    expect(repository.filtrar_questoes_quiz).toHaveBeenCalledWith(
+    expect(repository.filtrarQuestoesQuiz).toHaveBeenCalledWith(
       expect.objectContaining({
         skip: 0,
         limit: 4,
@@ -165,7 +165,7 @@ describe("Testa Quiz Service", () => {
       data: undefined as unknown as RegistroQuestaoCompleta[],
       total: 0,
     };
-    repository.filtrar_questoes_quiz.mockResolvedValue(mockRepositoryResponse);
+    repository.filtrarQuestoesQuiz.mockResolvedValue(mockRepositoryResponse);
 
     const filtro: FiltroListarQuestoesQueryDto = {
       page: 1,
@@ -185,7 +185,7 @@ describe("Testa Quiz Service", () => {
 
   test("Testa embaralhamento", async () => {
     const mockRepositoryResponse = { data: criarQuestoes(), total: 4 };
-    repository.filtrar_questoes_quiz.mockResolvedValue(mockRepositoryResponse);
+    repository.filtrarQuestoesQuiz.mockResolvedValue(mockRepositoryResponse);
     const questoes_quiz = converterArrayParaQuestoesQuiz(mockRepositoryResponse.data);
 
     const filtro: FiltroListarQuestoesQueryDto = {

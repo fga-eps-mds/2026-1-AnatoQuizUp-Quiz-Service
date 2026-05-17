@@ -74,4 +74,23 @@ describe("Testa Quiz Controller", () => {
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith(mockResposta);
   });
+
+  test("deve chamar next quando o service lançar erro", async () => {
+    const erro = new Error("Erro no serviço");
+
+    quizService.buscar_questoes_quiz.mockRejectedValue(erro);
+
+    const request = {
+      query: {
+        tema: "Cardio",
+      },
+    } as unknown as Request;
+
+    const { response } = criarResponseMock();
+    const nextMock = jest.fn();
+
+    await controller.buscar_questoes_quiz(request, response, nextMock);
+
+    expect(nextMock).toHaveBeenCalledWith(erro);
+  });
 });
