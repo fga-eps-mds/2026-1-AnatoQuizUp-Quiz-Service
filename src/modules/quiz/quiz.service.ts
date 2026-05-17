@@ -1,5 +1,5 @@
 import type { RespostaQuestaoQuizDto } from "./dto/resposta_questao_quiz_dto";
-import type { FiltroListarQuestoesQueryDto } from "../questao/dto/questao.types";
+import type { FiltroListarQuestoesQueryDto } from "../questoes/dto/question.types";
 import type { RespostaPaginada } from "@/shared/types/api.types";
 import type { QuizRepository } from "./quiz.repository";
 import type { FeedbackQuizDto } from "./dto/feedback_quiz_dto";
@@ -19,7 +19,14 @@ export class QuizService {
   async buscar_questoes_quiz(
     query: FiltroListarQuestoesQueryDto,
   ): Promise<RespostaPaginada<RespostaQuestaoQuizDto>> {
-    const paginacao = resolverParametrosPaginacao(query);
+
+    let paginacao = resolverParametrosPaginacao(query);
+    
+    const num_questoes_quiz = await this.quizRepository.contarQuestoesQuiz(query);
+    if(num_questoes_quiz){
+      const randomSkip = Math.floor(Math.random() * num_questoes_quiz);
+      paginacao.skip = randomSkip;
+    }
     const { data, total } = await this.quizRepository.filtrarQuestoesQuiz(paginacao, query);
 
     if (!data) {

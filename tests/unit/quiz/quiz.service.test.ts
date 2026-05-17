@@ -1,12 +1,12 @@
 import { QuizService } from "@/modules/quiz/quiz.service";
 import { converterParaRespostaQuestaoQuiz } from "@/modules/quiz/dto/converter_para_resposta_questao_quiz";
 import type { RespostaQuestaoQuizDto } from "@/modules/quiz/dto/resposta_questao_quiz_dto";
-import type { QuizRepository } from "@/modules/quiz/quiz.repository";
+import { QuizRepository } from "@/modules/quiz/quiz.repository";
 import {
   DIFICULDADE_API,
   type FiltroListarQuestoesQueryDto,
   type RegistroQuestaoCompleta,
-} from "@/modules/questao/dto/questao.types";
+} from "@/modules/questoes/dto/question.types";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { MENSAGENS } from "@/shared/constants/mensagens";
@@ -61,7 +61,7 @@ function criarQuestoes(
 function converterArrayParaQuestoesQuiz(
   questoes_completas: RegistroQuestaoCompleta[],
 ): RespostaQuestaoQuizDto[] {
-  return questoes_completas.map(converterParaRespostaQuestaoQuiz);
+  return questoes_completas.map(questao => converterParaRespostaQuestaoQuiz(questao));
 }
 
 function criarTentativa() {
@@ -97,6 +97,8 @@ function criarRepositoryMock() {
     filtrarQuestoesQuiz: jest.fn<QuizRepository["filtrarQuestoesQuiz"]>(),
     registrarTentativa: jest.fn<QuizRepository["registrarTentativa"]>(),
     buscarResposta: jest.fn<QuizRepository["registrarTentativa"]>(),
+    contarQuestoesQuiz: jest.fn<QuizRepository["contarQuestoesQuiz"]>(),
+
   } as unknown as jest.Mocked<QuizRepository>;
 }
 
@@ -138,6 +140,60 @@ describe("Testa Quiz Service", () => {
     expect(resultado.dados[0]).not.toHaveProperty("saibaMais");
     expect(resultado.dados[0]).not.toHaveProperty("respostaCorreta");
   });
+
+  test("Deve calcular skip aleatório baseado no total de questões", async () => {
+    repository.contarQuestoesQuiz.mockResolvedValue(20);
+
+    repository.filtrarQuestoesQuiz.mockResolvedValue({
+      data: criarQuestoes(),
+      total: 20,
+    });
+
+    jest.spyOn(Math, "random").mockReturnValue(0.5);
+
+    const filtro: FiltroListarQuestoesQueryDto = {
+      page: 1,
+      limit: 4,
+    };
+
+    await quizService.buscar_questoes_quiz(filtro);
+
+    expect(repository.contarQuestoesQuiz).toHaveBeenCalledWith(
+      filtro,
+    );
+
+    expect(repository.filtrarQuestoesQuiz).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 10,
+        limit: 4,
+      }),
+      filtro,
+    );
+  });
+
+  test("Não deve alterar skip quando não houver questões", async () => {
+  repository.contarQuestoesQuiz.mockResolvedValue(0);
+
+  repository.filtrarQuestoesQuiz.mockResolvedValue({
+    data: criarQuestoes(),
+    total: 0,
+  });
+
+  const filtro: FiltroListarQuestoesQueryDto = {
+    page: 1,
+    limit: 4,
+  };
+
+  await quizService.buscar_questoes_quiz(filtro);
+
+  expect(repository.filtrarQuestoesQuiz).toHaveBeenCalledWith(
+    expect.objectContaining({
+      skip: 0,
+      limit: 4,
+    }),
+    filtro,
+  );
+});
 
   test("Deve lançar erro caso nenhuma questão seja encotrada", async () => {
     const mockRepositoryResponse = {

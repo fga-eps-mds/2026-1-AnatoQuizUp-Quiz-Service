@@ -1,4 +1,4 @@
-import type { DificuldadeApi, TipoQuestaoApi } from "@/modules/questao/dto/questao.types";
+import type { DificuldadeApi, TipoQuestaoApi } from "@/modules/questoes/dto/question.types";
 
 export type FiltroQuestaoQuizQueryDto = {
   tema?: string;
