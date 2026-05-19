@@ -33,6 +33,7 @@ export const CodigoDeErro = {
 
   ERRO_FEEDBACK: "ERRO_FEEDBACK",
 
+  TEMAS_NAO_ENCONTRADOS: "TEMAS_NAO_ENCONTRADOS",
 } as const;
 
 export type ValorCodigoDeErro = (typeof CodigoDeErro)[keyof typeof CodigoDeErro];

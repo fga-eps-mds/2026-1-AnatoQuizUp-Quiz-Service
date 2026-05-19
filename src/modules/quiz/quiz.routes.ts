@@ -28,4 +28,6 @@ quizRouter.post(
   quizController.responderQuestaoQuiz,
 );
 
+quizRouter.get("/quantidade_por_tema", quizController.buscarQuantidadeDeQuestoesPorTema);
+
 export { quizRouter };

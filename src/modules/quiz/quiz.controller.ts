@@ -35,4 +35,18 @@ export class QuizController {
       return next(error);
     }
   };
+
+  buscarQuantidadeDeQuestoesPorTema = async (
+    request: Request,
+    response: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const quantidadeDeQuestoesPorTema =
+        await this.quizService.buscarQuantidadeDeQuestoesPorTema();
+      return response.status(200).json({ quantidadeDeQuestoesPorTema });
+    } catch (error) {
+      return next(error);
+    }
+  };
 }

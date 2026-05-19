@@ -94,6 +94,7 @@ export const MENSAGENS = {
 
   erroTentativa: "Erro ao registrar tentativa de resposta",
 
-  erroFeedback: "Erro no feedback da questão"
+  erroFeedback: "Erro no feedback da questão",
 
+  temasNaoEncontrados: "Temas das questões não foram encontrados",
 } as const;

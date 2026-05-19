@@ -1,4 +1,3 @@
-import type { Prisma, ResolucaoQuestao } from "@prisma/client";
 import type {
   FiltroListarQuestoesQueryDto,
   RegistroQuestaoCompleta,
@@ -32,13 +31,13 @@ export class QuizRepository {
   }
 
   async registrarTentativa(data: ResponderQuestaoQuizDto, usuarioId: string) {
-    return (await prisma.resolucaoQuestao.create({
+    return await prisma.resolucaoQuestao.create({
       data: {
         respostaMarcada: data.respostaMarcada,
         questaoId: data.questaoId,
         usuarioId: usuarioId,
       },
-    })) as ResolucaoQuestao;
+    });
   }
 
   async buscarResposta(id: string) {
@@ -47,9 +46,27 @@ export class QuizRepository {
       select: { respostaCorreta: true, saibaMais: true },
     });
   }
-  
+
   async contarQuestoesQuiz(filtros: FiltroListarQuestoesQueryDto) {
     const where = montarFiltroPrisma(filtros);
     return await prisma.questao.count({ where });
+  }
+
+  async buscarQuantidadeDeQuestoesPorTema() {
+    return await prisma.tema.findMany({
+      select: {
+        nome: true,
+        questoes: {
+          select: {
+            dificuldade: true,
+          },
+        },
+        _count: {
+          select: {
+            questoes: true,
+          },
+        },
+      },
+    });
   }
 }

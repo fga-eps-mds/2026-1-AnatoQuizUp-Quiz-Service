@@ -12,6 +12,7 @@ import {
   montarMetadadosPaginacao,
   resolverParametrosPaginacao,
 } from "@/shared/utils/paginacao.util";
+import type { QuantidadeQuestoesPorTema } from "./dto/quantidade_questao_tema_dto";
 
 export class QuizService {
   constructor(private readonly quizRepository: QuizRepository) {}
@@ -96,5 +97,35 @@ export class QuizService {
     }
 
     return arr;
+  }
+
+  async buscarQuantidadeDeQuestoesPorTema(): Promise<QuantidadeQuestoesPorTema[]> {
+    const temas = await this.quizRepository.buscarQuantidadeDeQuestoesPorTema();
+
+    if (!temas) {
+      throw new ErroAplicacao({
+        codigoStatus: 401,
+        codigo: CodigoDeErro.TEMAS_NAO_ENCONTRADOS,
+        mensagem: MENSAGENS.temasNaoEncontrados,
+      });
+    }
+
+    return temas.map((tema) => {
+      const quantidadePorDificuldade = {
+        FACIL: 0,
+        MEDIA: 0,
+        DIFICIL: 0,
+      };
+
+      tema.questoes.forEach((questao) => {
+        quantidadePorDificuldade[questao.dificuldade]++;
+      });
+
+      return {
+        nome: tema.nome,
+        totalQuestoes: tema._count.questoes,
+        porDificuldade: quantidadePorDificuldade,
+      };
+    });
   }
 }
