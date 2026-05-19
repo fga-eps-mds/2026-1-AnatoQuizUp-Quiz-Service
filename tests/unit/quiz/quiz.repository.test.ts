@@ -16,6 +16,9 @@ jest.mock("@/config/db", () => ({
     resolucaoQuestao: {
       create: jest.fn(),
     },
+    tema: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -103,6 +106,7 @@ describe("Testa QuizRepository", () => {
       select: { respostaCorreta: true, saibaMais: true },
     });
   });
+
   test("deve contar questões filtradas por tema, dificuldade e tipo", async () => {
     const filtros: FiltroListarQuestoesQueryDto = {
       tema: "Sistema Cardiovascular",
@@ -128,5 +132,27 @@ describe("Testa QuizRepository", () => {
         }),
       }),
     );
+  });
+
+  test("Deve contar a quantidade de questões por tema e dificuldade", async () => {
+    await repository.buscarQuantidadeDeQuestoesPorTema();
+
+    expect(prisma.tema.findMany).toHaveBeenCalledWith({
+      select: {
+        nome: true,
+        questoes: {
+          select: {
+            dificuldade: true,
+          },
+        },
+        _count: {
+          select: {
+            questoes: true,
+          },
+        },
+      },
+    });
+
+    expect(prisma.tema.findMany).toHaveBeenCalledTimes(1);
   });
 });

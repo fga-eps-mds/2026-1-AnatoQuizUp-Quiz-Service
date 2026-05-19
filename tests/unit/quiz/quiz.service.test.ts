@@ -61,7 +61,7 @@ function criarQuestoes(
 function converterArrayParaQuestoesQuiz(
   questoes_completas: RegistroQuestaoCompleta[],
 ): RespostaQuestaoQuizDto[] {
-  return questoes_completas.map(questao => converterParaRespostaQuestaoQuiz(questao));
+  return questoes_completas.map((questao) => converterParaRespostaQuestaoQuiz(questao));
 }
 
 function criarTentativa() {
@@ -98,6 +98,8 @@ function criarRepositoryMock() {
     registrarTentativa: jest.fn<QuizRepository["registrarTentativa"]>(),
     buscarResposta: jest.fn<QuizRepository["registrarTentativa"]>(),
     contarQuestoesQuiz: jest.fn<QuizRepository["contarQuestoesQuiz"]>(),
+    buscarQuantidadeDeQuestoesPorTema:
+      jest.fn<QuizRepository["buscarQuantidadeDeQuestoesPorTema"]>(),
   } as unknown as jest.Mocked<QuizRepository>;
 }
 
@@ -171,10 +173,10 @@ describe("Testa Quiz Service", () => {
   test("Não deve alterar skip quando não houver questões", async () => {
     repository.contarQuestoesQuiz.mockResolvedValue(0);
 
-  repository.filtrarQuestoesQuiz.mockResolvedValue({
-    data: criarQuestoes(),
-    total: 0,
-  });
+    repository.filtrarQuestoesQuiz.mockResolvedValue({
+      data: criarQuestoes(),
+      total: 0,
+    });
 
     const filtro: FiltroListarQuestoesQueryDto = {
       page: 1,
@@ -183,14 +185,14 @@ describe("Testa Quiz Service", () => {
 
     await quizService.buscarQuestoesQuiz(filtro);
 
-  expect(repository.filtrarQuestoesQuiz).toHaveBeenCalledWith(
-    expect.objectContaining({
-      skip: 0,
-      limit: 4,
-    }),
-    filtro,
-  );
-});
+    expect(repository.filtrarQuestoesQuiz).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 0,
+        limit: 4,
+      }),
+      filtro,
+    );
+  });
 
   test("Deve lançar erro caso nenhuma questão seja encotrada", async () => {
     const mockRepositoryResponse = {
@@ -288,5 +290,48 @@ describe("Testa Quiz Service", () => {
     await expect(
       quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), "usuario-id"),
     ).rejects.toThrow(error);
+  });
+
+  test("deve retornar a quantidade de questões agrupadas por dificuldade", async () => {
+    repository.buscarQuantidadeDeQuestoesPorTema.mockResolvedValue([
+      {
+        nome: "Português",
+        questoes: [
+          { dificuldade: "FACIL" },
+          { dificuldade: "FACIL" },
+          { dificuldade: "MEDIA" },
+          { dificuldade: "DIFICIL" },
+        ],
+        _count: {
+          questoes: 4,
+        },
+      },
+    ]);
+
+    const resultado = await quizService.buscarQuantidadeDeQuestoesPorTema();
+
+    expect(resultado).toEqual([
+      {
+        nome: "Português",
+        totalQuestoes: 4,
+        porDificuldade: {
+          FACIL: 2,
+          MEDIA: 1,
+          DIFICIL: 1,
+        },
+      },
+    ]);
+
+    expect(repository.buscarQuantidadeDeQuestoesPorTema).toHaveBeenCalledTimes(1);
+  });
+
+  test("Lança erro caso busca por quantidade de questões por tema falhe", async () => {
+    const error = new ErroAplicacao({
+      codigoStatus: 401,
+      codigo: CodigoDeErro.TEMAS_NAO_ENCONTRADOS,
+      mensagem: MENSAGENS.temasNaoEncontrados,
+    });
+    repository.buscarQuantidadeDeQuestoesPorTema.mockResolvedValue(null);
+    await expect(quizService.buscarQuantidadeDeQuestoesPorTema()).rejects.toThrow(error);
   });
 });
