@@ -80,12 +80,20 @@ export class QuizService {
 
     let feedback;
     if (gabarito?.respostaCorreta === data.respostaMarcada) {
-      feedback = { correcao: true, saibaMais: gabarito?.saibaMais ?? "" };
+      feedback = { 
+        correcao: true, 
+        saibaMais: gabarito?.saibaMais ?? "",
+        respostaCorreta: gabarito?.respostaCorreta 
+      };
     } else {
-      feedback = { correcao: false, saibaMais: gabarito?.saibaMais ?? "" };
+      feedback = { 
+        correcao: false, 
+        saibaMais: gabarito?.saibaMais ?? "",
+        respostaCorreta: gabarito?.respostaCorreta 
+      };
     }
 
-    return feedback;
+    return feedback as FeedbackQuizDto;
   }
 
   private embaralhar<T>(array: T[]): T[] {
