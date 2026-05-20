@@ -88,23 +88,29 @@ describe("Storage Configuration", () => {
   });
 
   it("lanca erro instantaneo quando as variaveis do MinIO estao ausentes", async () => {
-    await expect(carregarStorage({ MINIO_ENDPOINT: undefined })).rejects.toThrow("Erro: Variáveis do MinIO não configuradas.");
+    await expect(carregarStorage({ MINIO_ENDPOINT: undefined })).rejects.toThrow(
+      "Erro: Variáveis do MinIO não configuradas.",
+    );
   });
 
   it("lanca erro se a porta de API for invalida", async () => {
-    const { montarEndpointStorage } = await carregarStorage(); 
+    const { montarEndpointStorage } = await carregarStorage();
 
-    expect(() => montarEndpointStorage("http://localhost", "porta-invalida")).toThrow("Erro: MINIO_API_PORT invalida.");
+    expect(() => montarEndpointStorage("http://localhost", "porta-invalida")).toThrow(
+      "Erro: MINIO_API_PORT invalida.",
+    );
   });
 
   it("lanca erro se o MinIO falhar", async () => {
     const minioAdmin = criarMinioMock();
     minioAdmin.bucketExists.mockRejectedValue(new Error("Conexao recusada"));
     const errorSpy = jest.spyOn(console, "error").mockImplementation();
-    
+
     const { configurarStorage } = await carregarStorage({}, minioAdmin);
 
-    await expect(configurarStorage()).rejects.toThrow("[Storage] Falha crítica: Error: Conexao recusada");
+    await expect(configurarStorage()).rejects.toThrow(
+      "[Storage] Falha crítica: Error: Conexao recusada",
+    );
     expect(errorSpy).toHaveBeenCalled();
   });
 });

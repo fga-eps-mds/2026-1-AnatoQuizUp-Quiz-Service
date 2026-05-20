@@ -3,10 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import { MENSAGENS } from "@/shared/constants/mensagens";
 import type { RespostaApiSucesso, RespostaPaginada } from "@/shared/types/api.types";
 
-import type {
-  ListarQuestoesQueryDto,
-  RespostaQuestaoDto,
-} from "./dto/question.types";
+import type { ListarQuestoesQueryDto, RespostaQuestaoDto } from "./dto/question.types";
 import type { QuestionService } from "./questoes.service";
 
 export class QuestionController {
@@ -52,21 +49,13 @@ export class QuestionController {
     }
   };
 
-  criar = async (
-    request: Request, 
-    response: Response,
-    next: NextFunction,
-  ) => {
+  criar = async (request: Request, response: Response, next: NextFunction) => {
     try {
-      const dadosQuestao = request.body; 
+      const dadosQuestao = request.body;
       const arquivoImagem = request.file;
       const usuarioId = request.usuario?.id ?? "";
 
-      const questao = await this.questionService.criar(
-        dadosQuestao, 
-        arquivoImagem, 
-        usuarioId
-      );
+      const questao = await this.questionService.criar(dadosQuestao, arquivoImagem, usuarioId);
 
       return response.status(201).json({
         mensagem: "Questão criada com sucesso!",
@@ -77,22 +66,20 @@ export class QuestionController {
     }
   };
 
-atualizar = async (
-    request: Request, 
-    response: Response, 
-    next: NextFunction
-  ) => {
+  atualizar = async (request: Request, response: Response, next: NextFunction) => {
     try {
-      const id = request.params.id as string; 
-      
+      const id = request.params.id as string;
+
       // 1. Fazemos a cópia do body para não mutar o objeto original
       const dadosQuestao = { ...request.body };
 
       // 2. Reconstruímos as alternativas caso elas venham "achatadas" na edição
       if (!dadosQuestao.alternativas) {
         // Verifica se existe alguma chave começando com "alternativas["
-        const temAlternativas = Object.keys(dadosQuestao).some(key => key.startsWith('alternativas['));
-        
+        const temAlternativas = Object.keys(dadosQuestao).some((key) =>
+          key.startsWith("alternativas["),
+        );
+
         if (temAlternativas) {
           dadosQuestao.alternativas = {};
           for (const key in dadosQuestao) {
@@ -110,10 +97,10 @@ atualizar = async (
       const usuarioId = request.usuario?.id ?? "";
 
       const questao = await this.questionService.atualizar(
-        id, 
-        dadosQuestao, 
+        id,
+        dadosQuestao,
         arquivoImagem,
-        usuarioId
+        usuarioId,
       );
 
       return response.status(200).json({

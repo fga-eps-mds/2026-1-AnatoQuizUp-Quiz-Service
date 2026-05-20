@@ -6,6 +6,7 @@ import type {
   Tema,
   TipoQuestao,
   Dificuldade,
+  Prisma,
 } from "@prisma/client";
 
 export const TIPO_QUESTAO_API = {
@@ -101,21 +102,26 @@ export function mapearTipoBancoParaApi(tipo: TipoQuestao): TipoQuestaoApi {
     : TIPO_QUESTAO_API.MULTIPLA_ESCOLHA;
 }
 
+export function montarAlternativas(tipo: TipoQuestaoApi, alternativas: QuestaoAlternativa | null) {
+  if (tipo === TIPO_QUESTAO_API.VERDADEIRO_FALSO) {
+    return {
+      C: alternativas?.alternativaC,
+      E: alternativas?.alternativaE,
+    };
+  }
+
+  return {
+    A: alternativas?.alternativaA,
+    B: alternativas?.alternativaB,
+    C: alternativas?.alternativaC,
+    D: alternativas?.alternativaD,
+    E: alternativas?.alternativaE,
+  };
+}
+
 export function converterParaRespostaQuestao(questao: RegistroQuestaoCompleta): RespostaQuestaoDto {
   const tipo = mapearTipoBancoParaApi(questao.tipoQuestao);
-  const alternativas =
-    tipo === TIPO_QUESTAO_API.VERDADEIRO_FALSO
-      ? {
-          C: questao.alternativas?.alternativaC,
-          E: questao.alternativas?.alternativaE,
-        }
-      : {
-          A: questao.alternativas?.alternativaA,
-          B: questao.alternativas?.alternativaB,
-          C: questao.alternativas?.alternativaC,
-          D: questao.alternativas?.alternativaD,
-          E: questao.alternativas?.alternativaE,
-        };
+  const alternativas = montarAlternativas(tipo, questao.alternativas);
 
   return {
     id: questao.id,
@@ -136,4 +142,27 @@ export function converterParaRespostaQuestao(questao: RegistroQuestaoCompleta): 
     atualizadoEm: questao.atualizadoEm.toISOString(),
     excluidoEm: questao.excluidoEm?.toISOString() ?? null,
   };
+}
+
+export function montarFiltroPrisma(
+  filtros: FiltroListarQuestoesQueryDto,
+): Prisma.QuestaoWhereInput {
+  const where: Prisma.QuestaoWhereInput = {
+    excluidoEm: null,
+    status: "ATIVO",
+  };
+
+  if (filtros.tema) {
+    where.tema = { nome: { contains: filtros.tema, mode: "insensitive" } };
+  }
+
+  if (filtros.dificuldade) {
+    where.dificuldade = filtros.dificuldade;
+  }
+
+  if (filtros.tipo) {
+    where.tipoQuestao = mapearTipoApiParaBanco(filtros.tipo);
+  }
+
+  return where;
 }

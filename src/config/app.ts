@@ -13,6 +13,7 @@ import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { middlewareAutenticacao } from "@/shared/middlewares/autenticacao.middleware";
 import { middlewareTokenInterno } from "@/shared/middlewares/token-interno.middleware";
 import { middlewareTratamentoErros } from "@/shared/middlewares/tratamento-erros.middleware";
+import { quizRouter } from "@/modules/quiz/quiz.routes";
 
 const aplicacao = express();
 const roteadorApi = Router();
@@ -36,6 +37,7 @@ aplicacao.get("/health", (_request, response) => {
 aplicacao.use("/api", middlewareTokenInterno);
 
 roteadorApi.use(middlewareAutenticacao);
+roteadorApi.use("/quiz", quizRouter);
 roteadorApi.use("/questoes", questionRouter);
 roteadorApi.use("/turmas", turmaRouter);
 

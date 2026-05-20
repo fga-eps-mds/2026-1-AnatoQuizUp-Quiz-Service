@@ -7,11 +7,7 @@ import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 const MENSAGEM_AUSENTE = "Token interno ausente. Acesso permitido somente via BFF.";
 const MENSAGEM_INVALIDO = "Token interno invalido.";
 
-export function middlewareTokenInterno(
-  request: Request,
-  _response: Response,
-  next: NextFunction,
-) {
+export function middlewareTokenInterno(request: Request, _response: Response, next: NextFunction) {
   const recebido = request.header("x-internal-token");
 
   if (!recebido) {
