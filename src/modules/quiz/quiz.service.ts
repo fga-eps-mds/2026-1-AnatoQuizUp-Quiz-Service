@@ -1,7 +1,7 @@
 import type { RespostaQuestaoQuizDto } from "./dto/resposta_questao_quiz_dto";
 import type { FiltroListarQuestoesQueryDto } from "../questoes/dto/question.types";
 import type { RespostaPaginada } from "@/shared/types/api.types";
-import type { QuizRepository } from "./quiz.repository";
+import type { QuizRepository, RegistroResolucaoQuestaoCompleta } from "./quiz.repository";
 import type { FeedbackQuizDto } from "./dto/feedback_quiz_dto";
 import type { ResponderQuestaoQuizDto } from "./dto/responder_questao_quiz_dto";
 import { MENSAGENS } from "@/shared/constants/mensagens";
@@ -48,9 +48,9 @@ export class QuizService {
 
   async responderQuestaoQuiz(
     data: ResponderQuestaoQuizDto,
-    id_usuario: string,
+    usuarioId: string,
   ): Promise<FeedbackQuizDto> {
-    if (id_usuario === "") {
+    if (usuarioId === "") {
       throw new ErroAplicacao({
         codigoStatus: 401,
         codigo: CodigoDeErro.NAO_AUTORIZADO,
@@ -58,7 +58,7 @@ export class QuizService {
       });
     }
 
-    const tentativa_registrada = await this.quizRepository.registrarTentativa(data, id_usuario);
+    const tentativa_registrada = await this.quizRepository.registrarTentativa(data, usuarioId);
 
     if (!tentativa_registrada) {
       throw new ErroAplicacao({
@@ -127,5 +127,38 @@ export class QuizService {
         porDificuldade: quantidadePorDificuldade,
       };
     });
+  }
+
+  async listarResolucaoQuestoesUsuario(
+    usuarioId: string | undefined,
+    query: FiltroListarQuestoesQueryDto,
+  ): Promise<RespostaPaginada<RegistroResolucaoQuestaoCompleta>> {
+    if (usuarioId === "" || usuarioId === undefined) {
+      throw new ErroAplicacao({
+        codigoStatus: 401,
+        codigo: CodigoDeErro.NAO_AUTORIZADO,
+        mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+      });
+    }
+
+    const paginacao = resolverParametrosPaginacao(query);
+    const { data, total } = await this.quizRepository.listarResolucaoQuestoesUsuario(
+      usuarioId,
+      paginacao,
+      query,
+    );
+
+    if (!data) {
+      throw new ErroAplicacao({
+        codigoStatus: 404,
+        codigo: CodigoDeErro.NAO_ENCONTRADO,
+        mensagem: MENSAGENS.questaoNaoEncontrada,
+      });
+    }
+
+    return {
+      dados: data,
+      metadados: montarMetadadosPaginacao(paginacao, total),
+    };
   }
 }

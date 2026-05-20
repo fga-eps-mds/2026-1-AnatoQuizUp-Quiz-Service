@@ -49,4 +49,20 @@ export class QuizController {
       return next(error);
     }
   };
+
+  listarResolucaoQuestoesUsuario = async (
+    request: Request,
+    response: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const listaResolucaoQuestoesUsuario = await this.quizService.listarResolucaoQuestoesUsuario(
+        request.usuario?.id,
+        request.query,
+      );
+      return listaResolucaoQuestoesUsuario;
+    } catch (error) {
+      return next(error);
+    }
+  };
 }
