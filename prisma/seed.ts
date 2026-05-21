@@ -1,4 +1,4 @@
-import { PrismaClient, TipoQuestao, AlternativaQuestao, StatusQuestao, Dificuldade } from "@prisma/client";
+import { PrismaClient, TipoQuestao, AlternativaQuestao, StatusQuestao, Dificuldade, StatusTurma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 

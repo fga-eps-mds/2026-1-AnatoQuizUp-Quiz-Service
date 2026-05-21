@@ -1,0 +1,1 @@
+export { turmaRouter } from "@/modules/turma/turma.routes";

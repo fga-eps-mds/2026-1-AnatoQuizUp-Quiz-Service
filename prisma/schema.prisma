@@ -31,6 +31,11 @@ enum Dificuldade {
   DIFICIL
 }
 
+enum StatusTurma {
+  ATIVA
+  INATIVA
+}
+
 model Tema {
   id   String @id @default(cuid())
   nome String
@@ -107,4 +112,42 @@ model ResolucaoQuestao {
   excluidoEm   DateTime?
 
   @@map("resolucoes_questoes")
+}
+
+model Turma {
+  id        String      @id @default(cuid())
+  codigo    String      @unique
+  nome      String
+  semestre  String
+  ano       Int
+  descricao String
+  status    StatusTurma @default(ATIVA)
+
+  professorId String
+
+  alunos TurmaAluno[]
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@index([professorId])
+  @@map("turmas")
+}
+
+model TurmaAluno {
+  id String @id @default(cuid())
+
+  turmaId String
+  alunoId String
+
+  turma Turma @relation(fields: [turmaId], references: [id], onDelete: Restrict)
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@unique([turmaId, alunoId])
+  @@index([alunoId])
+  @@map("turmas_alunos")
 }
