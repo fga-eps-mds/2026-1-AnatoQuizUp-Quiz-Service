@@ -89,11 +89,10 @@ describe('TurmaService', () => {
       expect(mockTurmaRepository.listarPorAluno).not.toHaveBeenCalled();
     });
 
-    it('para ALUNO chama listarPorAluno ignorando status enviado no filtro', async () => {
+    it('para ALUNO chama listarPorAluno com busca, semestre e ano', async () => {
       mockTurmaRepository.listarPorAluno.mockResolvedValue([mockTurma] as never);
 
       const resultado = await service.listar(ctxAluno, {
-        status: StatusTurma.INATIVA,
         busca: 'anat',
         semestre: '2026.1',
         ano: 2026,
@@ -105,6 +104,18 @@ describe('TurmaService', () => {
         semestre: '2026.1',
         ano: 2026,
       });
+      expect(mockTurmaRepository.listarComFiltros).not.toHaveBeenCalled();
+    });
+
+    it('para ALUNO rejeita filtro de status com 400', async () => {
+      await expect(
+        service.listar(ctxAluno, { status: StatusTurma.INATIVA }),
+      ).rejects.toMatchObject({
+        codigoStatus: 400,
+        codigo: 'REQUISICAO_INVALIDA',
+      });
+
+      expect(mockTurmaRepository.listarPorAluno).not.toHaveBeenCalled();
       expect(mockTurmaRepository.listarComFiltros).not.toHaveBeenCalled();
     });
 

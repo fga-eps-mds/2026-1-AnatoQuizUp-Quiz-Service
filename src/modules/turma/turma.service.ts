@@ -14,8 +14,16 @@ export class TurmaService {
 
   async listar(ctx: UsuarioContexto, filtros: FiltrosListagemTurma) {
     if (ctx.papel === PAPEIS.ALUNO) {
-      // Aluno: somente turmas ATIVAS onde ele esta vinculado.
-      // Filtros legitimos: busca, semestre, ano. status do query e ignorado.
+      // Aluno so pode listar turmas ATIVAS vinculadas. Rejeita filtros
+      // que nao se aplicam ao escopo dele em vez de ignorar silenciosamente.
+      if (filtros.status !== undefined) {
+        throw new ErroAplicacao({
+          codigo: CodigoDeErro.REQUISICAO_INVALIDA,
+          mensagem: 'Filtro de status nao e permitido para alunos.',
+          codigoStatus: 400
+        });
+      }
+
       return this.turmaRepository.listarPorAluno(ctx.id, {
         busca: filtros.busca,
         semestre: filtros.semestre,
