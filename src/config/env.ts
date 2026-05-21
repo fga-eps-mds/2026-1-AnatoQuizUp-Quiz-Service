@@ -29,6 +29,7 @@ const envSchema = z.object({
   MINIO_ENDPOINT: z.string().optional(),
   MINIO_API_PORT: z.string().optional(),
   MINIO_CONSOLE_PORT: z.string().optional(),
+  MINIO_PUBLIC_URL: z.string().optional(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
