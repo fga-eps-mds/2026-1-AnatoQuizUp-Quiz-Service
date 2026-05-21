@@ -5,6 +5,7 @@ import type {
 import { montarFiltroPrisma } from "@/modules/questoes/dto/question.types";
 import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
+import type { ResponderQuestaoQuizDto } from "./dto/responder_questao_quiz_dto";
 
 const includeQuestaoCompleta = {
   tema: true,
@@ -29,8 +30,54 @@ export class QuizRepository {
     return { data: data as RegistroQuestaoCompleta[], total };
   }
 
+  async registrarTentativa(data: ResponderQuestaoQuizDto, usuarioId: string) {
+    return await prisma.resolucaoQuestao.create({
+      data: {
+        respostaMarcada: data.respostaMarcada,
+        questaoId: data.questaoId,
+        usuarioId: usuarioId,
+      },
+    });
+  }
+
+  async buscarResposta(id: string) {
+    return await prisma.questao.findUnique({
+      where: { id, excluidoEm: null },
+      select: { respostaCorreta: true, saibaMais: true },
+    });
+  }
+
   async contarQuestoesQuiz(filtros: FiltroListarQuestoesQueryDto) {
     const where = montarFiltroPrisma(filtros);
     return await prisma.questao.count({ where });
   }
+
+async buscarQuantidadeDeQuestoesPorTema() {
+  return await prisma.tema.findMany({
+    select: {
+      nome: true,
+
+      questoes: {
+        where: {
+          status: "ATIVO",
+          excluidoEm: null,
+        },
+        select: {
+          dificuldade: true,
+        },
+      },
+
+      _count: {
+        select: {
+          questoes: {
+            where: {
+              status: "ATIVO",
+              excluidoEm: null,
+            },
+          },
+        },
+      },
+    },
+  });
+}
 }

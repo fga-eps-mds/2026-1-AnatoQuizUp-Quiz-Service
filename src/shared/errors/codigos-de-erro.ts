@@ -28,6 +28,12 @@ export const CodigoDeErro = {
   CADASTRO_EM_ANALISE: "CADASTRO_EM_ANALISE",
 
   CADASTRO_RECUSADO: "CADASTRO_RECUSADO",
+
+  ERRO_TENTATIVA: "ERRO_TENTATIVA",
+
+  ERRO_FEEDBACK: "ERRO_FEEDBACK",
+
+  TEMAS_NAO_ENCONTRADOS: "TEMAS_NAO_ENCONTRADOS",
 } as const;
 
 export type ValorCodigoDeErro = (typeof CodigoDeErro)[keyof typeof CodigoDeErro];

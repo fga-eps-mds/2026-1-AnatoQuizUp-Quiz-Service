@@ -54,6 +54,7 @@ function criarInputValido(): CriarQuestaoDto {
     tipo: "MULTIPLA_ESCOLHA",
     alternativaCorreta: "B",
     explicacaoPedagogica: "Explicacao",
+    dificuldade: "DIFICIL",
     alternativas: {
       A: "A",
       B: "B",

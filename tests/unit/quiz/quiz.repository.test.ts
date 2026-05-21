@@ -2,6 +2,7 @@ import { prisma } from "@/config/db";
 import type { FiltroListarQuestoesQueryDto } from "@/modules/questoes/dto/question.types";
 import { DIFICULDADE_API, TIPO_QUESTAO_API } from "@/modules/questoes/dto/question.types";
 import { QuizRepository } from "@/modules/quiz/quiz.repository";
+import { AlternativaQuestao } from "@prisma/client";
 
 jest.mock("@/config/db", () => ({
   prisma: {
@@ -10,8 +11,13 @@ jest.mock("@/config/db", () => ({
     questao: {
       findMany: jest.fn(),
       count: jest.fn(),
-      findFirst: jest.fn(),
-      update: jest.fn(),
+      findUnique: jest.fn(),
+    },
+    resolucaoQuestao: {
+      create: jest.fn(),
+    },
+    tema: {
+      findMany: jest.fn(),
     },
   },
 }));
@@ -23,7 +29,6 @@ describe("Testa QuizRepository", () => {
 
   beforeEach(() => {
     repository = new QuizRepository();
-
     jest.clearAllMocks();
   });
 
@@ -74,6 +79,34 @@ describe("Testa QuizRepository", () => {
     expect(resposta).toEqual({ data: registros, total: totalRegistros });
   });
 
+  test("Deve criar novo registro de resposta à questão de quiz", async () => {
+    const usuario_id = "usuario_id";
+    const tentativa = {
+      questaoId: "questao-id",
+      tipo: TIPO_QUESTAO_API.VERDADEIRO_FALSO,
+      respostaMarcada: AlternativaQuestao.E,
+    };
+
+    await repository.registrarTentativa(tentativa, usuario_id);
+
+    expect(prisma.resolucaoQuestao.create).toHaveBeenCalledWith({
+      data: {
+        questaoId: "questao-id",
+        respostaMarcada: AlternativaQuestao.E,
+        usuarioId: usuario_id,
+      },
+    });
+  });
+
+  test("Deve buscar um registro de tentativa de resposta", async () => {
+    const id = "id-tentativa";
+    await repository.buscarResposta(id);
+    expect(prisma.questao.findUnique).toHaveBeenCalledWith({
+      where: { id, excluidoEm: null },
+      select: { respostaCorreta: true, saibaMais: true },
+    });
+  });
+
   test("deve contar questões filtradas por tema, dificuldade e tipo", async () => {
     const filtros: FiltroListarQuestoesQueryDto = {
       tema: "Sistema Cardiovascular",
@@ -99,5 +132,36 @@ describe("Testa QuizRepository", () => {
         }),
       }),
     );
+  });
+
+  test("Deve contar a quantidade de questões por tema e dificuldade", async () => {
+    await repository.buscarQuantidadeDeQuestoesPorTema();
+
+    expect(prisma.tema.findMany).toHaveBeenCalledWith({
+    select: {
+      nome: true,
+      questoes: {
+        where: {
+          status: "ATIVO",
+          excluidoEm: null,
+        },
+        select: {
+          dificuldade: true,
+        },
+      },
+      _count: {
+        select: {
+          questoes: {
+            where: {
+              status: "ATIVO",
+              excluidoEm: null,
+            },
+          },
+        },
+      },
+    },
+    });
+
+    expect(prisma.tema.findMany).toHaveBeenCalledTimes(1);
   });
 });
