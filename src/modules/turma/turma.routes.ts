@@ -3,7 +3,6 @@ import { TurmaController } from './turma.controller';
 import { TurmaService } from './turma.service';
 import { TurmaRepository } from './turma.repository';
 import { PAPEIS } from '@/shared/constants/papeis';
-import { middlewareAutenticacao } from '@/shared/middlewares/autenticacao.middleware';
 import { middlewarePapeis } from '@/shared/middlewares/papeis.middleware';
 import { validarRequisicao } from '@/shared/middlewares/validacao.middleware';
 import {
@@ -21,7 +20,7 @@ const turmaRepository = new TurmaRepository();
 const turmaService = new TurmaService(turmaRepository);
 const turmaController = new TurmaController(turmaService);
 
-turmaRouter.use(middlewareAutenticacao);
+// middlewareAutenticacao ja e aplicado em src/config/app.ts no roteadorApi.
 
 const apenasGestao = middlewarePapeis(PAPEIS.PROFESSOR, PAPEIS.ADMINISTRADOR);
 
