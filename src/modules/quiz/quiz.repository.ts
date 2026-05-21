@@ -52,21 +52,32 @@ export class QuizRepository {
     return await prisma.questao.count({ where });
   }
 
-  async buscarQuantidadeDeQuestoesPorTema() {
-    return await prisma.tema.findMany({
-      select: {
-        nome: true,
-        questoes: {
-          select: {
-            dificuldade: true,
-          },
+async buscarQuantidadeDeQuestoesPorTema() {
+  return await prisma.tema.findMany({
+    select: {
+      nome: true,
+
+      questoes: {
+        where: {
+          status: "ATIVO",
+          excluidoEm: null,
         },
-        _count: {
-          select: {
-            questoes: true,
+        select: {
+          dificuldade: true,
+        },
+      },
+
+      _count: {
+        select: {
+          questoes: {
+            where: {
+              status: "ATIVO",
+              excluidoEm: null,
+            },
           },
         },
       },
-    });
-  }
+    },
+  });
+}
 }

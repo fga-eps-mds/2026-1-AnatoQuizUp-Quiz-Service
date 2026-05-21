@@ -138,19 +138,28 @@ describe("Testa QuizRepository", () => {
     await repository.buscarQuantidadeDeQuestoesPorTema();
 
     expect(prisma.tema.findMany).toHaveBeenCalledWith({
-      select: {
-        nome: true,
-        questoes: {
-          select: {
-            dificuldade: true,
-          },
+    select: {
+      nome: true,
+      questoes: {
+        where: {
+          status: "ATIVO",
+          excluidoEm: null,
         },
-        _count: {
-          select: {
-            questoes: true,
+        select: {
+          dificuldade: true,
+        },
+      },
+      _count: {
+        select: {
+          questoes: {
+            where: {
+              status: "ATIVO",
+              excluidoEm: null,
+            },
           },
         },
       },
+    },
     });
 
     expect(prisma.tema.findMany).toHaveBeenCalledTimes(1);
