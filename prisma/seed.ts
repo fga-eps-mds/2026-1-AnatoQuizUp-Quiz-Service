@@ -3,22 +3,67 @@ import { PrismaClient, TipoQuestao, AlternativaQuestao, StatusQuestao, Dificulda
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Iniciando o seed massivo do Quiz-Service (27 Questões)...");
+  console.log("Iniciando o seed massivo do Quiz-Service (27 Questões, 3 Listas e Turmas)...");
 
+  // 1. Limpando as tabelas na ordem correta para evitar erros de FK
+  await prisma.listaTurma.deleteMany({});
+  await prisma.turmaAluno.deleteMany({});
+  await prisma.listaQuestaoItem.deleteMany({});
+  await prisma.listaQuestao.deleteMany({});
   await prisma.resolucaoQuestao.deleteMany({});
   await prisma.questaoAlternativa.deleteMany({});
   await prisma.questao.deleteMany({});
   await prisma.tema.deleteMany({});
+  await prisma.turma.deleteMany({});
 
+  const professorId = "cmp7fx97j00034hyqazqwrk3e";
+
+  // 2. Criando Temas
   const temas = {
     neuro: await prisma.tema.create({ data: { nome: "Neuroanatomia" } }),
     abdome: await prisma.tema.create({ data: { nome: "Abdome Agudo" } }),
     esqueleto: await prisma.tema.create({ data: { nome: "Sistema Esquelético" } }),
   };
 
+  // 3. Criando Turmas e Alunos para teste
+  const turma1 = await prisma.turma.create({
+    data: {
+      codigo: "ANATO-101",
+      nome: "Anatomia Humana I",
+      semestre: "1",
+      ano: 2026,
+      descricao: "Turma de calouros",
+      professorId: professorId,
+      alunos: {
+        create: [
+          { alunoId: "aluno-teste-1" },
+          { alunoId: "aluno-teste-2" },
+          { alunoId: "aluno-teste-3" },
+        ]
+      }
+    }
+  });
+
+  const turma2 = await prisma.turma.create({
+    data: {
+      codigo: "NEURO-201",
+      nome: "Neuroanatomia Avançada",
+      semestre: "3",
+      ano: 2026,
+      descricao: "Turma do terceiro semestre",
+      professorId: professorId,
+      alunos: {
+        create: [
+          { alunoId: "aluno-teste-4" },
+          { alunoId: "aluno-teste-5" },
+        ]
+      }
+    }
+  });
+
+  // 4. Array base das questões
   const questoes = [
-  
-    
+    // NEURO
     { temaId: temas.neuro.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.B, 
       enunciado: "Qual estrutura central é responsável pelo controle motor e equilíbrio?", 
       saibaMais: "O cerebelo coordena os movimentos.", 
@@ -31,8 +76,6 @@ async function main() {
       enunciado: "O sistema nervoso central é composto por quais estruturas principais?", 
       saibaMais: "O SNC inclui apenas o encéfalo e a medula espinhal.", 
       alts: ["Nervos e gânglios", "Cérebro e nervos", "Encéfalo e medula espinhal", "Apenas cérebro", "Tronco encefálico e nervos espinhais"] },
-
-
     { temaId: temas.neuro.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.C, 
       enunciado: "Sobre o sistema nervoso autônomo, qual afirmativa é INCORRETA?", 
       saibaMais: "Fibras parassimpáticas não passam pelos ramos dos nervos espinhais.", 
@@ -45,8 +88,6 @@ async function main() {
       enunciado: "Qual o principal neurotransmissor liberado pelos neurônios pós-ganglionares simpáticos?", 
       saibaMais: "A noradrenalina atua nos receptores adrenérgicos dos órgãos alvo.", 
       alts: ["Acetilcolina", "Dopamina", "Serotonina", "Noradrenalina", "GABA"] },
-
-
     { temaId: temas.neuro.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.A, 
       enunciado: "Uma lesão no fascículo grácil da medula espinhal resulta na perda de qual função?", 
       saibaMais: "O fascículo grácil conduz propriocepção e tato fino dos membros inferiores.", 
@@ -60,7 +101,7 @@ async function main() {
       saibaMais: "A perda de neurônios no núcleo caudado e putâmen gera a coreia.", 
       alts: ["Substância negra", "Núcleo caudado e putâmen", "Globo pálido interno", "Núcleo subtalâmico", "Tálamo"] },
 
-  
+    // ABDOME
     { temaId: temas.abdome.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.B, 
       enunciado: "Qual o exame de imagem inicial mais indicado para suspeita de apendicite aguda?", 
       saibaMais: "A ultrassonografia é rápida e sem radiação.", 
@@ -73,8 +114,6 @@ async function main() {
       enunciado: "Sinal de descompressão brusca dolorosa em todo o abdome é indicativo de:", 
       saibaMais: "A dor de rebote generalizada sugere peritonite difusa.", 
       alts: ["Gastroenterite", "Cálculo renal", "Peritonite", "Constipação", "Hérnia umbilical"] },
-
-
     { temaId: temas.abdome.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.D, 
       enunciado: "Palpação profunda na fossa ilíaca esquerda provocando dor na direita é qual sinal?", 
       saibaMais: "Sinal de Rovsing, típico de apendicite.", 
@@ -87,7 +126,6 @@ async function main() {
       enunciado: "O Sinal de Cullen (equimose periumbilical) pode ser encontrado em casos graves de:", 
       saibaMais: "Sinal clássico de hemorragia retroperitoneal na pancreatite.", 
       alts: ["Pancreatite aguda necro-hemorrágica", "Apendicite supurada", "Colecistite gangrenosa", "Úlcera péptica perfurada", "Diverticulite aguda"] },
-    // DIFÍCIL
     { temaId: temas.abdome.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.C, 
       enunciado: "Em uma radiografia de abdome agudo obstrutivo, o sinal do 'grão de café' indica:", 
       saibaMais: "É o achado radiológico patognomônico de vólvulo de sigmoide.", 
@@ -101,7 +139,7 @@ async function main() {
       saibaMais: "Íleo biliar ocorre por fístula colecistoentérica.", 
       alts: ["Colangite aguda", "Isquemia mesentérica", "Síndrome de Mirizzi", "Íleo biliar", "Coledocolitíase"] },
 
-
+    // ESQUELETO
     { temaId: temas.esqueleto.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.A, 
       enunciado: "Qual dos ossos abaixo faz parte exclusivamente do esqueleto axial?", 
       saibaMais: "O esterno compõe a caixa torácica anterior.", 
@@ -114,7 +152,6 @@ async function main() {
       enunciado: "Qual estrutura conecta os músculos aos ossos?", 
       saibaMais: "Os tendões transferem a força da contração muscular para o esqueleto.", 
       alts: ["Ligamentos", "Cartilagens", "Tendões", "Fáscias", "Bursas"] },
-    // MÉDIA
     { temaId: temas.esqueleto.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.C, 
       enunciado: "Qual a estrutura cartilaginosa por onde os ossos longos crescem em comprimento?", 
       saibaMais: "A placa epifisária permite a ossificação endocondral.", 
@@ -127,7 +164,6 @@ async function main() {
       enunciado: "Qual célula óssea é primariamente responsável pela reabsorção da matriz óssea?", 
       saibaMais: "Os osteoclastos são as células que degradam o osso para remodelamento.", 
       alts: ["Osteoblasto", "Osteócito", "Condrócito", "Osteoclasto", "Macrófago"] },
-    // DIFÍCIL
     { temaId: temas.esqueleto.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.A, 
       enunciado: "A ossificação intramembranosa é o principal processo de formação de quais ossos?", 
       saibaMais: "Forma ossos chatos do crânio, maxila, mandíbula e parte da clavícula.", 
@@ -142,8 +178,13 @@ async function main() {
       alts: ["Nervo radial", "Nervo axilar", "Nervo mediano", "Nervo ulnar", "Nervo musculocutâneo"] },
   ];
 
+  const questoesNeuro: string[] = [];
+  const questoesAbdome: string[] = [];
+  const questoesFaceis: string[] = [];
+
+  // 5. Inserindo as questões no banco e guardando os IDs
   for (const q of questoes) {
-    await prisma.questao.create({
+    const questaoCriada = await prisma.questao.create({
       data: {
         temaId: q.temaId,
         enunciado: q.enunciado,
@@ -152,7 +193,7 @@ async function main() {
         saibaMais: q.saibaMais,
         status: StatusQuestao.ATIVO,
         dificuldade: q.dif,
-        criadoPorId: "seed-user-id",
+        criadoPorId: professorId,
         alternativas: {
           create: {
             alternativaA: q.alts[0], alternativaB: q.alts[1], alternativaC: q.alts[2], alternativaD: q.alts[3], alternativaE: q.alts[4]
@@ -160,9 +201,77 @@ async function main() {
         }
       }
     });
+
+    if (q.temaId === temas.neuro.id) questoesNeuro.push(questaoCriada.id);
+    if (q.temaId === temas.abdome.id) questoesAbdome.push(questaoCriada.id);
+    if (q.dif === Dificuldade.FACIL) questoesFaceis.push(questaoCriada.id);
   }
 
-  console.log("Banco populado com 27 questões perfeitamente distribuídas!");
+  // 6. Criando as Listas e Vinculando às Turmas
+  await prisma.listaQuestao.create({
+    data: {
+      nome: "Simulado de Neuroanatomia - 2026.1",
+      criadoPorId: professorId,
+      itens: {
+        create: questoesNeuro.map((id, index) => ({
+          questaoId: id,
+          ordem: index + 1
+        }))
+      },
+      turmas: {
+        create: [
+          { turmaId: turma2.id } // Vinculada à turma de Neuro
+        ]
+      }
+    }
+  });
+
+  await prisma.listaQuestao.create({
+    data: {
+      nome: "Revisão de Abdome Agudo",
+      criadoPorId: professorId,
+      itens: {
+        create: questoesAbdome.map((id, index) => ({
+          questaoId: id,
+          ordem: index + 1
+        }))
+      },
+      turmas: {
+        create: [
+          { turmaId: turma1.id } // Vinculada à turma de Anatomia I
+        ]
+      }
+    }
+  });
+
+  await prisma.listaQuestao.create({
+    data: {
+      nome: "Aquecimento Geral (Nível Fácil)",
+      criadoPorId: professorId,
+      itens: {
+        create: questoesFaceis.map((id, index) => ({
+          questaoId: id,
+          ordem: index + 1
+        }))
+      },
+      turmas: {
+        create: [
+          { turmaId: turma1.id }, // Vinculada a ambas as turmas
+          { turmaId: turma2.id }
+        ]
+      }
+    }
+  });
+
+  console.log("Banco populado com sucesso! Turmas criadas, 27 questões distribuídas e 3 Listas alocadas.");
 }
 
-main().then(async () => { await prisma.$disconnect(); }).catch(async (e) => { console.error(e); await prisma.$disconnect(); process.exit(1); });
+main()
+  .then(async () => { 
+    await prisma.$disconnect(); 
+  })
+  .catch(async (e) => { 
+    console.error(e); 
+    await prisma.$disconnect(); 
+    process.exit(1); 
+  });
