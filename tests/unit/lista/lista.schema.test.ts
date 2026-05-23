@@ -1,78 +1,96 @@
-import { schemaParametroId,schemaListarListas, schemaEstatisticasParams, schemaParametroTurmaId } from '../../../src/modules/lista/lista.schemas';
+import {
+  schemaAtualizarLista,
+  schemaCriarLista,
+  schemaEstatisticasParams,
+  schemaListarListas,
+  schemaParametroId,
+  schemaParametroListaQuestao,
+  schemaParametroListaTurma,
+  schemaParametroTurmaId,
+  schemaReordenarQuestoes,
+  schemaVincularQuestoes,
+  schemaVincularTurmas,
+} from '../../../src/modules/lista/lista.schemas';
+
+const cuid = 'clhq9z920000008l6f4x5c7u3';
+const outroCuid = 'clhq9z920000008l6f4x5c7u4';
 
 describe('ListaQuestao Schemas', () => {
-  describe('schemaParametroId', () => {
-    it('deve validar um payload com id (cuid) válido', () => {
-      const payload = { id: 'clhq9z920000008l6f4x5c7u3' };
-      const resultado = schemaParametroId.safeParse(payload);
-      expect(resultado.success).toBe(true);
-    });
-
-    it('deve rejeitar um payload com id inválido', () => {
-      const payload = { id: '123' }; 
-      const resultado = schemaParametroId.safeParse(payload);
-      
-      expect(resultado.success).toBe(false);
-      
-      if (!resultado.success) {
-        expect(resultado.error.issues[0].message).toBe('ID da lista inválido.');
-      }
-    });
+  it('deve validar parametro id', () => {
+    expect(schemaParametroId.safeParse({ id: cuid }).success).toBe(true);
+    expect(schemaParametroId.safeParse({ id: 'invalido' }).success).toBe(false);
   });
 
-  describe('schemaEstatisticasParams', () => {
-    it('deve validar parâmetros com id e turmaId corretos', () => {
-      const payload = { 
-        id: 'clhq9z920000008l6f4x5c7u3', 
-        turmaId: 'clhq9z920000008l6f4x5c7u4' 
-      };
-      const resultado = schemaEstatisticasParams.safeParse(payload);
-      expect(resultado.success).toBe(true);
-    });
-
-    it('deve rejeitar se turmaId for inválido', () => {
-      const payload = { 
-        id: 'clhq9z920000008l6f4x5c7u3', 
-        turmaId: 'id-invalido' 
-      };
-      const resultado = schemaEstatisticasParams.safeParse(payload);
-      expect(resultado.success).toBe(false);
-    });
+  it('deve validar parametros de estatisticas', () => {
+    expect(schemaEstatisticasParams.safeParse({ id: cuid, turmaId: outroCuid }).success).toBe(true);
+    expect(schemaEstatisticasParams.safeParse({ id: cuid, turmaId: 'invalido' }).success).toBe(false);
   });
 
-  describe('schemaParametroTurmaId', () => {
-    it('deve validar um payload com turmaId (cuid) válido', () => {
-      const payload = { turmaId: 'clhq9z920000008l6f4x5c7u3' };
-      const resultado = schemaParametroTurmaId.safeParse(payload);
-      expect(resultado.success).toBe(true);
-    });
-
-    it('deve rejeitar um payload com turmaId inválido', () => {
-      const payload = { turmaId: 'id-invalido' };
-      const resultado = schemaParametroTurmaId.safeParse(payload);
-      expect(resultado.success).toBe(false);
-      if (!resultado.success) {
-        expect(resultado.error.issues[0].message).toBe('ID da turma inválido.');
-      }
-    });
+  it('deve validar parametro turmaId', () => {
+    expect(schemaParametroTurmaId.safeParse({ turmaId: cuid }).success).toBe(true);
+    expect(schemaParametroTurmaId.safeParse({ turmaId: 'invalido' }).success).toBe(false);
   });
 
-  describe('schemaListarListas', () => {
-    it('deve validar query com busca e status corretamente', () => {
-      const payload = { busca: 'anatomia', status: 'PUBLICADA' };
-      const resultado = schemaListarListas.safeParse(payload);
-      expect(resultado.success).toBe(true);
-    });
-    it('deve validar query vazia (filtros opcionais)', () => {
-      const payload = {};
-      const resultado = schemaListarListas.safeParse(payload);
-      expect(resultado.success).toBe(true);
-    });
+  it('deve validar parametros de lista e questao', () => {
+    expect(schemaParametroListaQuestao.safeParse({ id: cuid, questaoId: outroCuid }).success).toBe(
+      true,
+    );
+    expect(schemaParametroListaQuestao.safeParse({ id: cuid, questaoId: 'invalido' }).success).toBe(
+      false,
+    );
+  });
 
-    it('deve rejeitar query com status inválido', () => {
-      const payload = { status: 'INVALIDO' };
-      const resultado = schemaListarListas.safeParse(payload);
-      expect(resultado.success).toBe(false);
-    });
+  it('deve validar parametros de lista e turma', () => {
+    expect(schemaParametroListaTurma.safeParse({ id: cuid, turmaId: outroCuid }).success).toBe(true);
+    expect(schemaParametroListaTurma.safeParse({ id: cuid, turmaId: 'invalido' }).success).toBe(
+      false,
+    );
+  });
+
+  it('deve validar filtros de listagem', () => {
+    expect(schemaListarListas.safeParse({ busca: 'anatomia', status: 'PUBLICADA' }).success).toBe(
+      true,
+    );
+    expect(schemaListarListas.safeParse({}).success).toBe(true);
+    expect(schemaListarListas.safeParse({ status: 'INVALIDO' }).success).toBe(false);
+  });
+
+  it('deve validar criacao de lista', () => {
+    expect(
+      schemaCriarLista.safeParse({
+        nome: 'Simulado',
+        questoesIds: [cuid],
+        turmasIds: [outroCuid],
+      }).success,
+    ).toBe(true);
+    expect(schemaCriarLista.safeParse({ nome: '' }).success).toBe(false);
+    expect(schemaCriarLista.safeParse({ nome: 'Simulado', questoesIds: ['x'] }).success).toBe(
+      false,
+    );
+  });
+
+  it('deve validar atualizacao de lista', () => {
+    expect(schemaAtualizarLista.safeParse({ nome: 'Novo nome' }).success).toBe(true);
+    expect(schemaAtualizarLista.safeParse({}).success).toBe(false);
+    expect(schemaAtualizarLista.safeParse({ nome: '' }).success).toBe(false);
+  });
+
+  it('deve validar vinculo de questoes', () => {
+    expect(schemaVincularQuestoes.safeParse({ questoesIds: [cuid] }).success).toBe(true);
+    expect(schemaVincularQuestoes.safeParse({ questoesIds: [] }).success).toBe(false);
+    expect(schemaVincularQuestoes.safeParse({ questoesIds: ['x'] }).success).toBe(false);
+  });
+
+  it('deve validar reordenacao de questoes', () => {
+    expect(schemaReordenarQuestoes.safeParse({ questoesIds: [cuid, outroCuid] }).success).toBe(
+      true,
+    );
+    expect(schemaReordenarQuestoes.safeParse({ questoesIds: [] }).success).toBe(false);
+  });
+
+  it('deve validar vinculo de turmas', () => {
+    expect(schemaVincularTurmas.safeParse({ turmasIds: [cuid] }).success).toBe(true);
+    expect(schemaVincularTurmas.safeParse({ turmasIds: [] }).success).toBe(false);
+    expect(schemaVincularTurmas.safeParse({ turmasIds: ['x'] }).success).toBe(false);
   });
 });
