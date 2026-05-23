@@ -18,6 +18,28 @@ export interface FiltrosListaDTO {
   status?: 'PUBLICADA' | 'RASCUNHO';
 }
 
+export interface CriarListaQuestaoDTO {
+  nome: string;
+  questoesIds?: string[];
+  turmasIds?: string[];
+}
+
+export interface AtualizarListaQuestaoDTO {
+  nome?: string;
+}
+
+export interface VincularQuestoesListaDTO {
+  questoesIds: string[];
+}
+
+export interface ReordenarQuestoesListaDTO {
+  questoesIds: string[];
+}
+
+export interface VincularTurmasListaDTO {
+  turmasIds: string[];
+}
+
 export interface ListaQuestaoRespostaDTO {
   id: string;
   nome: string;

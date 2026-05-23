@@ -1,15 +1,59 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+
+import type {
+  AtualizarListaQuestaoDTO,
+  CriarListaQuestaoDTO,
+  FiltrosListaDTO,
+  ReordenarQuestoesListaDTO,
+  VincularQuestoesListaDTO,
+  VincularTurmasListaDTO,
+} from './dto/lista.types';
 import type { ListaQuestaoService } from './lista.service';
-import type { FiltrosListaDTO } from './dto/lista.types';
 
 export class ListaQuestaoController {
   constructor(private readonly service: ListaQuestaoService) {}
 
-  buscar = async (req: Request, res: Response, next: NextFunction) => {
+  criar = async (
+    req: Request<unknown, unknown, CriarListaQuestaoDTO>,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const id = req.params.id as string;
-      const lista = await this.service.buscarLista(id);
-      
+      const professorId = req.usuario!.id;
+      const lista = await this.service.criarLista(req.body, professorId);
+
+      res.status(201).json({
+        mensagem: 'Lista criada com sucesso.',
+        dados: lista,
+      });
+    } catch (erro) {
+      next(erro);
+    }
+  };
+
+  atualizar = async (
+    req: Request<{ id: string }, unknown, AtualizarListaQuestaoDTO>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const professorId = req.usuario!.id;
+      const lista = await this.service.atualizarLista(req.params.id, professorId, req.body);
+
+      res.status(200).json({
+        mensagem: 'Lista atualizada com sucesso.',
+        dados: lista,
+      });
+    } catch (erro) {
+      next(erro);
+    }
+  };
+
+  buscar = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+    try {
+      const professorId = req.usuario!.id;
+      const lista = await this.service.buscarLista(req.params.id, professorId);
+
       res.status(200).json({
         mensagem: 'Lista recuperada com sucesso.',
         dados: lista,
@@ -19,17 +63,15 @@ export class ListaQuestaoController {
     }
   };
 
-  listarDoUsuario = async (req: Request, res: Response, next: NextFunction) => {
+  listarDoUsuario = async (
+    req: Request<unknown, unknown, unknown, FiltrosListaDTO>,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const professorId = req.usuario!.id;
-      
-      const filtros: FiltrosListaDTO = {
-        busca: req.query.busca as string | undefined,
-        status: req.query.status as 'PUBLICADA' | 'RASCUNHO' | undefined,
-      };
+      const listas = await this.service.listarMinhasListas(professorId, req.query);
 
-      const listas = await this.service.listarMinhasListas(professorId, filtros);
-      
       res.status(200).json({
         mensagem: 'Listas recuperadas com sucesso.',
         dados: listas,
@@ -39,11 +81,11 @@ export class ListaQuestaoController {
     }
   };
 
-  listarPorTurma = async (req: Request, res: Response, next: NextFunction) => {
+  listarPorTurma = async (req: Request<{ turmaId: string }>, res: Response, next: NextFunction) => {
     try {
-      const turmaId = req.params.turmaId as string;
-      const listas = await this.service.listarListasDaTurma(turmaId);
-      
+      const professorId = req.usuario!.id;
+      const listas = await this.service.listarListasDaTurma(req.params.turmaId, professorId);
+
       res.status(200).json({
         mensagem: 'Listas da turma recuperadas com sucesso.',
         dados: listas,
@@ -53,13 +95,12 @@ export class ListaQuestaoController {
     }
   };
 
-  deletar = async (req: Request, res: Response, next: NextFunction) => {
+  deletar = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
     try {
-      const id = req.params.id as string;
       const professorId = req.usuario!.id;
-      
-      await this.service.deletarLista(id, professorId);
-      
+
+      await this.service.deletarLista(req.params.id, professorId);
+
       res.status(200).json({
         mensagem: 'Lista deletada com sucesso.',
         dados: null,
@@ -69,13 +110,119 @@ export class ListaQuestaoController {
     }
   };
 
-  estatisticas = async (req: Request, res: Response, next: NextFunction) => {
+  vincularQuestoes = async (
+    req: Request<{ id: string }, unknown, VincularQuestoesListaDTO>,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const { id, turmaId } = req.params as { id: string; turmaId: string };
-      const estatisticas = await this.service.gerarEstatisticasTurma(id, turmaId);
-      
+      const professorId = req.usuario!.id;
+      const lista = await this.service.vincularQuestoes(req.params.id, professorId, req.body);
+
       res.status(200).json({
-        mensagem: 'Estatísticas geradas com sucesso.',
+        mensagem: 'Questoes vinculadas com sucesso.',
+        dados: lista,
+      });
+    } catch (erro) {
+      next(erro);
+    }
+  };
+
+  desvincularQuestao = async (
+    req: Request<{ id: string; questaoId: string }>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const professorId = req.usuario!.id;
+      const lista = await this.service.desvincularQuestao(
+        req.params.id,
+        req.params.questaoId,
+        professorId,
+      );
+
+      res.status(200).json({
+        mensagem: 'Questao desvinculada com sucesso.',
+        dados: lista,
+      });
+    } catch (erro) {
+      next(erro);
+    }
+  };
+
+  reordenarQuestoes = async (
+    req: Request<{ id: string }, unknown, ReordenarQuestoesListaDTO>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const professorId = req.usuario!.id;
+      const lista = await this.service.reordenarQuestoes(req.params.id, professorId, req.body);
+
+      res.status(200).json({
+        mensagem: 'Questoes reordenadas com sucesso.',
+        dados: lista,
+      });
+    } catch (erro) {
+      next(erro);
+    }
+  };
+
+  vincularTurmas = async (
+    req: Request<{ id: string }, unknown, VincularTurmasListaDTO>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const professorId = req.usuario!.id;
+      const lista = await this.service.vincularTurmas(req.params.id, professorId, req.body);
+
+      res.status(200).json({
+        mensagem: 'Turmas vinculadas com sucesso.',
+        dados: lista,
+      });
+    } catch (erro) {
+      next(erro);
+    }
+  };
+
+  desvincularTurma = async (
+    req: Request<{ id: string; turmaId: string }>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const professorId = req.usuario!.id;
+      const lista = await this.service.desvincularTurma(
+        req.params.id,
+        req.params.turmaId,
+        professorId,
+      );
+
+      res.status(200).json({
+        mensagem: 'Turma desvinculada com sucesso.',
+        dados: lista,
+      });
+    } catch (erro) {
+      next(erro);
+    }
+  };
+
+  estatisticas = async (
+    req: Request<{ id: string; turmaId: string }>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const professorId = req.usuario!.id;
+      const estatisticas = await this.service.gerarEstatisticasTurma(
+        req.params.id,
+        req.params.turmaId,
+        professorId,
+      );
+
+      res.status(200).json({
+        mensagem: 'Estatisticas geradas com sucesso.',
         dados: estatisticas,
       });
     } catch (erro) {
