@@ -35,9 +35,15 @@ quizRouter.post(
 quizRouter.get("/quantidade_por_tema", quizController.buscarQuantidadeDeQuestoesPorTema);
 
 quizRouter.get(
-  "/historico",
+  "/resolucoes",
   validarRequisicao(schemaListarResolucaoQuestoesUsuario, "query"),
   quizController.listarResolucaoQuestoesUsuario,
+);
+
+quizRouter.get(
+  "/historico",
+  validarRequisicao(schemaListarResolucaoQuestoesUsuario, "query"),
+  quizController.buscarHistorico,
 );
 
 export { quizRouter };

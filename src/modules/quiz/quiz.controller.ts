@@ -60,7 +60,19 @@ export class QuizController {
         request.usuario?.id,
         request.query,
       );
-      return listaResolucaoQuestoesUsuario;
+      return response.status(200).json(listaResolucaoQuestoesUsuario);
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  buscarHistorico = async (request: Request, response: Response, next: NextFunction) => {
+    try {
+      const listaResolucaoQuestoesUsuario = await this.quizService.buscarHistorico(
+        request.usuario?.id,
+        request.query,
+      );
+      return response.status(200).json(listaResolucaoQuestoesUsuario);
     } catch (error) {
       return next(error);
     }

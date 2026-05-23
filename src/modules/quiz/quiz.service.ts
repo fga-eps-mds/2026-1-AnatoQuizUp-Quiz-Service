@@ -1,5 +1,5 @@
 import type { RespostaQuestaoQuizDto } from "./dto/resposta_questao_quiz_dto";
-import type { FiltroListarQuestoesQueryDto } from "../questoes/dto/question.types";
+import { type FiltroListarQuestoesQueryDto } from "../questoes/dto/question.types";
 import type { RespostaPaginada } from "@/shared/types/api.types";
 import type { QuizRepository, RegistroResolucaoQuestaoCompleta } from "./quiz.repository";
 import type { FeedbackQuizDto } from "./dto/feedback_quiz_dto";
@@ -159,6 +159,85 @@ export class QuizService {
     return {
       dados: data,
       metadados: montarMetadadosPaginacao(paginacao, total),
+    };
+  }
+
+  async buscarHistorico(
+    usuarioId: string | undefined,
+    query: FiltroListarQuestoesQueryDto,
+  ): Promise<RespostaPaginada<any>> {
+    if (usuarioId === "" || usuarioId === undefined) {
+      throw new ErroAplicacao({
+        codigoStatus: 401,
+        codigo: CodigoDeErro.NAO_AUTORIZADO,
+        mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+      });
+    }
+
+    const paginacao = resolverParametrosPaginacao(query);
+    const { data, total } = await this.quizRepository.listarQuestoesRespondidas(
+      usuarioId,
+      paginacao,
+      query,
+    );
+
+    if (!data) {
+      throw new ErroAplicacao({
+        codigoStatus: 404,
+        codigo: CodigoDeErro.NAO_ENCONTRADO,
+        mensagem: MENSAGENS.questaoNaoEncontrada,
+      });
+    }
+
+    const questoesIds = data.map((q) => q.questaoId);
+    const respostasQuestoes =
+      await this.quizRepository.buscarQuantidadeRespostasQuestoes(questoesIds);
+
+    const mapaDistribuicao = new Map<
+      string,
+      {
+        tentativas: number;
+        distribuicao: Record<string, number>;
+      }
+    >();
+
+    for (const item of respostasQuestoes) {
+      const questaoId = item.questaoId;
+      const atual = mapaDistribuicao.get(questaoId) ?? {
+        tentativas: 0,
+        distribuicao: {
+          A: 0,
+          B: 0,
+          C: 0,
+          D: 0,
+          E: 0,
+        },
+      };
+
+      const quantidade = item._count._all;
+      atual.distribuicao[item.respostaMarcada] = quantidade;
+      atual.tentativas += quantidade;
+      mapaDistribuicao.set(questaoId, atual);
+    }
+
+    const dados = data.map((item) => {
+      const stats = mapaDistribuicao.get(item.questaoId);
+      return {
+        ...item,
+        tentativas: stats?.tentativas ?? 0,
+        distribuicao: stats?.distribuicao ?? {
+          A: 0,
+          B: 0,
+          C: 0,
+          D: 0,
+          E: 0,
+        },
+      };
+    });
+
+    return {
+      dados,
+      metadados: montarMetadadosPaginacao(paginacao, total.length),
     };
   }
 }

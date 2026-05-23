@@ -135,4 +135,102 @@ export class QuizRepository {
       total,
     };
   }
+
+  async listarQuestoesRespondidas(
+    usuarioId: string,
+    paginacao: ParametrosPaginacao,
+    filtros: FiltroListarQuestoesQueryDto,
+  ) {
+    const where: Prisma.ResolucaoQuestaoWhereInput = {
+      usuarioId,
+      excluidoEm: null,
+
+      questao: {
+        excluidoEm: null,
+        status: "ATIVO",
+
+        ...(filtros.tema && {
+          temaId: filtros.tema,
+        }),
+
+        ...(filtros.dificuldade && {
+          dificuldade: filtros.dificuldade,
+        }),
+
+        ...(filtros.tipo && {
+          tipoQuestao: mapearTipoApiParaBanco(filtros.tipo),
+        }),
+      },
+    };
+
+    const [data, total] = await prisma.$transaction([
+      prisma.resolucaoQuestao.findMany({
+        distinct: ["questaoId"],
+        where,
+        select: {
+          id: true,
+          questaoId: true,
+          respostaMarcada: true,
+          criadoEm: true,
+          questao: {
+            select: {
+              enunciado: true,
+              tipoQuestao: true,
+              respostaCorreta: true,
+              saibaMais: true,
+              status: true,
+              feitoPorIa: true,
+              urlImagem: true,
+              dificuldade: true,
+              tema: {
+                select: {
+                  id: true,
+                  nome: true,
+                },
+              },
+              alternativas: {
+                select: {
+                  alternativaA: true,
+                  alternativaB: true,
+                  alternativaC: true,
+                  alternativaD: true,
+                  alternativaE: true,
+                },
+              },
+            },
+          },
+        },
+        skip: paginacao.skip,
+        take: paginacao.limit,
+        orderBy: {
+          criadoEm: "desc",
+        },
+      }),
+      prisma.resolucaoQuestao.groupBy({
+        by: ["questaoId"],
+        where,
+      }),
+    ]);
+    console.log("BREAK 3");
+
+    return { data: data, total: total };
+  }
+
+  async buscarQuantidadeRespostasQuestoes(questoesIds: string[]) {
+    return prisma.resolucaoQuestao.groupBy({
+      by: ["questaoId", "respostaMarcada"],
+
+      where: {
+        questaoId: {
+          in: questoesIds,
+        },
+
+        excluidoEm: null,
+      },
+
+      _count: {
+        _all: true,
+      },
+    });
+  }
 }
