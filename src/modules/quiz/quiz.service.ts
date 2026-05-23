@@ -159,8 +159,18 @@ export class QuizService {
     }
 
     const questoesIds = data.map((q) => q.questaoId);
-    const respostasQuestoes =
-      await this.quizRepository.buscarQuantidadeRespostasQuestoes(questoesIds);
+    const respostasQuestoes = await this.quizRepository.buscarQuantidadeRespostasQuestoes(
+      usuarioId,
+      questoesIds,
+    );
+
+    if (!respostasQuestoes) {
+      throw new ErroAplicacao({
+        codigoStatus: 404,
+        codigo: CodigoDeErro.NAO_ENCONTRADO,
+        mensagem: MENSAGENS.questaoNaoEncontrada,
+      });
+    }
 
     const mapaDistribuicao = new Map<
       string,
@@ -204,7 +214,7 @@ export class QuizService {
 
     return {
       dados,
-      metadados: montarMetadadosPaginacao(paginacao, total.length),
+      metadados: montarMetadadosPaginacao(paginacao, total),
     };
   }
 }

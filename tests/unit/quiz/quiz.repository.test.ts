@@ -14,7 +14,9 @@ jest.mock("@/config/db", () => ({
       findUnique: jest.fn(),
     },
     resolucaoQuestao: {
+      findMany: jest.fn(),
       create: jest.fn(),
+      groupBy: jest.fn(),
     },
     tema: {
       findMany: jest.fn(),
@@ -154,5 +156,119 @@ describe("Testa QuizRepository", () => {
     });
 
     expect(prisma.tema.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  test("deve listar questões respondidas com filtros e paginação", async () => {
+    const filtros: FiltroListarQuestoesQueryDto = {
+      tema: "tema-id",
+      dificuldade: DIFICULDADE_API.MEDIA,
+      tipo: TIPO_QUESTAO_API.MULTIPLA_ESCOLHA,
+    };
+
+    const paginacao = {
+      skip: 0,
+      limit: 5,
+      page: 1,
+    };
+
+    const where = {
+      usuarioId: "usuario-1",
+      excluidoEm: null,
+      questao: {
+        dificuldade: "MEDIA",
+        excluidoEm: null,
+        status: "ATIVO",
+        temaId: "tema-id",
+        tipoQuestao: "MULTIPLA_ESCOLHA",
+      },
+    };
+    await repository.listarQuestoesRespondidas("usuario-1", paginacao, filtros);
+
+    const select = {
+      id: true,
+      questaoId: true,
+      respostaMarcada: true,
+      criadoEm: true,
+      questao: {
+        select: {
+          enunciado: true,
+          tipoQuestao: true,
+          respostaCorreta: true,
+          saibaMais: true,
+          status: true,
+          feitoPorIa: true,
+          urlImagem: true,
+          dificuldade: true,
+          tema: {
+            select: {
+              id: true,
+              nome: true,
+            },
+          },
+          alternativas: {
+            select: {
+              alternativaA: true,
+              alternativaB: true,
+              alternativaC: true,
+              alternativaD: true,
+              alternativaE: true,
+            },
+          },
+        },
+      },
+    };
+
+    expect(prisma.resolucaoQuestao.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        distinct: ["questaoId"],
+        where,
+        select,
+        skip: 0,
+        take: 5,
+        orderBy: {
+          criadoEm: "desc",
+        },
+      }),
+    );
+
+    expect(prisma.resolucaoQuestao.groupBy).toHaveBeenCalledWith({
+      by: ["questaoId"],
+
+      where: {
+        usuarioId: "usuario-1",
+        excluidoEm: null,
+
+        questao: {
+          excluidoEm: null,
+          status: "ATIVO",
+
+          temaId: "tema-id",
+          dificuldade: "MEDIA",
+          tipoQuestao: "MULTIPLA_ESCOLHA",
+        },
+      },
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalled();
+  });
+
+  test("Deve retornar a quantidade de respostas por questão respondida", async () => {
+    const questoesIds = ["id-1", "id-2"];
+    const usuarioId = "id-usuario";
+    await repository.buscarQuantidadeRespostasQuestoes(usuarioId, questoesIds);
+
+    expect(prisma.resolucaoQuestao.groupBy).toHaveBeenCalledWith({
+      by: ["questaoId", "respostaMarcada"],
+      where: {
+        questaoId: {
+          in: questoesIds,
+        },
+        usuarioId,
+        excluidoEm: null,
+      },
+      _count: {
+        _all: true,
+      },
+    });
   });
 });

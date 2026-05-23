@@ -6,12 +6,45 @@ import { mapearTipoApiParaBanco, montarFiltroPrisma } from "@/modules/questoes/d
 import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
 import type { ResponderQuestaoQuizDto } from "./dto/requests/responder_questao_quiz_dto";
-import type { Prisma } from "@prisma/client";
-import type { Questao, QuestaoAlternativa, ResolucaoQuestao, Tema } from "@prisma/client";
+import type { Prisma, Questao, QuestaoAlternativa, ResolucaoQuestao, Tema } from "@prisma/client";
 
 const includeQuestaoCompleta = {
   tema: true,
   alternativas: true,
+};
+
+const selectListarQuestoesRespondidas = {
+  id: true,
+  questaoId: true,
+  respostaMarcada: true,
+  criadoEm: true,
+  questao: {
+    select: {
+      enunciado: true,
+      tipoQuestao: true,
+      respostaCorreta: true,
+      saibaMais: true,
+      status: true,
+      feitoPorIa: true,
+      urlImagem: true,
+      dificuldade: true,
+      tema: {
+        select: {
+          id: true,
+          nome: true,
+        },
+      },
+      alternativas: {
+        select: {
+          alternativaA: true,
+          alternativaB: true,
+          alternativaC: true,
+          alternativaD: true,
+          alternativaE: true,
+        },
+      },
+    },
+  },
 };
 
 export type RegistroResolucaoQuestaoCompleta = ResolucaoQuestao & {
@@ -110,39 +143,7 @@ export class QuizRepository {
       prisma.resolucaoQuestao.findMany({
         distinct: ["questaoId"],
         where,
-        select: {
-          id: true,
-          questaoId: true,
-          respostaMarcada: true,
-          criadoEm: true,
-          questao: {
-            select: {
-              enunciado: true,
-              tipoQuestao: true,
-              respostaCorreta: true,
-              saibaMais: true,
-              status: true,
-              feitoPorIa: true,
-              urlImagem: true,
-              dificuldade: true,
-              tema: {
-                select: {
-                  id: true,
-                  nome: true,
-                },
-              },
-              alternativas: {
-                select: {
-                  alternativaA: true,
-                  alternativaB: true,
-                  alternativaC: true,
-                  alternativaD: true,
-                  alternativaE: true,
-                },
-              },
-            },
-          },
-        },
+        select: selectListarQuestoesRespondidas,
         skip: paginacao.skip,
         take: paginacao.limit,
         orderBy: {
@@ -154,20 +155,19 @@ export class QuizRepository {
         where,
       }),
     ]);
-    console.log("BREAK 3");
 
-    return { data: data, total: total };
+    return { data: data, total: total.length };
   }
 
-  async buscarQuantidadeRespostasQuestoes(questoesIds: string[]) {
-    return prisma.resolucaoQuestao.groupBy({
+  async buscarQuantidadeRespostasQuestoes(usuarioId: string, questoesIds: string[]) {
+    return await prisma.resolucaoQuestao.groupBy({
       by: ["questaoId", "respostaMarcada"],
 
       where: {
         questaoId: {
           in: questoesIds,
         },
-
+        usuarioId,
         excluidoEm: null,
       },
 
