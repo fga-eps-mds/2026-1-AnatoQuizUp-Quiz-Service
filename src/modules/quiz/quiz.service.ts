@@ -1,18 +1,20 @@
-import type { RespostaQuestaoQuizDto } from "./dto/resposta_questao_quiz_dto";
+import type { RespostaQuestaoQuizDto } from "./dto/responses/resposta_questao_quiz_dto";
 import { type FiltroListarQuestoesQueryDto } from "../questoes/dto/question.types";
 import type { RespostaPaginada } from "@/shared/types/api.types";
-import type { QuizRepository, RegistroResolucaoQuestaoCompleta } from "./quiz.repository";
-import type { FeedbackQuizDto } from "./dto/feedback_quiz_dto";
-import type { ResponderQuestaoQuizDto } from "./dto/responder_questao_quiz_dto";
+import type { QuizRepository } from "./quiz.repository";
+import type { FeedbackQuizDto } from "./dto/responses/feedback_quiz_dto";
+import type { ResponderQuestaoQuizDto } from "./dto/requests/responder_questao_quiz_dto";
 import { MENSAGENS } from "@/shared/constants/mensagens";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
-import { converterParaRespostaQuestaoQuiz } from "./dto/converter_para_resposta_questao_quiz";
+import { converterParaRespostaQuestaoQuiz } from "./dto/mappers/converter_para_resposta_questao_quiz";
 import {
   montarMetadadosPaginacao,
   resolverParametrosPaginacao,
 } from "@/shared/utils/paginacao.util";
-import type { QuantidadeQuestoesPorTema } from "./dto/quantidade_questao_tema_dto";
+import type { QuantidadeQuestoesPorTema } from "./dto/responses/quantidade_questao_tema_dto";
+import { type ResolucaoQuestaoUsuarioDto } from "./dto/responses/resolucao_questao_usuario_dto";
+import { converterResolucaoQuestaoBancoToApi } from "./dto/mappers/historico_quiz.mapper";
 
 export class QuizService {
   constructor(private readonly quizRepository: QuizRepository) {}
@@ -129,43 +131,10 @@ export class QuizService {
     });
   }
 
-  async listarResolucaoQuestoesUsuario(
-    usuarioId: string | undefined,
-    query: FiltroListarQuestoesQueryDto,
-  ): Promise<RespostaPaginada<RegistroResolucaoQuestaoCompleta>> {
-    if (usuarioId === "" || usuarioId === undefined) {
-      throw new ErroAplicacao({
-        codigoStatus: 401,
-        codigo: CodigoDeErro.NAO_AUTORIZADO,
-        mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
-      });
-    }
-
-    const paginacao = resolverParametrosPaginacao(query);
-    const { data, total } = await this.quizRepository.listarResolucaoQuestoesUsuario(
-      usuarioId,
-      paginacao,
-      query,
-    );
-
-    if (!data) {
-      throw new ErroAplicacao({
-        codigoStatus: 404,
-        codigo: CodigoDeErro.NAO_ENCONTRADO,
-        mensagem: MENSAGENS.questaoNaoEncontrada,
-      });
-    }
-
-    return {
-      dados: data,
-      metadados: montarMetadadosPaginacao(paginacao, total),
-    };
-  }
-
   async buscarHistorico(
     usuarioId: string | undefined,
     query: FiltroListarQuestoesQueryDto,
-  ): Promise<RespostaPaginada<any>> {
+  ): Promise<RespostaPaginada<ResolucaoQuestaoUsuarioDto>> {
     if (usuarioId === "" || usuarioId === undefined) {
       throw new ErroAplicacao({
         codigoStatus: 401,
@@ -222,17 +191,15 @@ export class QuizService {
 
     const dados = data.map((item) => {
       const stats = mapaDistribuicao.get(item.questaoId);
-      return {
-        ...item,
-        tentativas: stats?.tentativas ?? 0,
-        distribuicao: stats?.distribuicao ?? {
-          A: 0,
-          B: 0,
-          C: 0,
-          D: 0,
-          E: 0,
-        },
+      const tentativas = stats?.tentativas ?? 0;
+      const distribuicao = stats?.distribuicao ?? {
+        A: 0,
+        B: 0,
+        C: 0,
+        D: 0,
+        E: 0,
       };
+      return converterResolucaoQuestaoBancoToApi(item, tentativas, distribuicao);
     });
 
     return {

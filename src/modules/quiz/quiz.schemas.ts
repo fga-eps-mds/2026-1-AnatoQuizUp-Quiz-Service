@@ -33,7 +33,7 @@ export const schemaResponderQuestaoQuiz = z.discriminatedUnion("tipo", [
   }),
 ]);
 
-export const schemaListarResolucaoQuestoesUsuario = z.object({
+export const schemaHistoricoQuizQuestoesUsuario = z.object({
   tema: z.string().trim().optional(),
 
   dificuldade: z.enum(VALORES_DIFICULDADE).optional(),

@@ -9,7 +9,7 @@ import { validarRequisicao } from "@/shared/middlewares/validacao.middleware";
 import {
   schemaBuscarQuestaoQuiz,
   schemaResponderQuestaoQuiz,
-  schemaListarResolucaoQuestoesUsuario,
+  schemaHistoricoQuizQuestoesUsuario,
 } from "./quiz.schemas";
 
 const quizRepository = new QuizRepository();
@@ -35,14 +35,8 @@ quizRouter.post(
 quizRouter.get("/quantidade_por_tema", quizController.buscarQuantidadeDeQuestoesPorTema);
 
 quizRouter.get(
-  "/resolucoes",
-  validarRequisicao(schemaListarResolucaoQuestoesUsuario, "query"),
-  quizController.listarResolucaoQuestoesUsuario,
-);
-
-quizRouter.get(
   "/historico",
-  validarRequisicao(schemaListarResolucaoQuestoesUsuario, "query"),
+  validarRequisicao(schemaHistoricoQuizQuestoesUsuario, "query"),
   quizController.buscarHistorico,
 );
 

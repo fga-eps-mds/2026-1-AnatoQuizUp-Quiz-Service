@@ -5,22 +5,14 @@ import type {
 import { mapearTipoApiParaBanco, montarFiltroPrisma } from "@/modules/questoes/dto/question.types";
 import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
-import type { ResponderQuestaoQuizDto } from "./dto/responder_questao_quiz_dto";
-import { Prisma, Questao, QuestaoAlternativa, ResolucaoQuestao, Tema } from "@prisma/client";
+import type { ResponderQuestaoQuizDto } from "./dto/requests/responder_questao_quiz_dto";
+import type { Prisma } from "@prisma/client";
+import type { Questao, QuestaoAlternativa, ResolucaoQuestao, Tema } from "@prisma/client";
 
 const includeQuestaoCompleta = {
   tema: true,
   alternativas: true,
 };
-
-const includeResolucaoQuestaoCompleta = Prisma.validator<Prisma.ResolucaoQuestaoInclude>()({
-  questao: {
-    include: {
-      tema: true,
-      alternativas: true,
-    },
-  },
-});
 
 export type RegistroResolucaoQuestaoCompleta = ResolucaoQuestao & {
   questao: Questao & {
@@ -85,55 +77,6 @@ export class QuizRepository {
         },
       },
     });
-  }
-
-  async listarResolucaoQuestoesUsuario(
-    usuarioId: string,
-    paginacao: ParametrosPaginacao,
-    filtros: FiltroListarQuestoesQueryDto,
-  ) {
-    const where: Prisma.ResolucaoQuestaoWhereInput = {
-      usuarioId,
-      excluidoEm: null,
-
-      questao: {
-        excluidoEm: null,
-        status: "ATIVO",
-
-        ...(filtros.tema && {
-          temaId: filtros.tema,
-        }),
-
-        ...(filtros.dificuldade && {
-          dificuldade: filtros.dificuldade,
-        }),
-
-        ...(filtros.tipo && {
-          tipoQuestao: mapearTipoApiParaBanco(filtros.tipo),
-        }),
-      },
-    };
-
-    const [data, total] = await prisma.$transaction([
-      prisma.resolucaoQuestao.findMany({
-        where,
-        include: includeResolucaoQuestaoCompleta,
-
-        skip: paginacao.skip,
-        take: paginacao.limit,
-
-        orderBy: {
-          criadoEm: "desc",
-        },
-      }),
-
-      prisma.resolucaoQuestao.count({ where }),
-    ]);
-
-    return {
-      data: data as RegistroResolucaoQuestaoCompleta[],
-      total,
-    };
   }
 
   async listarQuestoesRespondidas(

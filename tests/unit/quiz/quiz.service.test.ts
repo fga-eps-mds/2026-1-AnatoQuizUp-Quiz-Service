@@ -1,6 +1,6 @@
 import { QuizService } from "@/modules/quiz/quiz.service";
-import { converterParaRespostaQuestaoQuiz } from "@/modules/quiz/dto/converter_para_resposta_questao_quiz";
-import type { RespostaQuestaoQuizDto } from "@/modules/quiz/dto/resposta_questao_quiz_dto";
+import { converterParaRespostaQuestaoQuiz } from "@/modules/quiz/dto/mappers/converter_para_resposta_questao_quiz";
+import type { RespostaQuestaoQuizDto } from "@/modules/quiz/dto/responses/resposta_questao_quiz_dto";
 import type { QuizRepository } from "@/modules/quiz/quiz.repository";
 import {
   DIFICULDADE_API,
@@ -10,7 +10,7 @@ import {
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { MENSAGENS } from "@/shared/constants/mensagens";
-import type { ResponderQuestaoQuizDto } from "@/modules/quiz/dto/responder_questao_quiz_dto";
+import type { ResponderQuestaoQuizDto } from "@/modules/quiz/dto/requests/responder_questao_quiz_dto";
 import { AlternativaQuestao, type ResolucaoQuestao } from "@prisma/client";
 
 function criarQuestoes(

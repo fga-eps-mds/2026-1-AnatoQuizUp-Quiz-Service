@@ -1,4 +1,4 @@
-import type { RespostaQuestaoQuizDto } from "@/modules/quiz/dto/resposta_questao_quiz_dto";
+import type { RespostaQuestaoQuizDto } from "@/modules/quiz/dto/responses/resposta_questao_quiz_dto";
 import type { QuizService } from "@/modules/quiz/quiz.service";
 import type { Request, Response, NextFunction } from "express";
 import { QuizController } from "@/modules/quiz/quiz.controller";
