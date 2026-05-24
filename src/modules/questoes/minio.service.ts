@@ -33,6 +33,12 @@ export class MinioService {
   }
 
   private gerarUrlPublica(nomeArquivo: string): string {
+    const publicUrl = process.env.MINIO_PUBLIC_URL;
+    if (publicUrl) {
+      const base = publicUrl.replace(/\/$/, "");
+      return `${base}/${this.bucketName}/${nomeArquivo}`;
+    }
+    
     const endpointRaw = process.env.MINIO_ENDPOINT;
 
     if (process.env.NODE_ENV === "production") {

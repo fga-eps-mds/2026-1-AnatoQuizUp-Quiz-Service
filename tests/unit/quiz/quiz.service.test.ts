@@ -238,7 +238,7 @@ describe("Testa Quiz Service", () => {
     expect(resultado.dados).not.toEqual(questoes_quiz);
   });
 
-  test("Testa resposta correta de questão deve retornar boolean true", async () => {
+  test("Testa resposta correta de questão deve retornar boolean true e a resposta correta", async () => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
     repository.buscarResposta.mockResolvedValue(criarFeedback());
 
@@ -248,9 +248,10 @@ describe("Testa Quiz Service", () => {
     );
 
     expect(resultado.correcao).toBe(true);
+    expect(resultado.respostaCorreta).toBe("E");
   });
 
-  test("Testa resposta errada de questão deve retornar boolean false", async () => {
+  test("Testa resposta errada de questão deve retornar boolean false e a resposta correta", async () => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
     repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.C));
 
@@ -259,7 +260,9 @@ describe("Testa Quiz Service", () => {
       "usuario-id",
     );
 
+    
     expect(resultado.correcao).toBe(false);
+    expect(resultado.respostaCorreta).toBe("C");
   });
 
   test("Lança erro caso id do usuário não seja informado", async () => {
