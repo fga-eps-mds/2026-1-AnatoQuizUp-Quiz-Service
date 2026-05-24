@@ -16,7 +16,7 @@ jest.mock("@/config/db", () => ({
     resolucaoQuestao: {
       findMany: jest.fn(),
       create: jest.fn(),
-      groupBy: jest.fn(),
+      count: jest.fn(),
     },
     tema: {
       findMany: jest.fn(),
@@ -59,11 +59,15 @@ describe("Testa QuizRepository", () => {
           tipoQuestao: "MULTIPLA_ESCOLHA",
           tema: {
             nome: {
-              contains: "Sistema Cardiovascular",
+              equals: "Sistema Cardiovascular",
               mode: "insensitive",
             },
           },
         }),
+        include: {
+          tema: true,
+          alternativas: true,
+        },
         skip: 0,
         take: 5,
       }),
@@ -73,7 +77,15 @@ describe("Testa QuizRepository", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           status: "ATIVO",
+          excluidoEm: null,
           dificuldade: "MEDIA",
+          tipoQuestao: "MULTIPLA_ESCOLHA",
+          tema: {
+            nome: {
+              equals: "Sistema Cardiovascular",
+              mode: "insensitive",
+            },
+          },
         }),
       }),
     );
@@ -82,27 +94,29 @@ describe("Testa QuizRepository", () => {
   });
 
   test("Deve criar novo registro de resposta à questão de quiz", async () => {
-    const usuario_id = "usuario_id";
+    const usuarioId = "usuario_id";
     const tentativa = {
       questaoId: "questao-id",
       tipo: TIPO_QUESTAO_API.VERDADEIRO_FALSO,
       respostaMarcada: AlternativaQuestao.E,
     };
 
-    await repository.registrarTentativa(tentativa, usuario_id);
+    await repository.registrarTentativa(tentativa, usuarioId);
 
     expect(prisma.resolucaoQuestao.create).toHaveBeenCalledWith({
       data: {
         questaoId: "questao-id",
         respostaMarcada: AlternativaQuestao.E,
-        usuarioId: usuario_id,
+        usuarioId,
       },
     });
   });
 
   test("Deve buscar um registro de tentativa de resposta", async () => {
     const id = "id-tentativa";
+
     await repository.buscarResposta(id);
+
     expect(prisma.questao.findUnique).toHaveBeenCalledWith({
       where: { id, excluidoEm: null },
       select: { respostaCorreta: true, saibaMais: true },
@@ -127,7 +141,7 @@ describe("Testa QuizRepository", () => {
           tipoQuestao: "MULTIPLA_ESCOLHA",
           tema: {
             nome: {
-              contains: "Sistema Cardiovascular",
+              equals: "Sistema Cardiovascular",
               mode: "insensitive",
             },
           },
@@ -140,16 +154,33 @@ describe("Testa QuizRepository", () => {
     await repository.buscarQuantidadeDeQuestoesPorTema();
 
     expect(prisma.tema.findMany).toHaveBeenCalledWith({
+      where: {
+        questoes: {
+          some: {
+            status: "ATIVO",
+            excluidoEm: null,
+          },
+        },
+      },
       select: {
         nome: true,
         questoes: {
+          where: {
+            status: "ATIVO",
+            excluidoEm: null,
+          },
           select: {
             dificuldade: true,
           },
         },
         _count: {
           select: {
-            questoes: true,
+            questoes: {
+              where: {
+                status: "ATIVO",
+                excluidoEm: null,
+              },
+            },
           },
         },
       },
@@ -160,7 +191,7 @@ describe("Testa QuizRepository", () => {
 
   test("deve listar questões respondidas com filtros e paginação", async () => {
     const filtros: FiltroListarQuestoesQueryDto = {
-      tema: "tema-id",
+      tema: "Sistema Cardiovascular",
       dificuldade: DIFICULDADE_API.MEDIA,
       tipo: TIPO_QUESTAO_API.MULTIPLA_ESCOLHA,
     };
@@ -171,18 +202,29 @@ describe("Testa QuizRepository", () => {
       page: 1,
     };
 
+    const registros = [{ id: "resolucao-1" }];
+    const totalRegistros = 1;
+
+    transactionMock.mockResolvedValue([registros, totalRegistros]);
+
+    const resposta = await repository.listarQuestoesRespondidas("usuario-1", paginacao, filtros);
+
     const where = {
       usuarioId: "usuario-1",
       excluidoEm: null,
       questao: {
-        dificuldade: "MEDIA",
         excluidoEm: null,
         status: "ATIVO",
-        temaId: "tema-id",
+        tema: {
+          nome: {
+            equals: "Sistema Cardiovascular",
+            mode: "insensitive",
+          },
+        },
+        dificuldade: "MEDIA",
         tipoQuestao: "MULTIPLA_ESCOLHA",
       },
     };
-    await repository.listarQuestoesRespondidas("usuario-1", paginacao, filtros);
 
     const select = {
       id: true,
@@ -218,57 +260,19 @@ describe("Testa QuizRepository", () => {
       },
     };
 
-    expect(prisma.resolucaoQuestao.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        distinct: ["questaoId"],
-        where,
-        select,
-        skip: 0,
-        take: 5,
-        orderBy: {
-          criadoEm: "desc",
-        },
-      }),
-    );
-
-    expect(prisma.resolucaoQuestao.groupBy).toHaveBeenCalledWith({
-      by: ["questaoId"],
-
-      where: {
-        usuarioId: "usuario-1",
-        excluidoEm: null,
-
-        questao: {
-          excluidoEm: null,
-          status: "ATIVO",
-
-          temaId: "tema-id",
-          dificuldade: "MEDIA",
-          tipoQuestao: "MULTIPLA_ESCOLHA",
-        },
+    expect(prisma.resolucaoQuestao.findMany).toHaveBeenCalledWith({
+      where,
+      select,
+      skip: 0,
+      take: 5,
+      orderBy: {
+        criadoEm: "desc",
       },
     });
+
+    expect(prisma.resolucaoQuestao.count).toHaveBeenCalledWith({ where });
 
     expect(prisma.$transaction).toHaveBeenCalled();
-  });
-
-  test("Deve retornar a quantidade de respostas por questão respondida", async () => {
-    const questoesIds = ["id-1", "id-2"];
-    const usuarioId = "id-usuario";
-    await repository.buscarQuantidadeRespostasQuestoes(usuarioId, questoesIds);
-
-    expect(prisma.resolucaoQuestao.groupBy).toHaveBeenCalledWith({
-      by: ["questaoId", "respostaMarcada"],
-      where: {
-        questaoId: {
-          in: questoesIds,
-        },
-        usuarioId,
-        excluidoEm: null,
-      },
-      _count: {
-        _all: true,
-      },
-    });
+    expect(resposta).toEqual({ data: registros, total: totalRegistros });
   });
 });

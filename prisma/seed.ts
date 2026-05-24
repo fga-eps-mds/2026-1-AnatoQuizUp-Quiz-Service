@@ -49,7 +49,7 @@ async function main() {
     },
   });
 
-  console.log(`Tema base garantido no banco: ${tema.nome}`);
+  console.log(`Temas base garantidos no banco: ${temaNeuro.nome} e ${temaAbdome.nome}`);
 
   const PROFESSOR_ID = "cmp7fx97j00034hyqazqwrk3e"; 
   const ALUNO_1_ID   = "cmp7fx99d00044hyqq4msqsyt";

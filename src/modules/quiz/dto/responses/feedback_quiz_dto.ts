@@ -1,4 +1,7 @@
+import type { AlternativaQuestao } from "@prisma/client";
+
 export type FeedbackQuizDto = {
   correcao: boolean;
-  saibaMais: string | null;
+  saibaMais: string;
+  respostaCorreta: AlternativaQuestao;
 };

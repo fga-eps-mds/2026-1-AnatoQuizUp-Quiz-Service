@@ -67,6 +67,7 @@ function converterArrayParaQuestoesQuiz(
 
 function criarTentativa() {
   const agora = new Date("2026-05-09T12:00:00.000Z");
+
   return {
     id: "tentativa-id",
     criadoEm: agora,
@@ -107,17 +108,16 @@ function criarRepositoryMock() {
   return {
     filtrarQuestoesQuiz: jest.fn<QuizRepository["filtrarQuestoesQuiz"]>(),
     registrarTentativa: jest.fn<QuizRepository["registrarTentativa"]>(),
-    buscarResposta: jest.fn<QuizRepository["registrarTentativa"]>(),
+    buscarResposta: jest.fn<QuizRepository["buscarResposta"]>(),
     contarQuestoesQuiz: jest.fn<QuizRepository["contarQuestoesQuiz"]>(),
     buscarQuantidadeDeQuestoesPorTema:
       jest.fn<QuizRepository["buscarQuantidadeDeQuestoesPorTema"]>(),
     listarQuestoesRespondidas: jest.fn<QuizRepository["listarQuestoesRespondidas"]>(),
-    buscarQuantidadeRespostasQuestoes:
-      jest.fn<QuizRepository["buscarQuantidadeRespostasQuestoes"]>(),
   } as unknown as jest.Mocked<QuizRepository>;
 }
 
 jest.retryTimes(3);
+
 describe("Testa Quiz Service", () => {
   let repository: jest.Mocked<QuizRepository>;
   let quizService: QuizService;
@@ -222,6 +222,7 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.NAO_ENCONTRADO,
       mensagem: MENSAGENS.questaoNaoEncontrada,
     });
+
     await expect(quizService.buscarQuestoesQuiz(filtro)).rejects.toThrow(not_nound_error);
   });
 
@@ -240,6 +241,7 @@ describe("Testa Quiz Service", () => {
   test("Testa resposta correta de questão deve retornar boolean true", async () => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
     repository.buscarResposta.mockResolvedValue(criarFeedback());
+
     const resultado = await quizService.responderQuestaoQuiz(
       criarResponderQuestaoQuizDto(),
       "usuario-id",
@@ -251,10 +253,12 @@ describe("Testa Quiz Service", () => {
   test("Testa resposta errada de questão deve retornar boolean false", async () => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
     repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.C));
+
     const resultado = await quizService.responderQuestaoQuiz(
       criarResponderQuestaoQuizDto(),
       "usuario-id",
     );
+
     expect(resultado.correcao).toBe(false);
   });
 
@@ -264,6 +268,7 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.NAO_AUTORIZADO,
       mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
     });
+
     await expect(
       quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), ""),
     ).rejects.toThrow(error);
@@ -275,7 +280,9 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.ERRO_TENTATIVA,
       mensagem: MENSAGENS.erroTentativa,
     });
+
     repository.registrarTentativa.mockResolvedValue(null as unknown as ResolucaoQuestao);
+
     await expect(
       quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), "usuario-id"),
     ).rejects.toThrow(error);
@@ -287,8 +294,10 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.ERRO_FEEDBACK,
       mensagem: MENSAGENS.erroFeedback,
     });
+
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
     repository.buscarResposta.mockResolvedValue(null);
+
     await expect(
       quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), "usuario-id"),
     ).rejects.toThrow(error);
@@ -333,7 +342,9 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.TEMAS_NAO_ENCONTRADOS,
       mensagem: MENSAGENS.temasNaoEncontrados,
     });
+
     repository.buscarQuantidadeDeQuestoesPorTema.mockResolvedValue(null);
+
     await expect(quizService.buscarQuantidadeDeQuestoesPorTema()).rejects.toThrow(error);
   });
 
@@ -343,7 +354,9 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.NAO_AUTORIZADO,
       mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
     });
+
     const filtro = criarFiltroListarQuestoesQueryDto();
+
     await expect(quizService.buscarHistorico(undefined, filtro)).rejects.toThrow(error);
   });
 
@@ -353,65 +366,52 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.NAO_AUTORIZADO,
       mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
     });
+
     const filtro = criarFiltroListarQuestoesQueryDto();
+
     await expect(quizService.buscarHistorico("", filtro)).rejects.toThrow(error);
   });
 
-  test("Lança erro caso listagem de questoes respondidas na busca por histórico falhe", async () => {
-    const error = new ErroAplicacao({
-      codigoStatus: 404,
-      codigo: CodigoDeErro.NAO_ENCONTRADO,
-      mensagem: MENSAGENS.questaoNaoEncontrada,
-    });
+  test("deve retornar histórico vazio quando listagem de questões respondidas vier vazia", async () => {
     const filtro = criarFiltroListarQuestoesQueryDto();
-    repository.listarQuestoesRespondidas.mockResolvedValue({ data: null, total: null });
-    await expect(quizService.buscarHistorico("usuarioId", filtro)).rejects.toThrow(error);
+
+    repository.listarQuestoesRespondidas.mockResolvedValue({
+      data: [],
+      total: 0,
+    });
+
+    const resultado = await quizService.buscarHistorico("usuarioId", filtro);
+
+    expect(resultado).toEqual({
+      dados: [],
+      metadados: {
+        page: 1,
+        limit: 4,
+        total: 0,
+        totalPages: 0,
+      },
+    });
   });
 
-  test("Lança erro caso busca da quantidade de respostas na busca por histórico falhe", async () => {
-    const error = new ErroAplicacao({
-      codigoStatus: 404,
-      codigo: CodigoDeErro.NAO_ENCONTRADO,
-      mensagem: MENSAGENS.questaoNaoEncontrada,
-    });
+  test("deve retornar histórico vazio quando listagem de questões respondidas vier nula", async () => {
     const filtro = criarFiltroListarQuestoesQueryDto();
+
     repository.listarQuestoesRespondidas.mockResolvedValue({
-      data: [
-        {
-          id: "resolucao-1",
-          criadoEm: new Date(),
-          questaoId: "questao-1",
-          respostaMarcada: "A",
-
-          questao: {
-            enunciado: "Pergunta",
-            tipoQuestao: "MULTIPLA_ESCOLHA",
-            respostaCorreta: "A",
-            saibaMais: null,
-            status: "ATIVO",
-            feitoPorIa: false,
-            urlImagem: null,
-            dificuldade: "MEDIA",
-
-            tema: {
-              id: "tema-1",
-              nome: "Sistema Cardiovascular",
-            },
-
-            alternativas: {
-              alternativaA: "A",
-              alternativaB: "B",
-              alternativaC: "C",
-              alternativaD: "D",
-              alternativaE: "E",
-            },
-          },
-        },
-      ],
-      total: 1,
+      data: null,
+      total: null,
     });
-    repository.buscarQuantidadeRespostasQuestoes.mockResolvedValue(null);
-    await expect(quizService.buscarHistorico("usuarioId", filtro)).rejects.toThrow(error);
+
+    const resultado = await quizService.buscarHistorico("usuarioId", filtro);
+
+    expect(resultado).toEqual({
+      dados: [],
+      metadados: {
+        page: 1,
+        limit: 4,
+        total: 0,
+        totalPages: 0,
+      },
+    });
   });
 
   test("deve retornar histórico corretamente para questão de múltipla escolha", async () => {
@@ -451,16 +451,6 @@ describe("Testa Quiz Service", () => {
       total: 1,
     });
 
-    repository.buscarQuantidadeRespostasQuestoes.mockResolvedValue([
-      {
-        questaoId: "questao-1",
-        respostaMarcada: "A",
-        _count: {
-          _all: 3,
-        },
-      },
-    ]);
-
     const query: FiltroListarQuestoesQueryDto = {
       tema: "t1",
       dificuldade: DIFICULDADE_API.MEDIA,
@@ -474,13 +464,9 @@ describe("Testa Quiz Service", () => {
     expect(resultado.dados[0]).toMatchObject({
       questaoId: "questao-1",
       respostaMarcada: "A",
-      tentativas: 3,
+      tentativas: 1,
       distribuicao: {
-        A: 3,
-        B: 0,
-        C: 0,
-        D: 0,
-        E: 0,
+        A: 1,
       },
       questao: expect.objectContaining({
         enunciado: "Pergunta",
@@ -489,10 +475,7 @@ describe("Testa Quiz Service", () => {
     });
 
     expect(resultado.metadados).toBeDefined();
-
-    expect(repository.buscarQuantidadeRespostasQuestoes).toHaveBeenCalledWith("usuario-1", [
-      "questao-1",
-    ]);
+    expect(repository.listarQuestoesRespondidas).toHaveBeenCalledTimes(1);
   });
 
   test("deve retornar histórico corretamente para questão de certo e errado", async () => {
@@ -523,16 +506,6 @@ describe("Testa Quiz Service", () => {
       total: 1,
     });
 
-    repository.buscarQuantidadeRespostasQuestoes.mockResolvedValue([
-      {
-        questaoId: "questao-2",
-        respostaMarcada: "C",
-        _count: {
-          _all: 5,
-        },
-      },
-    ]);
-
     const query: FiltroListarQuestoesQueryDto = {
       tema: "tema-2",
       dificuldade: DIFICULDADE_API.FACIL,
@@ -546,13 +519,9 @@ describe("Testa Quiz Service", () => {
     expect(resultado.dados[0]).toMatchObject({
       questaoId: "questao-2",
       respostaMarcada: "C",
-      tentativas: 5,
+      tentativas: 1,
       distribuicao: {
-        A: 0,
-        B: 0,
-        C: 5,
-        D: 0,
-        E: 0,
+        C: 1,
       },
       questao: expect.objectContaining({
         tipoQuestao: "VERDADEIRO_FALSO",
@@ -560,8 +529,6 @@ describe("Testa Quiz Service", () => {
       }),
     });
 
-    expect(repository.buscarQuantidadeRespostasQuestoes).toHaveBeenCalledWith("usuario-1", [
-      "questao-2",
-    ]);
+    expect(repository.listarQuestoesRespondidas).toHaveBeenCalledTimes(1);
   });
 });

@@ -31,7 +31,7 @@ export class QuizService {
     }
     const { data, total } = await this.quizRepository.filtrarQuestoesQuiz(paginacao, query);
 
-    if (!data) {
+    if (!data || data.length === 0) {
       throw new ErroAplicacao({
         codigoStatus: 404,
         codigo: CodigoDeErro.NAO_ENCONTRADO,
@@ -49,9 +49,9 @@ export class QuizService {
   }
 
   async responderQuestaoQuiz(
-    data: ResponderQuestaoQuizDto,
-    usuarioId: string,
-  ): Promise<FeedbackQuizDto> {
+  data: ResponderQuestaoQuizDto,
+  usuarioId: string,
+): Promise<FeedbackQuizDto> {
     if (usuarioId === "") {
       throw new ErroAplicacao({
         codigoStatus: 401,
@@ -80,24 +80,19 @@ export class QuizService {
       });
     }
 
-    let feedback;
-    if (gabarito?.respostaCorreta === data.respostaMarcada) {
-      feedback = { correcao: true, saibaMais: gabarito?.saibaMais ?? "" };
-    } else {
-      feedback = { correcao: false, saibaMais: gabarito?.saibaMais ?? "" };
-    }
-
-    return feedback;
+    return {
+      correcao: gabarito.respostaCorreta === data.respostaMarcada,
+      saibaMais: gabarito.saibaMais ?? "",
+      respostaCorreta: gabarito.respostaCorreta
+    };
   }
 
   private embaralhar<T>(array: T[]): T[] {
     const arr = [...array];
-
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-
     return arr;
   }
 
@@ -113,15 +108,8 @@ export class QuizService {
     }
 
     return temas.map((tema) => {
-      const quantidadePorDificuldade = {
-        FACIL: 0,
-        MEDIA: 0,
-        DIFICIL: 0,
-      };
-
-      tema.questoes.forEach((questao) => {
-        quantidadePorDificuldade[questao.dificuldade]++;
-      });
+      const quantidadePorDificuldade = { FACIL: 0, MEDIA: 0, DIFICIL: 0 };
+      tema.questoes.forEach((questao) => { quantidadePorDificuldade[questao.dificuldade]++; });
 
       return {
         nome: tema.nome,
@@ -150,66 +138,12 @@ export class QuizService {
       query,
     );
 
-    if (!data) {
-      throw new ErroAplicacao({
-        codigoStatus: 404,
-        codigo: CodigoDeErro.NAO_ENCONTRADO,
-        mensagem: MENSAGENS.questaoNaoEncontrada,
-      });
-    }
-
-    const questoesIds = data.map((q) => q.questaoId);
-    const respostasQuestoes = await this.quizRepository.buscarQuantidadeRespostasQuestoes(
-      usuarioId,
-      questoesIds,
-    );
-
-    if (!respostasQuestoes) {
-      throw new ErroAplicacao({
-        codigoStatus: 404,
-        codigo: CodigoDeErro.NAO_ENCONTRADO,
-        mensagem: MENSAGENS.questaoNaoEncontrada,
-      });
-    }
-
-    const mapaDistribuicao = new Map<
-      string,
-      {
-        tentativas: number;
-        distribuicao: Record<string, number>;
-      }
-    >();
-
-    for (const item of respostasQuestoes) {
-      const questaoId = item.questaoId;
-      const atual = mapaDistribuicao.get(questaoId) ?? {
-        tentativas: 0,
-        distribuicao: {
-          A: 0,
-          B: 0,
-          C: 0,
-          D: 0,
-          E: 0,
-        },
-      };
-
-      const quantidade = item._count._all;
-      atual.distribuicao[item.respostaMarcada] = quantidade;
-      atual.tentativas += quantidade;
-      mapaDistribuicao.set(questaoId, atual);
+    if (!data || data.length === 0) {
+      return { dados: [], metadados: montarMetadadosPaginacao(paginacao, 0) };
     }
 
     const dados = data.map((item) => {
-      const stats = mapaDistribuicao.get(item.questaoId);
-      const tentativas = stats?.tentativas ?? 0;
-      const distribuicao = stats?.distribuicao ?? {
-        A: 0,
-        B: 0,
-        C: 0,
-        D: 0,
-        E: 0,
-      };
-      return converterResolucaoQuestaoBancoToApi(item, tentativas, distribuicao);
+      return converterResolucaoQuestaoBancoToApi(item, 1, { [item.respostaMarcada]: 1 });
     });
 
     return {
