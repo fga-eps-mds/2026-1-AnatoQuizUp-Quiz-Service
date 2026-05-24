@@ -23,6 +23,7 @@ describe('ListaQuestaoController', () => {
       vincularTurmas: jest.fn(),
       desvincularTurma: jest.fn(),
       gerarEstatisticasTurma: jest.fn(),
+      gerarPdfLista: jest.fn(),
     } as unknown as jest.Mocked<ListaQuestaoService>;
 
     controller = new ListaQuestaoController(mockService);
@@ -311,4 +312,49 @@ describe('ListaQuestaoController', () => {
     await controller.estatisticas(request({ params: { id: 'lista-1', turmaId: 'turma-1' } }), mockRes as Response, mockNext);
     expect(mockNext).toHaveBeenCalledWith(erro);
   });
+
+  it('deve retornar 200 e o JSON com a base64 do PDF', async () => {
+    const req = {
+      params: { id: 'lista-123' },
+      usuario: { id: 'prof-id', email: 'prof@unb.br' }
+    } as unknown as Request;
+    
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as unknown as Response;
+    
+    const next = jest.fn();
+
+    mockService.gerarPdfLista.mockResolvedValue('base64-magica');
+
+    await controller.downloadPdf(req, res, next);
+
+    expect(mockService.gerarPdfLista).toHaveBeenCalledWith('lista-123', 'prof-id', 'prof@unb.br');
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ base64: 'base64-magica' });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('deve chamar o next(erro) se o service falhar', async () => {
+    const req = {
+      params: { id: 'lista-123' },
+      usuario: { id: 'prof-id', email: 'prof@unb.br' }
+    } as unknown as Request;
+    
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as unknown as Response;
+    
+    const next = jest.fn();
+    const erroSimulado = new Error('Erro ao gerar PDF');
+
+    mockService.gerarPdfLista.mockRejectedValue(erroSimulado);
+
+    await controller.downloadPdf(req, res, next);
+
+    expect(next).toHaveBeenCalledWith(erroSimulado);
+  });
+
 });

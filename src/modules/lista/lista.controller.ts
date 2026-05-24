@@ -229,4 +229,17 @@ export class ListaQuestaoController {
       next(erro);
     }
   };
+
+  downloadPdf = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+  try {
+    const professorId = req.usuario!.id;
+    const professorEmail = req.usuario!.email;
+    
+    const pdfBase64 = await this.service.gerarPdfLista(req.params.id, professorId, professorEmail);
+
+    res.status(200).json({ base64: pdfBase64 });
+  } catch (erro) {
+    next(erro);
+  }
+};
 }

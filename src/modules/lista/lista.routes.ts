@@ -107,4 +107,10 @@ listaQuestaoRouter.delete(
   listaQuestaoController.deletar,
 );
 
+listaQuestaoRouter.get(
+  '/:id/pdf', 
+  middlewareAutenticacao, 
+  listaQuestaoController.downloadPdf
+);
+
 export { listaQuestaoRouter };

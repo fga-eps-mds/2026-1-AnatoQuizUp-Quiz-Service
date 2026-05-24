@@ -1,5 +1,6 @@
 import { CodigoDeErro } from '@/shared/errors/codigos-de-erro';
 import { ErroAplicacao } from '@/shared/errors/erro-aplicacao';
+import { gerarPdfBase64 } from '@/shared/utils/pdf.util';
 
 import type { ListaQuestaoComDetalhes, ListaQuestaoRepository } from './lista.repository';
 import type {
@@ -225,6 +226,15 @@ export class ListaQuestaoService {
       alunosParticipantes,
       estatisticasAlunos,
     };
+  }
+
+  async gerarPdfLista(id: string, professorId: string, professorEmail: string): Promise<string> {
+    const lista = await this.obterListaDoProfessor(id, professorId);
+    
+    return gerarPdfBase64('prova', { 
+      lista, 
+      professorEmail 
+    });
   }
 
   private async obterListaDoProfessor(

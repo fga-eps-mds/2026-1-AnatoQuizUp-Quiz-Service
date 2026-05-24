@@ -5,6 +5,10 @@ import type { AtualizarListaQuestaoDTO } from '../../../src/modules/lista/dto/li
 import type { ListaQuestaoRepository, ListaQuestaoResumo } from '../../../src/modules/lista/lista.repository';
 import { ListaQuestaoService } from '../../../src/modules/lista/lista.service';
 
+jest.mock('../../../src/shared/utils/pdf.util', () => ({
+  gerarPdfBase64: jest.fn().mockResolvedValue('string-base-64-falsa-para-o-teste'),
+}));
+
 describe('ListaQuestaoService', () => {
   let service: ListaQuestaoService;
   let mockRepository: jest.Mocked<ListaQuestaoRepository>;
@@ -401,6 +405,28 @@ describe('ListaQuestaoService', () => {
         expect(error).toBeInstanceOf(ErroAplicacao);
         expect((error as ErroAplicacao).codigo).toBe(CodigoDeErro.REQUISICAO_INVALIDA);
       }
+    });
+  });
+
+  describe('gerarPdfLista', () => {
+    it('deve retornar uma string base64 com sucesso', async () => {
+      mockRepository.buscarPorId.mockResolvedValue({
+        id: '123',
+        nome: 'Lista Teste',
+        criadoPorId: 'prof-id',
+        itens: []
+      } as never);
+
+      jest.spyOn(service, 'buscarLista').mockResolvedValue({
+        id: '123',
+        nome: 'Lista Teste',
+        criadoPorId: 'prof-id',
+        itens: []
+      } as never);
+
+      const resultado = await service.gerarPdfLista('123', 'prof-id', 'prof@unb.br');
+
+      expect(resultado).toBe('string-base-64-falsa-para-o-teste');
     });
   });
 });
