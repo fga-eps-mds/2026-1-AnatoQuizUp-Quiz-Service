@@ -112,6 +112,20 @@ describe('ListaQuestaoController', () => {
     expect(mockRes.status).toHaveBeenCalledWith(200);
   });
 
+  it('deve listar com sucesso sem passar filtros na query', async () => {
+    mockReq = { 
+      usuario: { id: 'prof-1' },
+      query: {} 
+    } as unknown as Request;
+    
+    mockService.listarMinhasListas.mockResolvedValue([]);
+
+    await controller.listarDoUsuario(mockReq as Request, mockRes as Response, mockNext);
+
+    expect(mockService.listarMinhasListas).toHaveBeenCalledWith('prof-1', {});
+    expect(mockRes.status).toHaveBeenCalledWith(200);
+  });
+
   it('deve deletar uma lista do professor autenticado', async () => {
     mockService.deletarLista.mockResolvedValue(undefined);
 
@@ -218,6 +232,83 @@ describe('ListaQuestaoController', () => {
 
     await controller.buscar(request({ params: { id: 'lista-1' } }), mockRes as Response, mockNext);
 
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+  
+  it('deve chamar next em caso de erro no método criar', async () => {
+    const erro = new Error('Erro ao criar');
+    mockService.criarLista.mockRejectedValue(erro);
+    await controller.criar(request({ body: {} }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
+  it('deve chamar next em caso de erro no método atualizar', async () => {
+    const erro = new Error('Erro ao atualizar');
+    mockService.atualizarLista.mockRejectedValue(erro);
+    await controller.atualizar(request({ params: { id: 'lista-1' }, body: {} }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
+  it('deve chamar next em caso de erro no método listarDoUsuario', async () => {
+    const erro = new Error('Erro ao listar');
+    mockService.listarMinhasListas.mockRejectedValue(erro);
+    await controller.listarDoUsuario(request({ query: {} }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
+  it('deve chamar next em caso de erro no método listarPorTurma', async () => {
+    const erro = new Error('Erro ao listar por turma');
+    mockService.listarListasDaTurma.mockRejectedValue(erro);
+    await controller.listarPorTurma(request({ params: { turmaId: 'turma-1' } }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
+  it('deve chamar next em caso de erro no método deletar', async () => {
+    const erro = new Error('Erro ao deletar');
+    mockService.deletarLista.mockRejectedValue(erro);
+    await controller.deletar(request({ params: { id: 'lista-1' } }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
+  it('deve chamar next em caso de erro no método vincularQuestoes', async () => {
+    const erro = new Error('Erro ao vincular questoes');
+    mockService.vincularQuestoes.mockRejectedValue(erro);
+    await controller.vincularQuestoes(request({ params: { id: 'lista-1' }, body: {} }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
+  it('deve chamar next em caso de erro no método desvincularQuestao', async () => {
+    const erro = new Error('Erro ao desvincular questao');
+    mockService.desvincularQuestao.mockRejectedValue(erro);
+    await controller.desvincularQuestao(request({ params: { id: 'lista-1', questaoId: 'q1' } }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
+  it('deve chamar next em caso de erro no método reordenarQuestoes', async () => {
+    const erro = new Error('Erro ao reordenar');
+    mockService.reordenarQuestoes.mockRejectedValue(erro);
+    await controller.reordenarQuestoes(request({ params: { id: 'lista-1' }, body: {} }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
+  it('deve chamar next em caso de erro no método vincularTurmas', async () => {
+    const erro = new Error('Erro ao vincular turmas');
+    mockService.vincularTurmas.mockRejectedValue(erro);
+    await controller.vincularTurmas(request({ params: { id: 'lista-1' }, body: {} }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
+  it('deve chamar next em caso de erro no método desvincularTurma', async () => {
+    const erro = new Error('Erro ao desvincular turma');
+    mockService.desvincularTurma.mockRejectedValue(erro);
+    await controller.desvincularTurma(request({ params: { id: 'lista-1', turmaId: 'turma-1' } }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
+  it('deve chamar next em caso de erro no método estatisticas', async () => {
+    const erro = new Error('Erro ao gerar estatisticas');
+    mockService.gerarEstatisticasTurma.mockRejectedValue(erro);
+    await controller.estatisticas(request({ params: { id: 'lista-1', turmaId: 'turma-1' } }), mockRes as Response, mockNext);
     expect(mockNext).toHaveBeenCalledWith(erro);
   });
 });

@@ -290,4 +290,61 @@ describe('ListaQuestaoRepository', () => {
       resolucoes: [{ id: 'res1' }],
     });
   });
+
+  it('deve retornar array vazio se busca não encontrar resultados', async () => {
+    mockPrisma.listaQuestao.findMany.mockResolvedValue([]);
+
+    const resultado = await repository.listarDoProfessor('prof-1', { busca: 'inexistente' });
+
+    expect(resultado).toEqual([]);
+    expect(mockPrisma.listaQuestao.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          nome: { contains: 'inexistente', mode: 'insensitive' }
+        })
+      })
+    );
+  });
+  it('deve aplicar filtro de status PUBLICADA', async () => {
+    mockPrisma.listaQuestao.findMany.mockResolvedValue([]);
+
+    await repository.listarDoProfessor('prof-1', { status: 'PUBLICADA' });
+
+    expect(mockPrisma.listaQuestao.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          turmas: { some: {} } 
+        })
+      })
+    );
+  });
+  it('deve lançar erro se a lista não for encontrada após vinculação (buscarPorIdObrigatorio)', async () => {
+    mockPrisma.listaQuestaoItem.createMany.mockResolvedValue({ count: 1 });
+    mockPrisma.listaQuestao.findFirst.mockResolvedValue(null);
+
+    await expect(repository.vincularQuestoes('lista-1', ['q1'], 1))
+      .rejects.toThrow('Lista de questoes nao encontrada apos operacao.');
+  });
+
+  it('deve criar lista sem itens nem turmas', async () => {
+    const lista = { id: 'lista-vazia' };
+    mockPrisma.listaQuestao.create.mockResolvedValue(lista);
+
+    const resultado = await repository.criar({
+      nome: 'Lista Vazia',
+      criadoPorId: 'prof-1',
+      questoesIds: [],
+      turmasIds: [],
+    });
+
+    expect(mockPrisma.listaQuestao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          itens: undefined,
+          turmas: undefined,
+        }),
+      })
+    );
+    expect(resultado).toEqual(lista);
+  });
 });

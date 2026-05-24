@@ -1,6 +1,8 @@
 import { ErroAplicacao } from '@/shared/errors/erro-aplicacao';
+import { CodigoDeErro } from '@/shared/errors/codigos-de-erro';
+import type { AtualizarListaQuestaoDTO } from '../../../src/modules/lista/dto/lista.types';
 
-import type { ListaQuestaoRepository } from '../../../src/modules/lista/lista.repository';
+import type { ListaQuestaoRepository, ListaQuestaoResumo } from '../../../src/modules/lista/lista.repository';
 import { ListaQuestaoService } from '../../../src/modules/lista/lista.service';
 
 describe('ListaQuestaoService', () => {
@@ -139,6 +141,32 @@ describe('ListaQuestaoService', () => {
         },
       ]);
     });
+    it('deve lidar com filtros vazios ou indefinidos', async () => {
+      const mockLista: ListaQuestaoResumo = {
+        id: '1',
+        nome: 'Lista Sem Filtro',
+        criadoPorId: 'prof-1',
+        criadoEm: new Date(),
+        atualizadoEm: new Date(),
+        excluidoEm: null,
+        _count: { itens: 0 },
+        turmas: []
+      };
+
+      mockRepository.listarDoProfessor.mockResolvedValue([mockLista]);
+
+      const resultado = await service.listarMinhasListas('prof-1', {});
+      
+      expect(resultado[0].status).toBe('RASCUNHO');
+      expect(resultado[0].quantidadeQuestoes).toBe(0);
+    });
+
+    it('deve lançar erro se tentar atualizar lista inexistente', async () => {
+      mockRepository.buscarPorId.mockResolvedValue(null);
+
+      await expect(service.atualizarLista('id-invalido', 'prof-1', { nome: 'Novo' }))
+        .rejects.toMatchObject({ codigo: 'NAO_ENCONTRADO' });
+    });
   });
 
   describe('questoes da lista', () => {
@@ -256,6 +284,123 @@ describe('ListaQuestaoService', () => {
         erros: 1,
         taxaAcerto: 50,
       });
+    });
+  });
+
+  describe('cobertura de branches e casos de erro', () => {
+    it('deve rejeitar desvinculação de questao que nao existe na lista', async () => {
+      mockRepository.buscarPorId.mockResolvedValue(listaBase as never);
+      
+      await expect(service.desvincularQuestao('lista-1', 'q-inexistente', 'prof-1'))
+        .rejects.toMatchObject({ codigo: 'NAO_ENCONTRADO' });
+    });
+
+    it('deve rejeitar desvinculação de turma que nao existe na lista', async () => {
+      mockRepository.buscarPorId.mockResolvedValue(listaBase as never);
+      mockRepository.listarTurmasAtivasDoProfessorPorIds.mockResolvedValue([{ id: 'turma-1' }] as never);
+      
+      await expect(service.desvincularTurma('lista-1', 'turma-inexistente', 'prof-1'))
+        .rejects.toMatchObject({ codigo: 'NAO_ENCONTRADO' });
+    });
+
+    it('deve lidar com validação de estatísticas quando lista não está na turma', async () => {
+      const listaSemTurma = { ...listaBase, turmas: [] };
+      mockRepository.buscarPorId.mockResolvedValue(listaSemTurma as never);
+      mockRepository.listarTurmasAtivasDoProfessorPorIds.mockResolvedValue([{ id: 'turma-1' }] as never);
+
+      await expect(service.gerarEstatisticasTurma('lista-1', 'turma-1', 'prof-1'))
+        .rejects.toMatchObject({ codigo: 'NAO_ENCONTRADO' });
+    });
+
+    it('deve calcular taxa de acerto zero quando não há resoluções', async () => {
+       mockRepository.buscarPorId.mockResolvedValue(listaBase as never);
+       mockRepository.listarTurmasAtivasDoProfessorPorIds.mockResolvedValue([{ id: 'turma-1' }] as never);
+       mockRepository.buscarEstatisticasTurma.mockResolvedValue({
+         alunosIds: ['aluno-1'],
+         resolucoes: [] 
+       } as never);
+
+       const res = await service.gerarEstatisticasTurma('lista-1', 'turma-1', 'prof-1');
+       expect(res.estatisticasAlunos[0].taxaAcerto).toBe(0);
+       expect(res.alunosParticipantes).toBe(0);
+    });
+
+    it('deve rejeitar atualização se data.nome for undefined', async () => {
+      mockRepository.buscarPorId.mockResolvedValue(listaBase as never);
+      
+      const payload = {} as AtualizarListaQuestaoDTO;
+      
+      try {
+        await service.atualizarLista('lista-1', 'prof-1', payload);
+      } catch (error) {
+        expect(error).toBeInstanceOf(ErroAplicacao);
+        expect((error as ErroAplicacao).codigo).toBe(CodigoDeErro.REQUISICAO_INVALIDA);
+      }
+    });
+
+    it('deve rejeitar desvincular questao se a lista nao contiver o item', async () => {
+      const listaSemQuestao = { ...listaBase, itens: [] };
+      mockRepository.buscarPorId.mockResolvedValue(listaSemQuestao as never);
+      
+      try {
+        await service.desvincularQuestao('lista-1', 'q-inexistente', 'prof-1');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ErroAplicacao);
+      }
+    });
+    it('deve lançar erro se a lista não for encontrada (obterListaDoProfessor)', async () => {
+      mockRepository.buscarPorId.mockResolvedValue(null);
+
+      await expect(service.buscarLista('id-invalido', 'prof-1'))
+        .rejects.toMatchObject({ codigo: 'NAO_ENCONTRADO' });
+    });
+    it('deve lançar erro ao tentar desvincular questao que não existe na lista', async () => {
+      const listaSemQuestao = { ...listaBase, itens: [{ questaoId: 'q-outra' }] };
+      mockRepository.buscarPorId.mockResolvedValue(listaSemQuestao as never);
+
+      try {
+        await service.desvincularQuestao('lista-1', 'q-inexistente', 'prof-1');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ErroAplicacao);
+        expect((error as ErroAplicacao).codigo).toBe(CodigoDeErro.NAO_ENCONTRADO);
+      }
+    });
+
+    it('deve rejeitar desvincular questao quando o ID da questao nao existe na lista', async () => {
+      const listaComOutraQuestao = { 
+        ...listaBase, 
+        itens: [{ id: 'item-99', questaoId: 'q-diferente', listaQuestaoId: 'lista-1', ordem: 1 }] 
+      };
+      mockRepository.buscarPorId.mockResolvedValue(listaComOutraQuestao as never);
+
+      try {
+        await service.desvincularQuestao('lista-1', 'q-alvo', 'prof-1');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ErroAplicacao);
+      }
+    });
+
+    it('deve lançar erro 404 quando a lista não for encontrada ao tentar buscar estatisticas', async () => {
+      mockRepository.buscarPorId.mockResolvedValue(null); 
+
+      try {
+        await service.gerarEstatisticasTurma('lista-inexistente', 'turma-1', 'prof-1');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ErroAplicacao);
+        expect((error as ErroAplicacao).codigo).toBe(CodigoDeErro.NAO_ENCONTRADO);
+      }
+    });
+    it('deve lançar erro de requisicao invalida se nome for enviado vazio na atualização', async () => {
+      mockRepository.buscarPorId.mockResolvedValue(listaBase as never);
+
+      const dtoSemNome = { nome: '' } as AtualizarListaQuestaoDTO;
+
+      try {
+        await service.atualizarLista('lista-1', 'prof-1', dtoSemNome);
+      } catch (error) {
+        expect(error).toBeInstanceOf(ErroAplicacao);
+        expect((error as ErroAplicacao).codigo).toBe(CodigoDeErro.REQUISICAO_INVALIDA);
+      }
     });
   });
 });
