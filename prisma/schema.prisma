@@ -36,6 +36,10 @@ enum StatusTurma {
   INATIVA
 }
 
+enum FonteMoeda {
+  ACERTO_QUESTAO
+}
+
 model Tema {
   id   String @id @default(cuid())
   nome String
@@ -69,6 +73,7 @@ model Questao {
   tema         Tema                @relation(fields: [temaId], references: [id], onDelete: Restrict)
   alternativas QuestaoAlternativa?
   resolucoes   ResolucaoQuestao[]
+  transacoesMoedas TransacaoMoeda[]
 
   dificuldade Dificuldade @default(MEDIA)
 
@@ -112,6 +117,37 @@ model ResolucaoQuestao {
   excluidoEm   DateTime?
 
   @@map("resolucoes_questoes")
+}
+
+model CarteiraMoedas {
+  id        String @id @default(cuid())
+  usuarioId String @unique
+  saldo     Int    @default(0)
+
+  transacoes TransacaoMoeda[]
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("carteiras_moedas")
+}
+
+model TransacaoMoeda {
+  id         String      @id @default(cuid())
+  usuarioId  String
+  questaoId  String
+  quantidade Int
+  fonte      FonteMoeda  @default(ACERTO_QUESTAO)
+
+  carteira CarteiraMoedas @relation(fields: [usuarioId], references: [usuarioId], onDelete: Restrict)
+  questao   Questao         @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+
+  criadoEm DateTime @default(now())
+
+  @@unique([usuarioId, questaoId, fonte])
+  @@index([usuarioId])
+  @@index([questaoId])
+  @@map("transacoes_moedas")
 }
 
 model Turma {
