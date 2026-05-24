@@ -41,6 +41,7 @@ describe("Testa Quiz Controller", () => {
     quizService = {
       buscarQuestoesQuiz: jest.fn(),
       responderQuestaoQuiz: jest.fn(),
+      buscarSaldoMoedas: jest.fn(),
       buscarQuantidadeDeQuestoesPorTema: jest.fn(),
     } as unknown as jest.Mocked<QuizService>;
     controller = new QuizController(quizService);
@@ -108,12 +109,17 @@ describe("Testa Quiz Controller", () => {
     const feedbackMock = {
       correcao: true,
       saibaMais: "A",
+      respostaCorreta: "A",
+      moedasConcedidas: 10,
+      saldoMoedas: 10,
+      moedasJaConcedidas: false,
     };
 
     const request = {
       body,
       usuario: {
         id: "usuario-1",
+        papel: "ALUNO",
       },
     } as Request;
 
@@ -123,9 +129,27 @@ describe("Testa Quiz Controller", () => {
 
     await controller.responderQuestaoQuiz(request, response, next);
 
-    expect(quizService.responderQuestaoQuiz).toHaveBeenCalledWith(body, "usuario-1");
+    expect(quizService.responderQuestaoQuiz).toHaveBeenCalledWith(body, "usuario-1", "ALUNO");
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith(feedbackMock);
+  });
+
+  test("deve retornar saldo de moedas do usuario", async () => {
+    quizService.buscarSaldoMoedas.mockResolvedValue({ saldoMoedas: 75 });
+
+    const request = {
+      usuario: {
+        id: "usuario-1",
+      },
+    } as Request;
+
+    const { response, status, json } = criarResponseMock();
+
+    await controller.buscarSaldoMoedas(request, response, next);
+
+    expect(quizService.buscarSaldoMoedas).toHaveBeenCalledWith("usuario-1");
+    expect(status).toHaveBeenCalledWith(200);
+    expect(json).toHaveBeenCalledWith({ saldoMoedas: 75 });
   });
 
   test("deve chamar next quando service lançar error ao buscar questoes para quiz", async () => {

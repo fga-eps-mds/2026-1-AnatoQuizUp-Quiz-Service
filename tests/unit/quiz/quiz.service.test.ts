@@ -11,7 +11,8 @@ import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { MENSAGENS } from "@/shared/constants/mensagens";
 import type { ResponderQuestaoQuizDto } from "@/modules/quiz/dto/responder_questao_quiz_dto";
-import { AlternativaQuestao, type ResolucaoQuestao } from "@prisma/client";
+import { PAPEIS } from "@/shared/constants/papeis";
+import { AlternativaQuestao, Dificuldade, type ResolucaoQuestao } from "@prisma/client";
 
 function criarQuestoes(
   ids: string[] = ["id-1", "id-2", "id-3", "id-4"],
@@ -77,10 +78,14 @@ function criarTentativa() {
   };
 }
 
-function criarFeedback(alternativa: AlternativaQuestao = AlternativaQuestao.E) {
+function criarFeedback(
+  alternativa: AlternativaQuestao = AlternativaQuestao.E,
+  dificuldade: Dificuldade = Dificuldade.MEDIA,
+) {
   return {
     respostaCorreta: alternativa,
     saibaMais: "explicação",
+    dificuldade,
   };
 }
 
@@ -96,7 +101,9 @@ function criarRepositoryMock() {
   return {
     filtrarQuestoesQuiz: jest.fn<QuizRepository["filtrarQuestoesQuiz"]>(),
     registrarTentativa: jest.fn<QuizRepository["registrarTentativa"]>(),
-    buscarResposta: jest.fn<QuizRepository["registrarTentativa"]>(),
+    buscarResposta: jest.fn<QuizRepository["buscarResposta"]>(),
+    buscarSaldoMoedas: jest.fn<QuizRepository["buscarSaldoMoedas"]>(),
+    concederMoedasPorAcerto: jest.fn<QuizRepository["concederMoedasPorAcerto"]>(),
     contarQuestoesQuiz: jest.fn<QuizRepository["contarQuestoesQuiz"]>(),
     buscarQuantidadeDeQuestoesPorTema:
       jest.fn<QuizRepository["buscarQuantidadeDeQuestoesPorTema"]>(),
@@ -111,6 +118,7 @@ describe("Testa Quiz Service", () => {
   beforeEach(() => {
     repository = criarRepositoryMock();
     quizService = new QuizService(repository);
+    repository.buscarSaldoMoedas.mockResolvedValue(0);
     jest.clearAllMocks();
   });
 
@@ -238,13 +246,22 @@ describe("Testa Quiz Service", () => {
   test("Testa resposta correta de questão deve retornar boolean true e a resposta correta", async () => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
     repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.E));
+    repository.concederMoedasPorAcerto.mockResolvedValue({
+      moedasConcedidas: 25,
+      saldoMoedas: 25,
+      moedasJaConcedidas: false,
+    });
+
     const resultado = await quizService.responderQuestaoQuiz(
       criarResponderQuestaoQuizDto(),
       "usuario-id",
+      PAPEIS.ALUNO,
     );
 
     expect(resultado.correcao).toBe(true);
     expect(resultado.respostaCorreta).toBe("E");
+    expect(resultado.moedasConcedidas).toBe(25);
+    expect(resultado.saldoMoedas).toBe(25);
   });
 
   test("Testa resposta errada de questão deve retornar boolean false e a resposta correta", async () => {
@@ -253,10 +270,115 @@ describe("Testa Quiz Service", () => {
     const resultado = await quizService.responderQuestaoQuiz(
       criarResponderQuestaoQuizDto(),
       "usuario-id",
+      PAPEIS.ALUNO,
     );
-    
+
     expect(resultado.correcao).toBe(false);
     expect(resultado.respostaCorreta).toBe("C");
+    expect(resultado.moedasConcedidas).toBe(0);
+    expect(resultado.saldoMoedas).toBe(0);
+    expect(repository.concederMoedasPorAcerto).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [Dificuldade.FACIL, 10],
+    [Dificuldade.MEDIA, 25],
+    [Dificuldade.DIFICIL, 50],
+  ])("deve conceder moedas conforme a dificuldade", async (dificuldade, moedas) => {
+    repository.registrarTentativa.mockResolvedValue(criarTentativa());
+    repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.E, dificuldade));
+    repository.concederMoedasPorAcerto.mockResolvedValue({
+      moedasConcedidas: moedas,
+      saldoMoedas: moedas,
+      moedasJaConcedidas: false,
+    });
+
+    const resultado = await quizService.responderQuestaoQuiz(
+      criarResponderQuestaoQuizDto(),
+      "usuario-id",
+      PAPEIS.ALUNO,
+    );
+
+    expect(repository.concederMoedasPorAcerto).toHaveBeenCalledWith(
+      "usuario-id",
+      "questa-id",
+      moedas,
+    );
+    expect(resultado.moedasConcedidas).toBe(moedas);
+    expect(resultado.saldoMoedas).toBe(moedas);
+    expect(resultado.moedasJaConcedidas).toBe(false);
+  });
+
+  test("deve permitir recompensa no primeiro acerto mesmo apos erro anterior", async () => {
+    repository.registrarTentativa.mockResolvedValue(criarTentativa());
+    repository.buscarResposta
+      .mockResolvedValueOnce(criarFeedback(AlternativaQuestao.C, Dificuldade.FACIL))
+      .mockResolvedValueOnce(criarFeedback(AlternativaQuestao.E, Dificuldade.FACIL));
+    repository.concederMoedasPorAcerto.mockResolvedValue({
+      moedasConcedidas: 10,
+      saldoMoedas: 10,
+      moedasJaConcedidas: false,
+    });
+
+    await quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), "usuario-id", PAPEIS.ALUNO);
+    const resultadoAcerto = await quizService.responderQuestaoQuiz(
+      criarResponderQuestaoQuizDto(),
+      "usuario-id",
+      PAPEIS.ALUNO,
+    );
+
+    expect(repository.concederMoedasPorAcerto).toHaveBeenCalledTimes(1);
+    expect(resultadoAcerto.correcao).toBe(true);
+    expect(resultadoAcerto.moedasConcedidas).toBe(10);
+  });
+
+  test("nao deve conceder moedas novamente para questao ja recompensada", async () => {
+    repository.registrarTentativa.mockResolvedValue(criarTentativa());
+    repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.E, Dificuldade.DIFICIL));
+    repository.concederMoedasPorAcerto.mockResolvedValue({
+      moedasConcedidas: 0,
+      saldoMoedas: 50,
+      moedasJaConcedidas: true,
+    });
+
+    const resultado = await quizService.responderQuestaoQuiz(
+      criarResponderQuestaoQuizDto(),
+      "usuario-id",
+      PAPEIS.ALUNO,
+    );
+
+    expect(resultado.correcao).toBe(true);
+    expect(resultado.moedasConcedidas).toBe(0);
+    expect(resultado.saldoMoedas).toBe(50);
+    expect(resultado.moedasJaConcedidas).toBe(true);
+  });
+
+  test.each([PAPEIS.PROFESSOR, PAPEIS.ADMINISTRADOR])(
+    "nao deve conceder moedas para usuario com papel %s",
+    async (papel) => {
+      repository.registrarTentativa.mockResolvedValue(criarTentativa());
+      repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.E, Dificuldade.MEDIA));
+      repository.buscarSaldoMoedas.mockResolvedValue(0);
+
+      const resultado = await quizService.responderQuestaoQuiz(
+        criarResponderQuestaoQuizDto(),
+        "usuario-id",
+        papel,
+      );
+
+      expect(resultado.correcao).toBe(true);
+      expect(resultado.moedasConcedidas).toBe(0);
+      expect(repository.concederMoedasPorAcerto).not.toHaveBeenCalled();
+    },
+  );
+
+  test("deve retornar saldo de moedas do usuario autenticado", async () => {
+    repository.buscarSaldoMoedas.mockResolvedValue(75);
+
+    const resultado = await quizService.buscarSaldoMoedas("usuario-id");
+
+    expect(repository.buscarSaldoMoedas).toHaveBeenCalledWith("usuario-id");
+    expect(resultado).toEqual({ saldoMoedas: 75 });
   });
 
   test("Lança erro caso id do usuário não seja informado", async () => {
@@ -276,6 +398,7 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.ERRO_TENTATIVA,
       mensagem: MENSAGENS.erroTentativa,
     });
+    repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.E));
     repository.registrarTentativa.mockResolvedValue(null as unknown as ResolucaoQuestao);
     await expect(
       quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), "usuario-id"),
