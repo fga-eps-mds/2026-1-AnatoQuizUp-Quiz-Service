@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    /* Aumentamos as fontes e os espaçamentos gerais */
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px; 
+      color: black;
+      background: white;
+      font-size: 15px; 
+      line-height: 1.6; 
+    }
+    
+    .cabecalho {
+      text-align: center;
+      border-bottom: 2px solid #333;
+      padding-bottom: 20px;
+      margin-bottom: 50px; /* Muito mais espaço depois do cabeçalho */
+    }
+    
+    h1 { margin-bottom: 10px; font-size: 24px; }
+    
+    .questao {
+      margin-bottom: 50px; /* MUITO mais espaço entre uma questão e outra */
+      page-break-inside: avoid;
+    }
+    
+    .enunciado { 
+      font-weight: bold; 
+      margin-bottom: 20px; /* Espaço maior entre a pergunta e a imagem/opções */
+      font-size: 16px;
+    }
+    
+    .imagem-questao {
+      max-width: 450px; /* Imagem num tamanho bom */
+      max-height: 350px;
+      display: block;
+      margin: 25px 0; /* Bem separada do texto */
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    .alternativas { 
+      list-style-type: none; 
+      padding-left: 20px; 
+      margin-top: 15px; 
+    }
+    
+    .alternativa { 
+      margin-bottom: 15px; /* Espaço maior entre as letras A, B, C... */
+    }
+    
+    .vf-container { 
+      padding-left: 20px; 
+      margin-top: 25px; 
+      font-size: 16px;
+    }
+    
+  </style>
+</head>
+<body>
+  <div class="cabecalho">
+    <h1><%= lista.nome %></h1>
+    <p><strong>Professor(a):</strong> <%= professorEmail %></p>
+    <p><strong>Data:</strong> ___/___/______ &nbsp;&nbsp;&nbsp; <strong>Aluno(a):</strong> _________________________________________</p>
+  </div>
+
+  <% if (lista.itens && lista.itens.length > 0) { %>
+    <% lista.itens.forEach((item, index) => { %>
+      <div class="questao">
+        
+        <div class="enunciado">
+          <%= index + 1 %>. <%= item.questao.enunciado || item.questao.statement %>
+        </div>
+        
+        <% if (item.questao.urlImagem) { %>
+          <img class="imagem-questao" src="<%= item.questao.urlImagem %>" alt="Imagem da questão <%= index + 1 %>" />
+        <% } %>
+
+        <% if (item.questao.tipoQuestao === 'MULTIPLA_ESCOLHA') { %>
+          <% if (item.questao.alternativas) { %>
+            <ul class="alternativas">
+              <li class="alternativa">a) <%= item.questao.alternativas.alternativaA || '' %></li>
+              <li class="alternativa">b) <%= item.questao.alternativas.alternativaB || '' %></li>
+              <li class="alternativa">c) <%= item.questao.alternativas.alternativaC || '' %></li>
+              <li class="alternativa">d) <%= item.questao.alternativas.alternativaD || '' %></li>
+              <li class="alternativa">e) <%= item.questao.alternativas.alternativaE || '' %></li>
+            </ul>
+          <% } %>
+        <% } else { %>
+          <div class="vf-container">
+            <p>( V ) &nbsp;&nbsp; ( F ) &nbsp;&nbsp; ____________________________________________________</p>
+          </div>
+        <% } %>
+
+      </div>
+    <% }) %>
+  <% } else { %>
+    <p>Esta lista não possui questões cadastradas no momento.</p>
+  <% } %>
+</body>
+</html>
