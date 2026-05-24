@@ -14,6 +14,7 @@ jest.mock('@/config/db', () => ({
     turmaAluno: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -169,6 +170,51 @@ describe('TurmaRepository', () => {
         },
       });
     });
+
+    it('listarPorAluno consulta turmas ATIVAS com vinculo ativo do aluno', async () => {
+      (prisma.turma.findMany as jest.Mock).mockResolvedValue([mockTurmaComContagem]);
+
+      const resultado = await repository.listarPorAluno('aluno-123', {
+        busca: 'Anat',
+        semestre: '2026.1',
+        ano: 2026,
+      });
+
+      expect(resultado).toEqual([mockTurmaComContagem]);
+      expect(prisma.turma.findMany).toHaveBeenCalledWith({
+        where: {
+          excluidoEm: null,
+          status: 'ATIVA',
+          alunos: {
+            some: {
+              alunoId: 'aluno-123',
+              excluidoEm: null,
+            },
+          },
+          semestre: '2026.1',
+          ano: 2026,
+          OR: [
+            { nome: { contains: 'Anat', mode: 'insensitive' } },
+            { codigo: { contains: 'Anat', mode: 'insensitive' } },
+          ],
+        },
+        orderBy: [
+          { ano: 'desc' },
+          { semestre: 'desc' },
+          { criadoEm: 'desc' },
+        ],
+        include: includeContagemAlunosAtivos,
+      });
+    });
+
+    it('listarPorAluno sem busca nao envia clausula OR', async () => {
+      (prisma.turma.findMany as jest.Mock).mockResolvedValue([]);
+
+      await repository.listarPorAluno('aluno-123', {});
+
+      const chamada = (prisma.turma.findMany as jest.Mock).mock.calls[0][0];
+      expect(chamada.where.OR).toBeUndefined();
+    });
   });
 
   describe('alunos da turma', () => {
@@ -241,6 +287,27 @@ describe('TurmaRepository', () => {
         where: { id: 'vinculo-123' },
         data: { excluidoEm: expect.any(Date) },
       });
+    });
+
+    it('buscarVinculoAtivoAluno filtra vinculos nao excluidos', async () => {
+      (prisma.turmaAluno.findFirst as jest.Mock).mockResolvedValue(mockVinculo);
+
+      const resultado = await repository.buscarVinculoAtivoAluno('turma-123', 'aluno-123');
+
+      expect(resultado).toEqual(mockVinculo);
+      expect(prisma.turmaAluno.findFirst).toHaveBeenCalledWith({
+        where: {
+          turmaId: 'turma-123',
+          alunoId: 'aluno-123',
+          excluidoEm: null,
+        },
+      });
+    });
+
+    it('buscarVinculoAtivoAluno retorna null quando nao existe', async () => {
+      (prisma.turmaAluno.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(repository.buscarVinculoAtivoAluno('turma-x', 'aluno-x')).resolves.toBeNull();
     });
   });
 });

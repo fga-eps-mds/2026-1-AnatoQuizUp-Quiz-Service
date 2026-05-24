@@ -4,6 +4,7 @@ import type {
   AtualizarTurmaDto,
   CriarTurmaDto,
   FiltrosListagemTurma,
+  FiltrosListagemTurmaAluno,
   RespostaVinculoTurmaAluno
 } from './dto/turma.types';
 
@@ -62,6 +63,46 @@ export class TurmaRepository {
       },
       orderBy: { criadoEm: 'desc' },
       include: incluirContagemAlunosAtivos
+    });
+  }
+
+  async listarPorAluno(
+    alunoId: string,
+    filtros: FiltrosListagemTurmaAluno
+  ): Promise<TurmaComContagem[]> {
+    return prisma.turma.findMany({
+      where: {
+        excluidoEm: null,
+        status: 'ATIVA',
+        alunos: {
+          some: {
+            alunoId,
+            excluidoEm: null
+          }
+        },
+        semestre: filtros.semestre,
+        ano: filtros.ano,
+        OR: filtros.busca ? [
+          { nome: { contains: filtros.busca, mode: 'insensitive' } },
+          { codigo: { contains: filtros.busca, mode: 'insensitive' } }
+        ] : undefined
+      },
+      orderBy: [
+        { ano: 'desc' },
+        { semestre: 'desc' },
+        { criadoEm: 'desc' }
+      ],
+      include: incluirContagemAlunosAtivos
+    });
+  }
+
+  async buscarVinculoAtivoAluno(turmaId: string, alunoId: string): Promise<TurmaAluno | null> {
+    return prisma.turmaAluno.findFirst({
+      where: {
+        turmaId,
+        alunoId,
+        excluidoEm: null
+      }
     });
   }
 

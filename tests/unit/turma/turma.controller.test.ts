@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 
 import { TurmaController } from '@/modules/turma/turma.controller';
 import type { TurmaService } from '@/modules/turma/turma.service';
+import { PAPEIS } from '@/shared/constants/papeis';
 
 const mockTurmaService = {
   criar: jest.fn(),
@@ -19,12 +20,15 @@ describe('TurmaController', () => {
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
 
+  const ctxProfessor = { id: 'prof-123', papel: PAPEIS.PROFESSOR };
+  const ctxAluno = { id: 'aluno-1', papel: PAPEIS.ALUNO };
+
   beforeEach(() => {
     controller = new TurmaController(mockTurmaService);
     jest.clearAllMocks();
 
     mockReq = {
-      usuario: { id: 'prof-123' },
+      usuario: { ...ctxProfessor },
       body: {},
       params: {},
       query: {},
@@ -62,7 +66,7 @@ describe('TurmaController', () => {
   });
 
   describe('listar', () => {
-    it('deve retornar 200 e repassar filtros de listagem', async () => {
+    it('deve retornar 200 e repassar o contexto e filtros', async () => {
       const turmas = [{ id: 'turma-1', nome: 'Anatomia' }];
       mockTurmaService.listar.mockResolvedValue(turmas as never);
       mockReq.query = {
@@ -74,8 +78,7 @@ describe('TurmaController', () => {
 
       await controller.listar(mockReq as Request, mockRes as Response);
 
-      expect(mockTurmaService.listar).toHaveBeenCalledWith({
-        professorId: 'prof-123',
+      expect(mockTurmaService.listar).toHaveBeenCalledWith(ctxProfessor, {
         status: 'ATIVA',
         busca: 'Anat',
         semestre: '2026.1',
@@ -85,6 +88,21 @@ describe('TurmaController', () => {
       expect(mockRes.json).toHaveBeenCalledWith({
         mensagem: 'Turmas listadas com sucesso.',
         dados: turmas,
+      });
+    });
+
+    it('aluno recebe o proprio contexto na listagem', async () => {
+      const turmas = [{ id: 'turma-1' }];
+      mockTurmaService.listar.mockResolvedValue(turmas as never);
+      (mockReq as { usuario: unknown }).usuario = { ...ctxAluno };
+
+      await controller.listar(mockReq as Request, mockRes as Response);
+
+      expect(mockTurmaService.listar).toHaveBeenCalledWith(ctxAluno, {
+        status: undefined,
+        busca: undefined,
+        semestre: undefined,
+        ano: undefined,
       });
     });
   });
@@ -97,7 +115,7 @@ describe('TurmaController', () => {
 
       await controller.buscarPorId(mockReq as Request, mockRes as Response);
 
-      expect(mockTurmaService.obterPorId).toHaveBeenCalledWith('turma-123', 'prof-123');
+      expect(mockTurmaService.obterPorId).toHaveBeenCalledWith('turma-123', ctxProfessor);
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(mockRes.json).toHaveBeenCalledWith({
         mensagem: 'Turma encontrada com sucesso.',
@@ -116,7 +134,7 @@ describe('TurmaController', () => {
 
       await controller.atualizar(mockReq as Request, mockRes as Response);
 
-      expect(mockTurmaService.atualizar).toHaveBeenCalledWith('turma-123', 'prof-123', body);
+      expect(mockTurmaService.atualizar).toHaveBeenCalledWith('turma-123', ctxProfessor, body);
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(mockRes.json).toHaveBeenCalledWith({
         mensagem: 'Turma atualizada com sucesso.',
@@ -132,7 +150,7 @@ describe('TurmaController', () => {
 
       await controller.deletar(mockReq as Request, mockRes as Response);
 
-      expect(mockTurmaService.deletar).toHaveBeenCalledWith('turma-123', 'prof-123');
+      expect(mockTurmaService.deletar).toHaveBeenCalledWith('turma-123', ctxProfessor);
       expect(mockRes.status).toHaveBeenCalledWith(204);
       expect(mockRes.send).toHaveBeenCalledTimes(1);
     });
@@ -146,7 +164,7 @@ describe('TurmaController', () => {
 
       await controller.listarAlunos(mockReq as Request, mockRes as Response);
 
-      expect(mockTurmaService.listarAlunos).toHaveBeenCalledWith('turma-123', 'prof-123');
+      expect(mockTurmaService.listarAlunos).toHaveBeenCalledWith('turma-123', ctxProfessor);
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(mockRes.json).toHaveBeenCalledWith({
         mensagem: 'Alunos vinculados listados com sucesso.',
@@ -162,7 +180,7 @@ describe('TurmaController', () => {
 
       await controller.vincularAluno(mockReq as Request, mockRes as Response);
 
-      expect(mockTurmaService.vincularAluno).toHaveBeenCalledWith('turma-123', 'prof-123', 'aluno-1');
+      expect(mockTurmaService.vincularAluno).toHaveBeenCalledWith('turma-123', ctxProfessor, 'aluno-1');
       expect(mockRes.status).toHaveBeenCalledWith(201);
       expect(mockRes.json).toHaveBeenCalledWith({
         mensagem: 'Aluno vinculado à turma com sucesso.',
@@ -176,7 +194,7 @@ describe('TurmaController', () => {
 
       await controller.desvincularAluno(mockReq as Request, mockRes as Response);
 
-      expect(mockTurmaService.desvincularAluno).toHaveBeenCalledWith('turma-123', 'prof-123', 'aluno-1');
+      expect(mockTurmaService.desvincularAluno).toHaveBeenCalledWith('turma-123', ctxProfessor, 'aluno-1');
       expect(mockRes.status).toHaveBeenCalledWith(204);
       expect(mockRes.send).toHaveBeenCalledTimes(1);
     });
