@@ -1,13 +1,11 @@
 import puppeteer from 'puppeteer';
 import ejs from 'ejs';
 import path from 'path';
-import fs from 'fs';
 
 export async function gerarPdfBase64(nomeTemplate: string, dados: Record<string, unknown>): Promise<string> {
   const caminhoTemplate = path.join(process.cwd(), 'src', 'shared', 'templates', `${nomeTemplate}.ejs`);
-  const templateHtml = fs.readFileSync(caminhoTemplate, 'utf-8');
   
-  const html = ejs.render(templateHtml, dados);
+  const html = await ejs.renderFile(caminhoTemplate, dados);
 
   const browser = await puppeteer.launch({ 
     headless: true,
