@@ -1,0 +1,1 @@
+export { listaQuestaoRouter } from './lista.routes';

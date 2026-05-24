@@ -70,6 +70,8 @@ model Questao {
   alternativas QuestaoAlternativa?
   resolucoes   ResolucaoQuestao[]
 
+  listas       ListaQuestaoItem[]
+
   dificuldade Dificuldade @default(MEDIA)
 
   criadoEm     DateTime  @default(now())
@@ -127,6 +129,8 @@ model Turma {
 
   alunos TurmaAluno[]
 
+  listas ListaTurma[]
+
   criadoEm     DateTime  @default(now())
   atualizadoEm DateTime  @updatedAt
   excluidoEm   DateTime?
@@ -150,4 +154,46 @@ model TurmaAluno {
   @@unique([turmaId, alunoId])
   @@index([alunoId])
   @@map("turmas_alunos")
+}
+
+model ListaQuestao {
+  id          String   @id @default(cuid())
+  nome        String
+  criadoPorId String   // ID do professor vindo do serviço de Auth
+
+  itens       ListaQuestaoItem[]
+  turmas      ListaTurma[]
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@map("listas_questoes")
+}
+
+model ListaQuestaoItem {
+  id             String @id @default(cuid())
+  listaQuestaoId String
+  questaoId      String
+  ordem          Int
+
+  listaQuestao   ListaQuestao @relation(fields: [listaQuestaoId], references: [id], onDelete: Cascade)
+  questao        Questao      @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+
+  @@unique([listaQuestaoId, questaoId])
+  @@map("listas_questoes_itens")
+}
+
+model ListaTurma {
+  id             String @id @default(cuid())
+  listaQuestaoId String
+  turmaId        String
+
+  listaQuestao   ListaQuestao @relation(fields: [listaQuestaoId], references: [id], onDelete: Cascade)
+  turma          Turma        @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+
+  criadoEm       DateTime     @default(now())
+
+  @@unique([listaQuestaoId, turmaId])
+  @@map("listas_turmas")
 }

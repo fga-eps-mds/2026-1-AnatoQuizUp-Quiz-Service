@@ -14,6 +14,7 @@ import { middlewareAutenticacao } from "@/shared/middlewares/autenticacao.middle
 import { middlewareTokenInterno } from "@/shared/middlewares/token-interno.middleware";
 import { middlewareTratamentoErros } from "@/shared/middlewares/tratamento-erros.middleware";
 import { quizRouter } from "@/modules/quiz/quiz.routes";
+import { listaQuestaoRouter } from "@/modules/lista";
 
 const aplicacao = express();
 const roteadorApi = Router();
@@ -40,6 +41,7 @@ roteadorApi.use(middlewareAutenticacao);
 roteadorApi.use("/quiz", quizRouter);
 roteadorApi.use("/questoes", questionRouter);
 roteadorApi.use("/turmas", turmaRouter);
+roteadorApi.use("/lista", listaQuestaoRouter);
 
 aplicacao.use("/api/v1", roteadorApi);
 
