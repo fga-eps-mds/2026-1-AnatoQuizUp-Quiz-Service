@@ -1,19 +1,21 @@
-import type { RespostaQuestaoQuizDto } from "./dto/resposta_questao_quiz_dto";
-import type { FiltroListarQuestoesQueryDto } from "../questoes/dto/question.types";
+import type { RespostaQuestaoQuizDto } from "./dto/responses/resposta_questao_quiz_dto";
+import { type FiltroListarQuestoesQueryDto } from "../questoes/dto/question.types";
 import type { RespostaPaginada } from "@/shared/types/api.types";
 import type { QuizRepository } from "./quiz.repository";
-import type { FeedbackQuizDto } from "./dto/feedback_quiz_dto";
-import type { ResponderQuestaoQuizDto } from "./dto/responder_questao_quiz_dto";
+import type { FeedbackQuizDto } from "./dto/responses/feedback_quiz_dto";
+import type { ResponderQuestaoQuizDto } from "./dto/requests/responder_questao_quiz_dto";
 import { MENSAGENS } from "@/shared/constants/mensagens";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { PAPEIS, type Papel } from "@/shared/constants/papeis";
-import { converterParaRespostaQuestaoQuiz } from "./dto/converter_para_resposta_questao_quiz";
+import { converterParaRespostaQuestaoQuiz } from "./dto/mappers/converter_para_resposta_questao_quiz";
 import {
   montarMetadadosPaginacao,
   resolverParametrosPaginacao,
 } from "@/shared/utils/paginacao.util";
-import type { QuantidadeQuestoesPorTema } from "./dto/quantidade_questao_tema_dto";
+import type { QuantidadeQuestoesPorTema } from "./dto/responses/quantidade_questao_tema_dto";
+import { type ResolucaoQuestaoUsuarioDto } from "./dto/responses/resolucao_questao_usuario_dto";
+import { converterResolucaoQuestaoBancoToApi } from "./dto/mappers/historico_quiz.mapper";
 import type { Dificuldade } from "@prisma/client";
 
 const MOEDAS_POR_DIFICULDADE: Record<Dificuldade, number> = {
@@ -23,7 +25,7 @@ const MOEDAS_POR_DIFICULDADE: Record<Dificuldade, number> = {
 };
 
 export class QuizService {
-  constructor(private readonly quizRepository: QuizRepository) {}
+  constructor(private readonly quizRepository: QuizRepository) { }
 
   async buscarQuestoesQuiz(
     query: FiltroListarQuestoesQueryDto,
@@ -37,7 +39,7 @@ export class QuizService {
     }
     const { data, total } = await this.quizRepository.filtrarQuestoesQuiz(paginacao, query);
 
-    if (!data) {
+    if (!data || data.length === 0) {
       throw new ErroAplicacao({
         codigoStatus: 404,
         codigo: CodigoDeErro.NAO_ENCONTRADO,
@@ -128,12 +130,10 @@ export class QuizService {
 
   private embaralhar<T>(array: T[]): T[] {
     const arr = [...array];
-
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-
     return arr;
   }
 
@@ -149,15 +149,8 @@ export class QuizService {
     }
 
     return temas.map((tema) => {
-      const quantidadePorDificuldade = {
-        FACIL: 0,
-        MEDIA: 0,
-        DIFICIL: 0,
-      };
-
-      tema.questoes.forEach((questao) => {
-        quantidadePorDificuldade[questao.dificuldade]++;
-      });
+      const quantidadePorDificuldade = { FACIL: 0, MEDIA: 0, DIFICIL: 0 };
+      tema.questoes.forEach((questao) => { quantidadePorDificuldade[questao.dificuldade]++; });
 
       return {
         nome: tema.nome,
@@ -165,5 +158,38 @@ export class QuizService {
         porDificuldade: quantidadePorDificuldade,
       };
     });
+  }
+
+  async buscarHistorico(
+    usuarioId: string | undefined,
+    query: FiltroListarQuestoesQueryDto,
+  ): Promise<RespostaPaginada<ResolucaoQuestaoUsuarioDto>> {
+    if (usuarioId === "" || usuarioId === undefined) {
+      throw new ErroAplicacao({
+        codigoStatus: 401,
+        codigo: CodigoDeErro.NAO_AUTORIZADO,
+        mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+      });
+    }
+
+    const paginacao = resolverParametrosPaginacao(query);
+    const { data, total } = await this.quizRepository.listarQuestoesRespondidas(
+      usuarioId,
+      paginacao,
+      query,
+    );
+
+    if (!data || data.length === 0) {
+      return { dados: [], metadados: montarMetadadosPaginacao(paginacao, 0) };
+    }
+
+    const dados = data.map((item) => {
+      return converterResolucaoQuestaoBancoToApi(item, 1, { [item.respostaMarcada]: 1 });
+    });
+
+    return {
+      dados,
+      metadados: montarMetadadosPaginacao(paginacao, total),
+    };
   }
 }

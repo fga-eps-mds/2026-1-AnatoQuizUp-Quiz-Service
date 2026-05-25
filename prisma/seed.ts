@@ -1,11 +1,11 @@
-import { PrismaClient, TipoQuestao, AlternativaQuestao, StatusQuestao, Dificuldade } from "@prisma/client";
+import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Iniciando o seed massivo do Quiz-Service (27 Questões, 3 Listas e Turmas)...");
+  console.log("Iniciando o seed do Quiz-Service...");
 
-  // 1. Limpando as tabelas na ordem correta para evitar erros de FK
+  // 1. Limpando as tabelas na ordem correta logo no início para evitar erros de FK
   await prisma.listaTurma.deleteMany({});
   await prisma.turmaAluno.deleteMany({});
   await prisma.listaQuestaoItem.deleteMany({});
@@ -16,24 +16,53 @@ async function main() {
   await prisma.tema.deleteMany({});
   await prisma.turma.deleteMany({});
 
-  const professorId = "cmp7fx97j00034hyqazqwrk3e";
+  const PROFESSOR_ID = "cmp7fx97j00034hyqazqwrk3e"; 
+  const ALUNO_1_ID   = "cmp7fx99d00044hyqq4msqsyt";
+  const ALUNO_2_ID   = "cmp7fx99d00044hyqq4mswgsr";
 
   // 2. Criando Temas
   const temas = {
-    neuro: await prisma.tema.create({ data: { nome: "Neuroanatomia" } }),
-    abdome: await prisma.tema.create({ data: { nome: "Abdome Agudo" } }),
+    neuro: await prisma.tema.create({ data: { id: "tema-seed-neuro", nome: "Neuroanatomia" } }),
+    abdome: await prisma.tema.create({ data: { id: "tema-seed-abdome", nome: "Abdome Agudo" } }),
     esqueleto: await prisma.tema.create({ data: { nome: "Sistema Esquelético" } }),
   };
+  console.log("Temas criados com sucesso.");
 
-  // 3. Criando Turmas e Alunos para teste
-  const turma1 = await prisma.turma.create({
+  // 3. Criando todas as Turmas (Nomes de variáveis distintos para evitar conflito)
+  await prisma.turma.create({
+    data: {
+      codigo: "ANAT-01-2026",
+      nome: "Turma A - Anatomia Sistêmica",
+      semestre: "1",
+      ano: 2026,
+      descricao: "Turma matutina de Anatomia Sistêmica",
+      status: StatusTurma.ATIVA,
+      professorId: PROFESSOR_ID,
+      alunos: { create: [{ alunoId: ALUNO_1_ID }, { alunoId: ALUNO_2_ID }] }
+    }
+  });
+
+  await prisma.turma.create({
+    data: {
+      codigo: "NEURO-02-2026",
+      nome: "Turma B - Neuroanatomia",
+      semestre: "1",
+      ano: 2026,
+      descricao: "Turma vespertina de Neuroanatomia",
+      status: StatusTurma.ATIVA,
+      professorId: PROFESSOR_ID,
+      alunos: { create: [{ alunoId: ALUNO_1_ID }] }
+    }
+  });
+
+  const turma3 = await prisma.turma.create({
     data: {
       codigo: "ANATO-101",
       nome: "Anatomia Humana I",
       semestre: "1",
       ano: 2026,
       descricao: "Turma de calouros",
-      professorId: professorId,
+      professorId: PROFESSOR_ID,
       alunos: {
         create: [
           { alunoId: "aluno-teste-1" },
@@ -44,14 +73,14 @@ async function main() {
     }
   });
 
-  const turma2 = await prisma.turma.create({
+  const turma4 = await prisma.turma.create({
     data: {
       codigo: "NEURO-201",
       nome: "Neuroanatomia Avançada",
       semestre: "3",
       ano: 2026,
       descricao: "Turma do terceiro semestre",
-      professorId: professorId,
+      professorId: PROFESSOR_ID,
       alunos: {
         create: [
           { alunoId: "aluno-teste-4" },
@@ -60,8 +89,54 @@ async function main() {
       }
     }
   });
+  console.log("Turmas criadas com sucesso.");
 
-  // 4. Array base das questões
+  // 4. Criando Questões Avulsas Iniciais
+  await prisma.questao.create({
+    data: {
+      enunciado: "Segundo a divisão do sistema nervoso baseada na funcionalidade, o sistema nervoso autônomo (SNA) é a parte eferente do sistema nervoso visceral. Baseado nos seus conceitos de neuroanatomia, selecione a alternativa INCORRETA.",
+      tipoQuestao: TipoQuestao.MULTIPLA_ESCOLHA,
+      respostaCorreta: AlternativaQuestao.C,
+      saibaMais: "A distribuição da parte parassimpática do SNA difere da divisão simpática, pois suas fibras não passam pelos ramos dos nervos espinhais.",
+      dificuldade: Dificuldade.MEDIA,
+      temaId: temas.neuro.id,
+      criadoPorId: "system-seed-user",
+      alternativas: {
+        create: {
+          alternativaA: "As respostas autonômicas simpáticas são elaboradas e coordenadas pela porção posterior do hipotálamo.",
+          alternativaB: "A divisão simpática do SNA é denominada toracolombar devido a localização dos corpos celulares.",
+          alternativaC: "Tanto as fibras da parte simpática como da parte parassimpática do SNA passam pelos ramos dos nervos espinhais.",
+          alternativaD: "Os corpos celulares dos neurônios pré-ganglionares da divisão parassimpática podem estar nos núcleos encefálicos.",
+          alternativaE: "Nenhuma das alternativas anteriores.",
+        },
+      },
+    },
+  });
+
+  await prisma.questao.create({
+    data: {
+      enunciado: "Paciente feminino, 29 anos, chega mancando ao PS do Hospital com quadro de dor intensa em fossa ilíaca direita, parada de eliminação de fezes e flatos. No exame físico, apresenta palpação abdominal dolorosa, com dor à descompressão brusca. Qual o exame de imagem mais indicado para auxiliar no diagnóstico?",
+      tipoQuestao: TipoQuestao.MULTIPLA_ESCOLHA,
+      respostaCorreta: AlternativaQuestao.B,
+      saibaMais: "O exame de imagem mais indicado para auxiliar no diagnóstico nesse caso é a Ultrassonografia. É um exame rápido, não invasivo e não utiliza radiação ionizante, sendo excelente para avaliar a presença de inflamação na fossa ilíaca direita.",
+      dificuldade: Dificuldade.FACIL,
+      temaId: temas.abdome.id,
+      criadoPorId: "system-seed-user",
+      alternativas: {
+        create: {
+          alternativaA: "Radiografia",
+          alternativaB: "Ultrassonografia",
+          alternativaC: "TC com contraste",
+          alternativaD: "TC sem contraste",
+          alternativaE: "Videolaparoscopia",
+        },
+      },
+    },
+  });
+  console.log("Questões avulsas populadas.");
+
+  // 5. Arrays de questões massivas
+  console.log("Iniciando o seed massivo do Quiz-Service (27 Questões)...");
   const questoes = [
     // NEURO
     { temaId: temas.neuro.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.B, 
@@ -182,7 +257,6 @@ async function main() {
   const questoesAbdome: string[] = [];
   const questoesFaceis: string[] = [];
 
-  // 5. Inserindo as questões no banco e guardando os IDs
   for (const q of questoes) {
     const questaoCriada = await prisma.questao.create({
       data: {
@@ -193,7 +267,7 @@ async function main() {
         saibaMais: q.saibaMais,
         status: StatusQuestao.ATIVO,
         dificuldade: q.dif,
-        criadoPorId: professorId,
+        criadoPorId: PROFESSOR_ID,
         alternativas: {
           create: {
             alternativaA: q.alts[0], alternativaB: q.alts[1], alternativaC: q.alts[2], alternativaD: q.alts[3], alternativaE: q.alts[4]
@@ -211,7 +285,7 @@ async function main() {
   await prisma.listaQuestao.create({
     data: {
       nome: "Simulado de Neuroanatomia - 2026.1",
-      criadoPorId: professorId,
+      criadoPorId: PROFESSOR_ID,
       itens: {
         create: questoesNeuro.map((id, index) => ({
           questaoId: id,
@@ -220,7 +294,7 @@ async function main() {
       },
       turmas: {
         create: [
-          { turmaId: turma2.id } // Vinculada à turma de Neuro
+          { turmaId: turma4.id } // Usando a turma NEURO-201
         ]
       }
     }
@@ -229,7 +303,7 @@ async function main() {
   await prisma.listaQuestao.create({
     data: {
       nome: "Revisão de Abdome Agudo",
-      criadoPorId: professorId,
+      criadoPorId: PROFESSOR_ID,
       itens: {
         create: questoesAbdome.map((id, index) => ({
           questaoId: id,
@@ -238,7 +312,7 @@ async function main() {
       },
       turmas: {
         create: [
-          { turmaId: turma1.id } // Vinculada à turma de Anatomia I
+          { turmaId: turma3.id } // Usando a turma ANATO-101
         ]
       }
     }
@@ -247,7 +321,7 @@ async function main() {
   await prisma.listaQuestao.create({
     data: {
       nome: "Aquecimento Geral (Nível Fácil)",
-      criadoPorId: professorId,
+      criadoPorId: PROFESSOR_ID,
       itens: {
         create: questoesFaceis.map((id, index) => ({
           questaoId: id,
@@ -256,14 +330,14 @@ async function main() {
       },
       turmas: {
         create: [
-          { turmaId: turma1.id }, // Vinculada a ambas as turmas
-          { turmaId: turma2.id }
+          { turmaId: turma3.id }, // Vinculada a ambas as turmas
+          { turmaId: turma4.id }
         ]
       }
     }
   });
 
-  console.log("Banco populado com sucesso! Turmas criadas, 27 questões distribuídas e 3 Listas alocadas.");
+  console.log("Banco populado com sucesso! Turmas criadas, questões distribuídas e Listas alocadas.");
 }
 
 main()

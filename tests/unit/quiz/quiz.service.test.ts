@@ -1,16 +1,17 @@
 import { QuizService } from "@/modules/quiz/quiz.service";
-import { converterParaRespostaQuestaoQuiz } from "@/modules/quiz/dto/converter_para_resposta_questao_quiz";
-import type { RespostaQuestaoQuizDto } from "@/modules/quiz/dto/resposta_questao_quiz_dto";
+import { converterParaRespostaQuestaoQuiz } from "@/modules/quiz/dto/mappers/converter_para_resposta_questao_quiz";
+import type { RespostaQuestaoQuizDto } from "@/modules/quiz/dto/responses/resposta_questao_quiz_dto";
 import type { QuizRepository } from "@/modules/quiz/quiz.repository";
 import {
   DIFICULDADE_API,
+  TIPO_QUESTAO_API,
   type FiltroListarQuestoesQueryDto,
   type RegistroQuestaoCompleta,
 } from "@/modules/questoes/dto/question.types";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { MENSAGENS } from "@/shared/constants/mensagens";
-import type { ResponderQuestaoQuizDto } from "@/modules/quiz/dto/responder_questao_quiz_dto";
+import type { ResponderQuestaoQuizDto } from "@/modules/quiz/dto/requests/responder_questao_quiz_dto";
 import { PAPEIS } from "@/shared/constants/papeis";
 import { AlternativaQuestao, Dificuldade, type ResolucaoQuestao } from "@prisma/client";
 
@@ -67,6 +68,7 @@ function converterArrayParaQuestoesQuiz(
 
 function criarTentativa() {
   const agora = new Date("2026-05-09T12:00:00.000Z");
+
   return {
     id: "tentativa-id",
     criadoEm: agora,
@@ -97,6 +99,16 @@ function criarResponderQuestaoQuizDto(): ResponderQuestaoQuizDto {
   };
 }
 
+function criarFiltroListarQuestoesQueryDto(): FiltroListarQuestoesQueryDto {
+  return {
+    page: 1,
+    limit: 4,
+    tema: undefined,
+    dificuldade: DIFICULDADE_API.DIFICIL,
+    tipo: undefined,
+  };
+}
+
 function criarRepositoryMock() {
   return {
     filtrarQuestoesQuiz: jest.fn<QuizRepository["filtrarQuestoesQuiz"]>(),
@@ -107,10 +119,12 @@ function criarRepositoryMock() {
     contarQuestoesQuiz: jest.fn<QuizRepository["contarQuestoesQuiz"]>(),
     buscarQuantidadeDeQuestoesPorTema:
       jest.fn<QuizRepository["buscarQuantidadeDeQuestoesPorTema"]>(),
+    listarQuestoesRespondidas: jest.fn<QuizRepository["listarQuestoesRespondidas"]>(),
   } as unknown as jest.Mocked<QuizRepository>;
 }
 
 jest.retryTimes(3);
+
 describe("Testa Quiz Service", () => {
   let repository: jest.Mocked<QuizRepository>;
   let quizService: QuizService;
@@ -209,19 +223,14 @@ describe("Testa Quiz Service", () => {
     };
     repository.filtrarQuestoesQuiz.mockResolvedValue(mockRepositoryResponse);
 
-    const filtro: FiltroListarQuestoesQueryDto = {
-      page: 1,
-      limit: 4,
-      tema: undefined,
-      dificuldade: DIFICULDADE_API.DIFICIL,
-      tipo: undefined,
-    };
+    const filtro = criarFiltroListarQuestoesQueryDto();
 
     const not_nound_error = new ErroAplicacao({
       codigoStatus: 422,
       codigo: CodigoDeErro.NAO_ENCONTRADO,
       mensagem: MENSAGENS.questaoNaoEncontrada,
     });
+
     await expect(quizService.buscarQuestoesQuiz(filtro)).rejects.toThrow(not_nound_error);
   });
 
@@ -230,13 +239,7 @@ describe("Testa Quiz Service", () => {
     repository.filtrarQuestoesQuiz.mockResolvedValue(mockRepositoryResponse);
     const questoes_quiz = converterArrayParaQuestoesQuiz(mockRepositoryResponse.data);
 
-    const filtro: FiltroListarQuestoesQueryDto = {
-      page: 1,
-      limit: 4,
-      tema: undefined,
-      dificuldade: DIFICULDADE_API.DIFICIL,
-      tipo: undefined,
-    };
+    const filtro = criarFiltroListarQuestoesQueryDto();
 
     const resultado = await quizService.buscarQuestoesQuiz(filtro);
 
@@ -245,7 +248,8 @@ describe("Testa Quiz Service", () => {
 
   test("Testa resposta correta de questão deve retornar boolean true e a resposta correta", async () => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
-    repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.E));
+    repository.buscarResposta.mockResolvedValue(criarFeedback());
+
     repository.concederMoedasPorAcerto.mockResolvedValue({
       moedasConcedidas: 25,
       saldoMoedas: 25,
@@ -267,6 +271,7 @@ describe("Testa Quiz Service", () => {
   test("Testa resposta errada de questão deve retornar boolean false e a resposta correta", async () => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
     repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.C));
+
     const resultado = await quizService.responderQuestaoQuiz(
       criarResponderQuestaoQuizDto(),
       "usuario-id",
@@ -387,6 +392,7 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.NAO_AUTORIZADO,
       mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
     });
+
     await expect(
       quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), ""),
     ).rejects.toThrow(error);
@@ -400,6 +406,7 @@ describe("Testa Quiz Service", () => {
     });
     repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.E));
     repository.registrarTentativa.mockResolvedValue(null as unknown as ResolucaoQuestao);
+
     await expect(
       quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), "usuario-id"),
     ).rejects.toThrow(error);
@@ -411,8 +418,10 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.ERRO_FEEDBACK,
       mensagem: MENSAGENS.erroFeedback,
     });
+
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
     repository.buscarResposta.mockResolvedValue(null);
+
     await expect(
       quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), "usuario-id"),
     ).rejects.toThrow(error);
@@ -457,7 +466,193 @@ describe("Testa Quiz Service", () => {
       codigo: CodigoDeErro.TEMAS_NAO_ENCONTRADOS,
       mensagem: MENSAGENS.temasNaoEncontrados,
     });
+
     repository.buscarQuantidadeDeQuestoesPorTema.mockResolvedValue(null);
+
     await expect(quizService.buscarQuantidadeDeQuestoesPorTema()).rejects.toThrow(error);
+  });
+
+  test("Lança erro caso busca por histórico falhe por usuarioId ser undefined", async () => {
+    const error = new ErroAplicacao({
+      codigoStatus: 401,
+      codigo: CodigoDeErro.NAO_AUTORIZADO,
+      mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+    });
+
+    const filtro = criarFiltroListarQuestoesQueryDto();
+
+    await expect(quizService.buscarHistorico(undefined, filtro)).rejects.toThrow(error);
+  });
+
+  test('Lança erro caso busca por histórico falhe por usuarioId ser string ""', async () => {
+    const error = new ErroAplicacao({
+      codigoStatus: 401,
+      codigo: CodigoDeErro.NAO_AUTORIZADO,
+      mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+    });
+
+    const filtro = criarFiltroListarQuestoesQueryDto();
+
+    await expect(quizService.buscarHistorico("", filtro)).rejects.toThrow(error);
+  });
+
+  test("deve retornar histórico vazio quando listagem de questões respondidas vier vazia", async () => {
+    const filtro = criarFiltroListarQuestoesQueryDto();
+
+    repository.listarQuestoesRespondidas.mockResolvedValue({
+      data: [],
+      total: 0,
+    });
+
+    const resultado = await quizService.buscarHistorico("usuarioId", filtro);
+
+    expect(resultado).toEqual({
+      dados: [],
+      metadados: {
+        page: 1,
+        limit: 4,
+        total: 0,
+        totalPages: 0,
+      },
+    });
+  });
+
+  test("deve retornar histórico vazio quando listagem de questões respondidas vier nula", async () => {
+    const filtro = criarFiltroListarQuestoesQueryDto();
+
+    repository.listarQuestoesRespondidas.mockResolvedValue({
+      data: null,
+      total: null,
+    });
+
+    const resultado = await quizService.buscarHistorico("usuarioId", filtro);
+
+    expect(resultado).toEqual({
+      dados: [],
+      metadados: {
+        page: 1,
+        limit: 4,
+        total: 0,
+        totalPages: 0,
+      },
+    });
+  });
+
+  test("deve retornar histórico corretamente para questão de múltipla escolha", async () => {
+    repository.listarQuestoesRespondidas.mockResolvedValue({
+      data: [
+        {
+          id: "resolucao-1",
+          criadoEm: new Date(),
+          questaoId: "questao-1",
+          respostaMarcada: "A",
+
+          questao: {
+            enunciado: "Pergunta",
+            tipoQuestao: "MULTIPLA_ESCOLHA",
+            respostaCorreta: "A",
+            saibaMais: null,
+            status: "ATIVO",
+            feitoPorIa: false,
+            urlImagem: null,
+            dificuldade: "MEDIA",
+
+            tema: {
+              id: "tema-1",
+              nome: "Sistema Cardiovascular",
+            },
+
+            alternativas: {
+              alternativaA: "A",
+              alternativaB: "B",
+              alternativaC: "C",
+              alternativaD: "D",
+              alternativaE: "E",
+            },
+          },
+        },
+      ],
+      total: 1,
+    });
+
+    const query: FiltroListarQuestoesQueryDto = {
+      tema: "t1",
+      dificuldade: DIFICULDADE_API.MEDIA,
+      tipo: TIPO_QUESTAO_API.MULTIPLA_ESCOLHA,
+    };
+
+    const resultado = await quizService.buscarHistorico("usuario-1", query);
+
+    expect(resultado.dados).toHaveLength(1);
+
+    expect(resultado.dados[0]).toMatchObject({
+      questaoId: "questao-1",
+      respostaMarcada: "A",
+      tentativas: 1,
+      distribuicao: {
+        A: 1,
+      },
+      questao: expect.objectContaining({
+        enunciado: "Pergunta",
+        tipoQuestao: "MULTIPLA_ESCOLHA",
+      }),
+    });
+
+    expect(resultado.metadados).toBeDefined();
+    expect(repository.listarQuestoesRespondidas).toHaveBeenCalledTimes(1);
+  });
+
+  test("deve retornar histórico corretamente para questão de certo e errado", async () => {
+    repository.listarQuestoesRespondidas.mockResolvedValue({
+      data: [
+        {
+          questaoId: "questao-2",
+          id: "resolucao-2",
+          criadoEm: new Date(),
+          respostaMarcada: "C",
+          questao: {
+            enunciado: "Pergunta V/F",
+            tipoQuestao: "CERTO_ERRADO",
+            respostaCorreta: "C",
+            saibaMais: null,
+            status: "ATIVO",
+            feitoPorIa: false,
+            urlImagem: null,
+            dificuldade: "FACIL",
+            tema: {
+              id: "tema-2",
+              nome: "Tema V/F",
+            },
+            alternativas: null,
+          },
+        },
+      ],
+      total: 1,
+    });
+
+    const query: FiltroListarQuestoesQueryDto = {
+      tema: "tema-2",
+      dificuldade: DIFICULDADE_API.FACIL,
+      tipo: TIPO_QUESTAO_API.VERDADEIRO_FALSO,
+    };
+
+    const resultado = await quizService.buscarHistorico("usuario-1", query);
+
+    expect(resultado.dados).toHaveLength(1);
+
+    expect(resultado.dados[0]).toMatchObject({
+      questaoId: "questao-2",
+      respostaMarcada: "C",
+      tentativas: 1,
+      distribuicao: {
+        C: 1,
+      },
+      questao: expect.objectContaining({
+        tipoQuestao: "VERDADEIRO_FALSO",
+        enunciado: "Pergunta V/F",
+      }),
+    });
+
+    expect(repository.listarQuestoesRespondidas).toHaveBeenCalledTimes(1);
   });
 });

@@ -6,7 +6,11 @@ import { QuizController } from "./quiz.controller";
 import { QuizService } from "./quiz.service";
 import { QuizRepository } from "./quiz.repository";
 import { validarRequisicao } from "@/shared/middlewares/validacao.middleware";
-import { schemaBuscarQuestaoQuiz, schemaResponderQuestaoQuiz } from "./quiz.schemas";
+import {
+  schemaBuscarQuestaoQuiz,
+  schemaResponderQuestaoQuiz,
+  schemaHistoricoQuizQuestoesUsuario,
+} from "./quiz.schemas";
 
 const quizRepository = new QuizRepository();
 const quizService = new QuizService(quizRepository);
@@ -31,5 +35,11 @@ quizRouter.post(
 quizRouter.get("/moedas", quizController.buscarSaldoMoedas);
 
 quizRouter.get("/quantidade_por_tema", quizController.buscarQuantidadeDeQuestoesPorTema);
+
+quizRouter.get(
+  "/historico",
+  validarRequisicao(schemaHistoricoQuizQuestoesUsuario, "query"),
+  quizController.buscarHistorico,
+);
 
 export { quizRouter };

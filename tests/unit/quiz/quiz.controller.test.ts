@@ -1,4 +1,4 @@
-import type { RespostaQuestaoQuizDto } from "@/modules/quiz/dto/resposta_questao_quiz_dto";
+import type { RespostaQuestaoQuizDto } from "@/modules/quiz/dto/responses/resposta_questao_quiz_dto";
 import type { QuizService } from "@/modules/quiz/quiz.service";
 import type { Request, Response, NextFunction } from "express";
 import { QuizController } from "@/modules/quiz/quiz.controller";
@@ -7,6 +7,8 @@ import { DIFICULDADE_API, TIPO_QUESTAO_API } from "@/modules/questoes/dto/questi
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { MENSAGENS } from "@/shared/constants/mensagens";
+import type { RespostaPaginada } from "@/shared/types/api.types";
+import type { ResolucaoQuestaoUsuarioDto } from "@/modules/quiz/dto/responses/resolucao_questao_usuario_dto";
 
 function criarQuestaoResposta(): RespostaQuestaoQuizDto {
   return {
@@ -43,6 +45,7 @@ describe("Testa Quiz Controller", () => {
       responderQuestaoQuiz: jest.fn(),
       buscarSaldoMoedas: jest.fn(),
       buscarQuantidadeDeQuestoesPorTema: jest.fn(),
+      buscarHistorico: jest.fn(),
     } as unknown as jest.Mocked<QuizService>;
     controller = new QuizController(quizService);
     jest.clearAllMocks();
@@ -209,6 +212,78 @@ describe("Testa Quiz Controller", () => {
     const nextMock = jest.fn();
     const request = {} as Request;
     await controller.buscarQuantidadeDeQuestoesPorTema(request, response, nextMock);
+
+    expect(nextMock).toHaveBeenCalledWith(error);
+  });
+
+  test("deve retornar status 200 e histórico de questões do usuário", async () => {
+    const historicoMock = {
+      dados: [
+        {
+          questaoId: "questao-1",
+          respostaMarcada: "A",
+          tentativas: 3,
+          distribuicao: {
+            A: 3,
+            B: 0,
+            C: 0,
+            D: 0,
+            E: 0,
+          },
+          questao: {
+            enunciado: "Pergunta",
+            tipoQuestao: "MULTIPLA_ESCOLHA",
+          },
+        },
+      ],
+      metadados: {
+        page: 1,
+        limit: 5,
+        total: 10,
+        totalPages: 1,
+      },
+    } as unknown as RespostaPaginada<ResolucaoQuestaoUsuarioDto>;
+
+    quizService.buscarHistorico.mockResolvedValue(historicoMock);
+
+    const request = {
+      usuario: { id: "usuario-1" },
+      query: {
+        tema: "tema-1",
+        dificuldade: "MEDIA",
+        tipo: "MULTIPLA_ESCOLHA",
+        page: "1",
+        limit: "5",
+      },
+    } as unknown as Request;
+
+    const response = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as unknown as Response;
+    const nextMock = jest.fn();
+
+    await controller.buscarHistorico(request, response, nextMock);
+
+    expect(quizService.buscarHistorico).toHaveBeenCalledWith("usuario-1", request.query);
+
+    expect(response.status).toHaveBeenCalledWith(200);
+
+    expect(response.json).toHaveBeenCalledWith(historicoMock);
+  });
+
+  test("deve chamar next quando service lançar error ao buscar historico de usuario", async () => {
+    const error = new ErroAplicacao({
+      codigoStatus: 404,
+      codigo: CodigoDeErro.NAO_ENCONTRADO,
+      mensagem: MENSAGENS.questaoNaoEncontrada,
+    });
+    quizService.buscarHistorico.mockRejectedValue(error);
+
+    const { response } = criarResponseMock();
+    const nextMock = jest.fn();
+    const request = {} as Request;
+    await controller.buscarHistorico(request, response, nextMock);
 
     expect(nextMock).toHaveBeenCalledWith(error);
   });
