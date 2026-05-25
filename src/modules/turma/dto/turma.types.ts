@@ -1,8 +1,21 @@
 import type { StatusTurma } from '@prisma/client';
 
+import type { Papel } from '@/shared/constants/papeis';
+
+export interface UsuarioContexto {
+  id: string;
+  papel: Papel;
+}
+
 export interface FiltrosListagemTurma {
-  professorId: string; 
+  professorId?: string;
   status?: StatusTurma;
+  busca?: string;
+  semestre?: string;
+  ano?: number;
+}
+
+export interface FiltrosListagemTurmaAluno {
   busca?: string;
   semestre?: string;
   ano?: number;

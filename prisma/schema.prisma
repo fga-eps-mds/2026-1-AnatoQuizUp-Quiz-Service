@@ -75,6 +75,8 @@ model Questao {
   resolucoes   ResolucaoQuestao[]
   transacoesMoedas TransacaoMoeda[]
 
+  listas       ListaQuestaoItem[]
+
   dificuldade Dificuldade @default(MEDIA)
 
   criadoEm     DateTime  @default(now())
@@ -162,6 +164,8 @@ model Turma {
   professorId String
 
   alunos TurmaAluno[]
+
+  listas ListaTurma[]
 
   criadoEm     DateTime  @default(now())
   atualizadoEm DateTime  @updatedAt
