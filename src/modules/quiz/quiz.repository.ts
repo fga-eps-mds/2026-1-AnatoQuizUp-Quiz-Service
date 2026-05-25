@@ -2,19 +2,51 @@ import type {
   FiltroListarQuestoesQueryDto,
   RegistroQuestaoCompleta,
 } from "@/modules/questoes/dto/question.types";
-import { montarFiltroPrisma } from "@/modules/questoes/dto/question.types";
+import { mapearTipoApiParaBanco, montarFiltroPrisma } from "@/modules/questoes/dto/question.types";
 import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
-import type { ResponderQuestaoQuizDto } from "./dto/responder_questao_quiz_dto";
+import type { ResponderQuestaoQuizDto } from "./dto/requests/responder_questao_quiz_dto";
+import type { Prisma } from "@prisma/client";
 
 const includeQuestaoCompleta = {
   tema: true,
   alternativas: true,
 };
 
+const selectListarQuestoesRespondidas = {
+  id: true,
+  questaoId: true,
+  respostaMarcada: true,
+  criadoEm: true,
+  questao: {
+    select: {
+      enunciado: true,
+      tipoQuestao: true,
+      respostaCorreta: true,
+      saibaMais: true,
+      status: true,
+      feitoPorIa: true,
+      urlImagem: true,
+      dificuldade: true,
+      tema: { select: { id: true, nome: true } },
+      alternativas: {
+        select: {
+          alternativaA: true, alternativaB: true, alternativaC: true, alternativaD: true, alternativaE: true,
+        },
+      },
+    },
+  },
+};
+
 export class QuizRepository {
   async filtrarQuestoesQuiz(paginacao: ParametrosPaginacao, filtros: FiltroListarQuestoesQueryDto) {
     const where = montarFiltroPrisma(filtros);
+
+    if (filtros.tema) {
+      where.tema = { nome: { equals: filtros.tema, mode: "insensitive" } };
+    }
+    where.status = "ATIVO";
+    where.excluidoEm = null;
 
     const [data, total] = await prisma.$transaction([
       prisma.questao.findMany({
@@ -23,7 +55,6 @@ export class QuizRepository {
         skip: paginacao.skip,
         take: paginacao.limit,
       }),
-
       prisma.questao.count({ where }),
     ]);
 
@@ -49,35 +80,62 @@ export class QuizRepository {
 
   async contarQuestoesQuiz(filtros: FiltroListarQuestoesQueryDto) {
     const where = montarFiltroPrisma(filtros);
+
+    if (filtros.tema) {
+      where.tema = { nome: { equals: filtros.tema, mode: "insensitive" } };
+    }
+    where.status = "ATIVO";
+    where.excluidoEm = null;
+
     return await prisma.questao.count({ where });
   }
 
-async buscarQuantidadeDeQuestoesPorTema() {
-  return await prisma.tema.findMany({
-    select: {
-      nome: true,
-
-      questoes: {
-        where: {
-          status: "ATIVO",
-          excluidoEm: null,
+  async buscarQuantidadeDeQuestoesPorTema() {
+    return await prisma.tema.findMany({
+      where: { questoes: { some: { status: "ATIVO", excluidoEm: null } } },
+      select: {
+        nome: true,
+        questoes: {
+          where: { status: "ATIVO", excluidoEm: null },
+          select: { dificuldade: true },
         },
-        select: {
-          dificuldade: true,
-        },
-      },
-
-      _count: {
-        select: {
-          questoes: {
-            where: {
-              status: "ATIVO",
-              excluidoEm: null,
-            },
-          },
+        _count: {
+          select: { questoes: { where: { status: "ATIVO", excluidoEm: null } } },
         },
       },
-    },
-  });
-}
+    });
+  }
+
+  async listarQuestoesRespondidas(
+    usuarioId: string,
+    paginacao: ParametrosPaginacao,
+    filtros: FiltroListarQuestoesQueryDto,
+  ) {
+    const where: Prisma.ResolucaoQuestaoWhereInput = {
+      usuarioId,
+      excluidoEm: null,
+      questao: {
+        excluidoEm: null,
+        status: "ATIVO",
+        ...(filtros.tema && {
+          tema: { nome: { equals: filtros.tema, mode: "insensitive" } },
+        }),
+        ...(filtros.dificuldade && { dificuldade: filtros.dificuldade }),
+        ...(filtros.tipo && { tipoQuestao: mapearTipoApiParaBanco(filtros.tipo) }),
+      },
+    };
+
+    const [data, total] = await prisma.$transaction([
+      prisma.resolucaoQuestao.findMany({
+        where,
+        select: selectListarQuestoesRespondidas,
+        skip: paginacao.skip,
+        take: paginacao.limit,
+        orderBy: { criadoEm: "desc" },
+      }),
+      prisma.resolucaoQuestao.count({ where }),
+    ]);
+
+    return { data, total };
+  }
 }

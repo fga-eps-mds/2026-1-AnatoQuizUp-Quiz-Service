@@ -14,7 +14,9 @@ jest.mock("@/config/db", () => ({
       findUnique: jest.fn(),
     },
     resolucaoQuestao: {
+      findMany: jest.fn(),
       create: jest.fn(),
+      count: jest.fn(),
     },
     tema: {
       findMany: jest.fn(),
@@ -57,11 +59,15 @@ describe("Testa QuizRepository", () => {
           tipoQuestao: "MULTIPLA_ESCOLHA",
           tema: {
             nome: {
-              contains: "Sistema Cardiovascular",
+              equals: "Sistema Cardiovascular",
               mode: "insensitive",
             },
           },
         }),
+        include: {
+          tema: true,
+          alternativas: true,
+        },
         skip: 0,
         take: 5,
       }),
@@ -71,7 +77,15 @@ describe("Testa QuizRepository", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           status: "ATIVO",
+          excluidoEm: null,
           dificuldade: "MEDIA",
+          tipoQuestao: "MULTIPLA_ESCOLHA",
+          tema: {
+            nome: {
+              equals: "Sistema Cardiovascular",
+              mode: "insensitive",
+            },
+          },
         }),
       }),
     );
@@ -80,27 +94,29 @@ describe("Testa QuizRepository", () => {
   });
 
   test("Deve criar novo registro de resposta à questão de quiz", async () => {
-    const usuario_id = "usuario_id";
+    const usuarioId = "usuario_id";
     const tentativa = {
       questaoId: "questao-id",
       tipo: TIPO_QUESTAO_API.VERDADEIRO_FALSO,
       respostaMarcada: AlternativaQuestao.E,
     };
 
-    await repository.registrarTentativa(tentativa, usuario_id);
+    await repository.registrarTentativa(tentativa, usuarioId);
 
     expect(prisma.resolucaoQuestao.create).toHaveBeenCalledWith({
       data: {
         questaoId: "questao-id",
         respostaMarcada: AlternativaQuestao.E,
-        usuarioId: usuario_id,
+        usuarioId,
       },
     });
   });
 
   test("Deve buscar um registro de tentativa de resposta", async () => {
     const id = "id-tentativa";
+
     await repository.buscarResposta(id);
+
     expect(prisma.questao.findUnique).toHaveBeenCalledWith({
       where: { id, excluidoEm: null },
       select: { respostaCorreta: true, saibaMais: true },
@@ -125,7 +141,7 @@ describe("Testa QuizRepository", () => {
           tipoQuestao: "MULTIPLA_ESCOLHA",
           tema: {
             nome: {
-              contains: "Sistema Cardiovascular",
+              equals: "Sistema Cardiovascular",
               mode: "insensitive",
             },
           },
@@ -138,30 +154,125 @@ describe("Testa QuizRepository", () => {
     await repository.buscarQuantidadeDeQuestoesPorTema();
 
     expect(prisma.tema.findMany).toHaveBeenCalledWith({
-    select: {
-      nome: true,
-      questoes: {
-        where: {
-          status: "ATIVO",
-          excluidoEm: null,
-        },
-        select: {
-          dificuldade: true,
+      where: {
+        questoes: {
+          some: {
+            status: "ATIVO",
+            excluidoEm: null,
+          },
         },
       },
-      _count: {
-        select: {
-          questoes: {
-            where: {
-              status: "ATIVO",
-              excluidoEm: null,
+      select: {
+        nome: true,
+        questoes: {
+          where: {
+            status: "ATIVO",
+            excluidoEm: null,
+          },
+          select: {
+            dificuldade: true,
+          },
+        },
+        _count: {
+          select: {
+            questoes: {
+              where: {
+                status: "ATIVO",
+                excluidoEm: null,
+              },
             },
           },
         },
       },
-    },
     });
 
     expect(prisma.tema.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  test("deve listar questões respondidas com filtros e paginação", async () => {
+    const filtros: FiltroListarQuestoesQueryDto = {
+      tema: "Sistema Cardiovascular",
+      dificuldade: DIFICULDADE_API.MEDIA,
+      tipo: TIPO_QUESTAO_API.MULTIPLA_ESCOLHA,
+    };
+
+    const paginacao = {
+      skip: 0,
+      limit: 5,
+      page: 1,
+    };
+
+    const registros = [{ id: "resolucao-1" }];
+    const totalRegistros = 1;
+
+    transactionMock.mockResolvedValue([registros, totalRegistros]);
+
+    const resposta = await repository.listarQuestoesRespondidas("usuario-1", paginacao, filtros);
+
+    const where = {
+      usuarioId: "usuario-1",
+      excluidoEm: null,
+      questao: {
+        excluidoEm: null,
+        status: "ATIVO",
+        tema: {
+          nome: {
+            equals: "Sistema Cardiovascular",
+            mode: "insensitive",
+          },
+        },
+        dificuldade: "MEDIA",
+        tipoQuestao: "MULTIPLA_ESCOLHA",
+      },
+    };
+
+    const select = {
+      id: true,
+      questaoId: true,
+      respostaMarcada: true,
+      criadoEm: true,
+      questao: {
+        select: {
+          enunciado: true,
+          tipoQuestao: true,
+          respostaCorreta: true,
+          saibaMais: true,
+          status: true,
+          feitoPorIa: true,
+          urlImagem: true,
+          dificuldade: true,
+          tema: {
+            select: {
+              id: true,
+              nome: true,
+            },
+          },
+          alternativas: {
+            select: {
+              alternativaA: true,
+              alternativaB: true,
+              alternativaC: true,
+              alternativaD: true,
+              alternativaE: true,
+            },
+          },
+        },
+      },
+    };
+
+    expect(prisma.resolucaoQuestao.findMany).toHaveBeenCalledWith({
+      where,
+      select,
+      skip: 0,
+      take: 5,
+      orderBy: {
+        criadoEm: "desc",
+      },
+    });
+
+    expect(prisma.resolucaoQuestao.count).toHaveBeenCalledWith({ where });
+
+    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(resposta).toEqual({ data: registros, total: totalRegistros });
   });
 });
