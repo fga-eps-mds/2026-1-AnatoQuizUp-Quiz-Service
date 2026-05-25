@@ -191,3 +191,45 @@ model TurmaAluno {
   @@index([alunoId])
   @@map("turmas_alunos")
 }
+
+model ListaQuestao {
+  id          String @id @default(cuid())
+  nome        String
+  criadoPorId String
+
+  itens  ListaQuestaoItem[]
+  turmas ListaTurma[]
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@map("listas_questoes")
+}
+
+model ListaQuestaoItem {
+  id             String @id @default(cuid())
+  listaQuestaoId String
+  questaoId      String
+  ordem          Int
+
+  listaQuestao ListaQuestao @relation(fields: [listaQuestaoId], references: [id], onDelete: Cascade)
+  questao      Questao      @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+
+  @@unique([listaQuestaoId, questaoId])
+  @@map("listas_questoes_itens")
+}
+
+model ListaTurma {
+  id             String @id @default(cuid())
+  listaQuestaoId String
+  turmaId        String
+
+  listaQuestao ListaQuestao @relation(fields: [listaQuestaoId], references: [id], onDelete: Cascade)
+  turma        Turma        @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+
+  criadoEm DateTime @default(now())
+
+  @@unique([listaQuestaoId, turmaId])
+  @@map("listas_turmas")
+}
