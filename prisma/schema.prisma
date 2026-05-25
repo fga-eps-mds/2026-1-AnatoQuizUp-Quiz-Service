@@ -36,6 +36,10 @@ enum StatusTurma {
   INATIVA
 }
 
+enum FonteMoeda {
+  ACERTO_QUESTAO
+}
+
 model Tema {
   id   String @id @default(cuid())
   nome String
@@ -69,6 +73,7 @@ model Questao {
   tema         Tema                @relation(fields: [temaId], references: [id], onDelete: Restrict)
   alternativas QuestaoAlternativa?
   resolucoes   ResolucaoQuestao[]
+  transacoesMoedas TransacaoMoeda[]
 
   listas       ListaQuestaoItem[]
 
@@ -116,6 +121,37 @@ model ResolucaoQuestao {
   @@map("resolucoes_questoes")
 }
 
+model CarteiraMoedas {
+  id        String @id @default(cuid())
+  usuarioId String @unique
+  saldo     Int    @default(0)
+
+  transacoes TransacaoMoeda[]
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("carteiras_moedas")
+}
+
+model TransacaoMoeda {
+  id         String      @id @default(cuid())
+  usuarioId  String
+  questaoId  String
+  quantidade Int
+  fonte      FonteMoeda  @default(ACERTO_QUESTAO)
+
+  carteira CarteiraMoedas @relation(fields: [usuarioId], references: [usuarioId], onDelete: Restrict)
+  questao   Questao         @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+
+  criadoEm DateTime @default(now())
+
+  @@unique([usuarioId, questaoId, fonte])
+  @@index([usuarioId])
+  @@index([questaoId])
+  @@map("transacoes_moedas")
+}
+
 model Turma {
   id        String      @id @default(cuid())
   codigo    String      @unique
@@ -157,12 +193,12 @@ model TurmaAluno {
 }
 
 model ListaQuestao {
-  id          String   @id @default(cuid())
+  id          String @id @default(cuid())
   nome        String
-  criadoPorId String   // ID do professor vindo do serviço de Auth
+  criadoPorId String
 
-  itens       ListaQuestaoItem[]
-  turmas      ListaTurma[]
+  itens  ListaQuestaoItem[]
+  turmas ListaTurma[]
 
   criadoEm     DateTime  @default(now())
   atualizadoEm DateTime  @updatedAt
@@ -177,8 +213,8 @@ model ListaQuestaoItem {
   questaoId      String
   ordem          Int
 
-  listaQuestao   ListaQuestao @relation(fields: [listaQuestaoId], references: [id], onDelete: Cascade)
-  questao        Questao      @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+  listaQuestao ListaQuestao @relation(fields: [listaQuestaoId], references: [id], onDelete: Cascade)
+  questao      Questao      @relation(fields: [questaoId], references: [id], onDelete: Restrict)
 
   @@unique([listaQuestaoId, questaoId])
   @@map("listas_questoes_itens")
@@ -189,10 +225,10 @@ model ListaTurma {
   listaQuestaoId String
   turmaId        String
 
-  listaQuestao   ListaQuestao @relation(fields: [listaQuestaoId], references: [id], onDelete: Cascade)
-  turma          Turma        @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+  listaQuestao ListaQuestao @relation(fields: [listaQuestaoId], references: [id], onDelete: Cascade)
+  turma        Turma        @relation(fields: [turmaId], references: [id], onDelete: Cascade)
 
-  criadoEm       DateTime     @default(now())
+  criadoEm DateTime @default(now())
 
   @@unique([listaQuestaoId, turmaId])
   @@map("listas_turmas")

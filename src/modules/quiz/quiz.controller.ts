@@ -29,8 +29,18 @@ export class QuizController {
       const feedback = await this.quizService.responderQuestaoQuiz(
         request.body,
         request.usuario?.id ?? "",
+        request.usuario?.papel,
       );
       return response.status(200).json(feedback);
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  buscarSaldoMoedas = async (request: Request, response: Response, next: NextFunction) => {
+    try {
+      const saldo = await this.quizService.buscarSaldoMoedas(request.usuario?.id ?? "");
+      return response.status(200).json(saldo);
     } catch (error) {
       return next(error);
     }

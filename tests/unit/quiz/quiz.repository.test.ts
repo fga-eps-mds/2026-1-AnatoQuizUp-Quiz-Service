@@ -2,7 +2,7 @@ import { prisma } from "@/config/db";
 import type { FiltroListarQuestoesQueryDto } from "@/modules/questoes/dto/question.types";
 import { DIFICULDADE_API, TIPO_QUESTAO_API } from "@/modules/questoes/dto/question.types";
 import { QuizRepository } from "@/modules/quiz/quiz.repository";
-import { AlternativaQuestao } from "@prisma/client";
+import { AlternativaQuestao, FonteMoeda } from "@prisma/client";
 
 jest.mock("@/config/db", () => ({
   prisma: {
@@ -17,6 +17,14 @@ jest.mock("@/config/db", () => ({
       findMany: jest.fn(),
       create: jest.fn(),
       count: jest.fn(),
+    },
+    carteiraMoedas: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+      update: jest.fn(),
+    },
+    transacaoMoeda: {
+      createMany: jest.fn(),
     },
     tema: {
       findMany: jest.fn(),
@@ -119,7 +127,99 @@ describe("Testa QuizRepository", () => {
 
     expect(prisma.questao.findUnique).toHaveBeenCalledWith({
       where: { id, excluidoEm: null },
-      select: { respostaCorreta: true, saibaMais: true },
+      select: { respostaCorreta: true, saibaMais: true, dificuldade: true },
+    });
+  });
+
+  test("deve retornar saldo de moedas quando carteira existir", async () => {
+    (prisma.carteiraMoedas.findUnique as jest.Mock).mockResolvedValue({ saldo: 35 });
+
+    const saldo = await repository.buscarSaldoMoedas("usuario-id");
+
+    expect(prisma.carteiraMoedas.findUnique).toHaveBeenCalledWith({
+      where: { usuarioId: "usuario-id" },
+      select: { saldo: true },
+    });
+    expect(saldo).toBe(35);
+  });
+
+  test("deve retornar saldo zero quando carteira nao existir", async () => {
+    (prisma.carteiraMoedas.findUnique as jest.Mock).mockResolvedValue(null);
+
+    const saldo = await repository.buscarSaldoMoedas("usuario-id");
+
+    expect(saldo).toBe(0);
+  });
+
+  test("deve criar transacao e incrementar saldo ao conceder moedas", async () => {
+    const tx = {
+      carteiraMoedas: {
+        upsert: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn(),
+        update: jest.fn().mockResolvedValue({ saldo: 25 }),
+      },
+      transacaoMoeda: {
+        createMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+
+    transactionMock.mockImplementation(async (callback) => callback(tx));
+
+    const resultado = await repository.concederMoedasPorAcerto("usuario-id", "questao-id", 25);
+
+    expect(tx.carteiraMoedas.upsert).toHaveBeenCalledWith({
+      where: { usuarioId: "usuario-id" },
+      create: { usuarioId: "usuario-id", saldo: 0 },
+      update: {},
+    });
+    expect(tx.transacaoMoeda.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          usuarioId: "usuario-id",
+          questaoId: "questao-id",
+          quantidade: 25,
+          fonte: FonteMoeda.ACERTO_QUESTAO,
+        },
+      ],
+      skipDuplicates: true,
+    });
+    expect(tx.carteiraMoedas.update).toHaveBeenCalledWith({
+      where: { usuarioId: "usuario-id" },
+      data: { saldo: { increment: 25 } },
+      select: { saldo: true },
+    });
+    expect(resultado).toEqual({
+      moedasConcedidas: 25,
+      saldoMoedas: 25,
+      moedasJaConcedidas: false,
+    });
+  });
+
+  test("deve manter saldo quando transacao de moeda ja existir", async () => {
+    const tx = {
+      carteiraMoedas: {
+        upsert: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn().mockResolvedValue({ saldo: 50 }),
+        update: jest.fn(),
+      },
+      transacaoMoeda: {
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+    };
+
+    transactionMock.mockImplementation(async (callback) => callback(tx));
+
+    const resultado = await repository.concederMoedasPorAcerto("usuario-id", "questao-id", 50);
+
+    expect(tx.carteiraMoedas.update).not.toHaveBeenCalled();
+    expect(tx.carteiraMoedas.findUnique).toHaveBeenCalledWith({
+      where: { usuarioId: "usuario-id" },
+      select: { saldo: true },
+    });
+    expect(resultado).toEqual({
+      moedasConcedidas: 0,
+      saldoMoedas: 50,
+      moedasJaConcedidas: true,
     });
   });
 

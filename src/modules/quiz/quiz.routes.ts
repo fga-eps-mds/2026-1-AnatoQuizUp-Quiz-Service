@@ -32,6 +32,8 @@ quizRouter.post(
   quizController.responderQuestaoQuiz,
 );
 
+quizRouter.get("/moedas", quizController.buscarSaldoMoedas);
+
 quizRouter.get("/quantidade_por_tema", quizController.buscarQuantidadeDeQuestoesPorTema);
 
 quizRouter.get(
