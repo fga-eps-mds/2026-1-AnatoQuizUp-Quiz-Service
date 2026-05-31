@@ -66,11 +66,11 @@ describe('TurmaDashboardController', () => {
       params: { id: 'turma-123' },
       usuario: { id: 'prof-123' }
     } as unknown as Request;
-    
+
     const res = createMockResponse();
 
     serviceMock.getMacroDashboard.mockRejectedValue(new Error('Erro interno'));
-    
+
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     await controller.listarMacro(req, res);
@@ -79,5 +79,66 @@ describe('TurmaDashboardController', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Erro ao buscar dados do dashboard da turma.' });
 
     consoleSpy.mockRestore();
+  });
+
+  describe('listarIndividual', () => {
+    it('deve retornar 200 e os dados de desempenho individual', async () => {
+      const req = {
+        params: { id: 'turma-123' },
+        usuario: { id: 'prof-123' },
+      } as unknown as Request;
+
+      const res = createMockResponse();
+
+      const mockData = {
+        alunos: [
+          {
+            alunoId: 'aluno-1',
+            totalRespondidas: 10,
+            totalAcertos: 8,
+            taxaAcerto: 80,
+            ultimaAtividade: '2026-05-30T10:00:00.000Z',
+            desempenhoPorTema: [],
+          },
+        ],
+      };
+
+      serviceMock.getDesempenhoIndividual.mockResolvedValue(mockData);
+
+      await controller.listarIndividual(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockData);
+    });
+
+    it('deve retornar 401 se o professor não estiver autenticado', async () => {
+      const req = { params: { id: 'turma-123' } } as unknown as Request;
+      const res = createMockResponse();
+
+      await controller.listarIndividual(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Usuário não autenticado ou sessão expirada.' });
+    });
+
+    it('deve retornar 500 se o service lançar um erro', async () => {
+      const req = {
+        params: { id: 'turma-123' },
+        usuario: { id: 'prof-123' },
+      } as unknown as Request;
+
+      const res = createMockResponse();
+
+      serviceMock.getDesempenhoIndividual.mockRejectedValue(new Error('Erro interno'));
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await controller.listarIndividual(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Erro ao buscar desempenho individual.' });
+
+      consoleSpy.mockRestore();
+    });
   });
 });
