@@ -3,6 +3,76 @@ import type { TurmaDashboardRepository } from './dashboardTurma.repository';
 export class TurmaDashboardService {
   constructor(private readonly repository: TurmaDashboardRepository) {}
 
+  async getDesempenhoIndividual(turmaId: string) {
+    const alunosIds = await this.repository.findAlunosByTurmaId(turmaId);
+
+    if (alunosIds.length === 0) {
+      return { alunos: [] };
+    }
+
+    const resolucoes = await this.repository.findResolucoesByAlunos(alunosIds);
+
+    type StatsAluno = {
+      totalRespondidas: number;
+      totalAcertos: number;
+      ultimaAtividade: Date | null;
+      temas: Map<string, { acertos: number; total: number }>;
+    };
+
+    const alunosMap = new Map<string, StatsAluno>();
+    alunosIds.forEach((id) =>
+      alunosMap.set(id, { totalRespondidas: 0, totalAcertos: 0, ultimaAtividade: null, temas: new Map() }),
+    );
+
+    resolucoes.forEach((resolucao) => {
+      const acertou = resolucao.respostaMarcada === resolucao.questao.respostaCorreta;
+      const nomeTema = resolucao.questao.tema.nome;
+      const stats = alunosMap.get(resolucao.usuarioId)!;
+
+      stats.totalRespondidas += 1;
+      if (acertou) stats.totalAcertos += 1;
+
+      if (!stats.ultimaAtividade || resolucao.criadoEm > stats.ultimaAtividade) {
+        stats.ultimaAtividade = resolucao.criadoEm;
+      }
+
+      if (!stats.temas.has(nomeTema)) stats.temas.set(nomeTema, { acertos: 0, total: 0 });
+      const t = stats.temas.get(nomeTema)!;
+      t.total += 1;
+      if (acertou) t.acertos += 1;
+    });
+
+    const alunos = Array.from(alunosMap.entries()).map(([alunoId, stats]) => {
+      const taxaAcerto =
+        stats.totalRespondidas > 0
+          ? Math.round((stats.totalAcertos / stats.totalRespondidas) * 100)
+          : 0;
+
+      const desempenhoPorTema = Array.from(stats.temas.entries()).map(([nome, t]) => {
+        const taxa = Math.round((t.acertos / t.total) * 100);
+        let status = 'Crítico';
+        if (taxa >= 70) status = 'Tranquilo';
+        else if (taxa >= 40) status = 'Atenção';
+        return { nome, totalRespondidas: t.total, taxaAcerto: taxa, status };
+      });
+
+      desempenhoPorTema.sort((a, b) => b.taxaAcerto - a.taxaAcerto);
+
+      return {
+        alunoId,
+        totalRespondidas: stats.totalRespondidas,
+        totalAcertos: stats.totalAcertos,
+        taxaAcerto,
+        ultimaAtividade: stats.ultimaAtividade?.toISOString() ?? null,
+        desempenhoPorTema,
+      };
+    });
+
+    alunos.sort((a, b) => b.taxaAcerto - a.taxaAcerto);
+
+    return { alunos };
+  }
+
   async getMacroDashboard(turmaId: string, professorId: string) {
     void professorId;
     const alunosIds = await this.repository.findAlunosByTurmaId(turmaId);

@@ -22,4 +22,11 @@ dashboardRouter.get(
   turmaDashboardController.listarMacro
 );
 
+dashboardRouter.get(
+  '/:id/individual',
+  apenasGestao,
+  validarRequisicao(schemaParamsDashboard, 'params'),
+  turmaDashboardController.listarIndividual
+);
+
 export { dashboardRouter };
