@@ -6,6 +6,7 @@ async function main() {
   console.log("Iniciando o seed do Quiz-Service...");
 
   // 1. Limpando as tabelas na ordem correta logo no início para evitar erros de FK
+  await prisma.transacaoMoeda.deleteMany({});
   await prisma.listaTurma.deleteMany({});
   await prisma.turmaAluno.deleteMany({});
   await prisma.listaQuestaoItem.deleteMany({});
@@ -28,7 +29,7 @@ async function main() {
   };
   console.log("Temas criados com sucesso.");
 
-  // 3. Criando todas as Turmas (Nomes de variáveis distintos para evitar conflito)
+  // 3. Criando todas as Turmas
   await prisma.turma.create({
     data: {
       codigo: "ANAT-01-2026",
@@ -256,6 +257,7 @@ async function main() {
   const questoesNeuro: string[] = [];
   const questoesAbdome: string[] = [];
   const questoesFaceis: string[] = [];
+  const todasQuestoesCriadas = []; // Guardar para usar no passo 7
 
   for (const q of questoes) {
     const questaoCriada = await prisma.questao.create({
@@ -276,6 +278,8 @@ async function main() {
       }
     });
 
+    todasQuestoesCriadas.push(questaoCriada);
+
     if (q.temaId === temas.neuro.id) questoesNeuro.push(questaoCriada.id);
     if (q.temaId === temas.abdome.id) questoesAbdome.push(questaoCriada.id);
     if (q.dif === Dificuldade.FACIL) questoesFaceis.push(questaoCriada.id);
@@ -294,7 +298,7 @@ async function main() {
       },
       turmas: {
         create: [
-          { turmaId: turma4.id } // Usando a turma NEURO-201
+          { turmaId: turma4.id } 
         ]
       }
     }
@@ -312,7 +316,7 @@ async function main() {
       },
       turmas: {
         create: [
-          { turmaId: turma3.id } // Usando a turma ANATO-101
+          { turmaId: turma3.id } 
         ]
       }
     }
@@ -330,14 +334,38 @@ async function main() {
       },
       turmas: {
         create: [
-          { turmaId: turma3.id }, // Vinculada a ambas as turmas
+          { turmaId: turma3.id }, 
           { turmaId: turma4.id }
         ]
       }
     }
   });
 
-  console.log("Banco populado com sucesso! Turmas criadas, questões distribuídas e Listas alocadas.");
+  // 7. Simulando Respostas dos Alunos para popular o Dashboard
+  console.log("Simulando resoluções de questões pelos alunos...");
+
+  for (const q of todasQuestoesCriadas) {
+    // Aluno 1 responde (Vai ter uma taxa de acerto mais alta, ~80%)
+    const acertaAluno1 = Math.random() > 0.2; 
+    await prisma.resolucaoQuestao.create({
+      data: {
+        usuarioId: ALUNO_1_ID,
+        questaoId: q.id,
+        respostaMarcada: acertaAluno1 ? q.respostaCorreta : (q.respostaCorreta === AlternativaQuestao.A ? AlternativaQuestao.B : AlternativaQuestao.A)
+      }
+    });
+
+    // Aluno 2 responde (Vai ter uma taxa de acerto média, ~50%)
+    const acertaAluno2 = Math.random() > 0.5; 
+    await prisma.resolucaoQuestao.create({
+      data: {
+        usuarioId: ALUNO_2_ID,
+        questaoId: q.id,
+        respostaMarcada: acertaAluno2 ? q.respostaCorreta : (q.respostaCorreta === AlternativaQuestao.A ? AlternativaQuestao.C : AlternativaQuestao.A)
+      }
+    });
+  }
+
 }
 
 main()
