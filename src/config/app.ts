@@ -16,6 +16,7 @@ import { middlewareTratamentoErros } from "@/shared/middlewares/tratamento-erros
 import { quizRouter } from "@/modules/quiz/quiz.routes";
 import { listaQuestaoRouter } from "@/modules/lista";
 import { dashboardRouter } from "@/modules/dashboardTurma/dashboardTurma.routes";
+import { dashboardAlunoRouter } from "@/modules/dashboardAluno";
 
 const aplicacao = express();
 const roteadorApi = Router();
@@ -44,6 +45,7 @@ roteadorApi.use("/questoes", questionRouter);
 roteadorApi.use("/turmas", turmaRouter);
 roteadorApi.use("/lista", listaQuestaoRouter);
 roteadorApi.use("/turmasDashboard", dashboardRouter);
+roteadorApi.use("/dashboardAluno", dashboardAlunoRouter);
 
 aplicacao.use("/api/v1", roteadorApi);
 
