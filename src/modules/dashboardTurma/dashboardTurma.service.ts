@@ -1,4 +1,5 @@
 import type { TurmaDashboardRepository } from './dashboardTurma.repository';
+import type { DesempenhoListaDTO } from './dto/dashboardTurma.types';
 
 export class TurmaDashboardService {
   constructor(private readonly repository: TurmaDashboardRepository) {}
@@ -124,5 +125,41 @@ export class TurmaDashboardService {
       taxaMediaAcertos,
       desempenhoPorTema,
     };
+  }
+
+  async getDesempenhoPorListas(
+    turmaId: string,
+    professorId: string,
+  ): Promise<DesempenhoListaDTO[]> {
+    void professorId;
+
+    const [alunosIds, listasTurma] = await Promise.all([
+      this.repository.findAlunosByTurmaId(turmaId),
+      this.repository.findDesempenhoPorListasDaTurma(turmaId),
+    ]);
+
+    const totalAlunos = alunosIds.length;
+
+    return listasTurma.map((listaTurma) => {
+      const totalSubmeteram = listaTurma.resolucoes.length;
+      const totalPendentes = Math.max(totalAlunos - totalSubmeteram, 0);
+      const respostas = listaTurma.resolucoes.flatMap((resolucao) => resolucao.respostas);
+      const totalRespostas = respostas.length;
+      const totalAcertos = respostas.filter(
+        (resposta) => resposta.respostaMarcada === resposta.questao.respostaCorreta,
+      ).length;
+      const taxaMediaAcerto =
+        totalRespostas > 0 ? Number(((totalAcertos / totalRespostas) * 100).toFixed(1)) : 0;
+
+      return {
+        listaTurmaId: listaTurma.id,
+        nomeLista: listaTurma.listaQuestao.nome,
+        totalAlunos,
+        totalSubmeteram,
+        totalPendentes,
+        taxaMediaAcerto,
+        prazo: listaTurma.prazo?.toISOString() ?? null,
+      };
+    });
   }
 }

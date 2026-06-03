@@ -162,4 +162,94 @@ describe('TurmaDashboardService', () => {
       { nome: 'Nervo', totalRespondidas: 1, taxaAcerto: 0, status: 'Crítico' }
     ]);
   });
+
+  describe('getDesempenhoPorListas', () => {
+    it('deve retornar lista vazia quando a turma nao tiver listas publicadas', async () => {
+      repoMock.findAlunosByTurmaId.mockResolvedValue(['aluno-1', 'aluno-2']);
+      repoMock.findDesempenhoPorListasDaTurma.mockResolvedValue([]);
+
+      const result = await service.getDesempenhoPorListas('turma-123', 'prof-123');
+
+      expect(repoMock.findAlunosByTurmaId).toHaveBeenCalledWith('turma-123');
+      expect(repoMock.findDesempenhoPorListasDaTurma).toHaveBeenCalledWith('turma-123');
+      expect(result).toEqual([]);
+    });
+
+    it('deve calcular submissoes, pendentes e taxa media por lista', async () => {
+      repoMock.findAlunosByTurmaId.mockResolvedValue(['aluno-1', 'aluno-2', 'aluno-3']);
+      repoMock.findDesempenhoPorListasDaTurma.mockResolvedValue([
+        {
+          id: 'lista-turma-1',
+          prazo: new Date('2026-06-10T23:59:00.000Z'),
+          listaQuestao: { nome: 'Simulado de Anatomia' },
+          resolucoes: [
+            {
+              respostas: [
+                { respostaMarcada: 'A', questao: { respostaCorreta: 'A' } },
+                { respostaMarcada: 'B', questao: { respostaCorreta: 'A' } },
+              ],
+            },
+            {
+              respostas: [
+                { respostaMarcada: 'C', questao: { respostaCorreta: 'C' } },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'lista-turma-2',
+          prazo: null,
+          listaQuestao: { nome: 'Lista sem respostas' },
+          resolucoes: [],
+        },
+      ] as unknown as Awaited<
+        ReturnType<TurmaDashboardRepository['findDesempenhoPorListasDaTurma']>
+      >);
+
+      const result = await service.getDesempenhoPorListas('turma-123', 'prof-123');
+
+      expect(result).toEqual([
+        {
+          listaTurmaId: 'lista-turma-1',
+          nomeLista: 'Simulado de Anatomia',
+          totalAlunos: 3,
+          totalSubmeteram: 2,
+          totalPendentes: 1,
+          taxaMediaAcerto: 66.7,
+          prazo: '2026-06-10T23:59:00.000Z',
+        },
+        {
+          listaTurmaId: 'lista-turma-2',
+          nomeLista: 'Lista sem respostas',
+          totalAlunos: 3,
+          totalSubmeteram: 0,
+          totalPendentes: 3,
+          taxaMediaAcerto: 0,
+          prazo: null,
+        },
+      ]);
+    });
+
+    it('deve evitar pendentes negativos se houver submissoes acima do total de alunos', async () => {
+      repoMock.findAlunosByTurmaId.mockResolvedValue(['aluno-1']);
+      repoMock.findDesempenhoPorListasDaTurma.mockResolvedValue([
+        {
+          id: 'lista-turma-1',
+          prazo: null,
+          listaQuestao: { nome: 'Lista inconsistente' },
+          resolucoes: [
+            { respostas: [] },
+            { respostas: [] },
+          ],
+        },
+      ] as unknown as Awaited<
+        ReturnType<TurmaDashboardRepository['findDesempenhoPorListasDaTurma']>
+      >);
+
+      const result = await service.getDesempenhoPorListas('turma-123', 'prof-123');
+
+      expect(result[0].totalSubmeteram).toBe(2);
+      expect(result[0].totalPendentes).toBe(0);
+    });
+  });
 });

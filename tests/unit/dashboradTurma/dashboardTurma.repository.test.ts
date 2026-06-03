@@ -9,6 +9,9 @@ jest.mock('@prisma/client', () => {
     resolucaoQuestao: {
       findMany: jest.fn(),
     },
+    listaTurma: {
+      findMany: jest.fn(),
+    },
   };
   return { PrismaClient: jest.fn(() => mPrisma) };
 });
@@ -47,5 +50,41 @@ describe('TurmaDashboardRepository', () => {
       include: { questao: { include: { tema: true } } },
     });
     expect(result).toEqual(mockResolucoes);
+  });
+
+  it('deve buscar desempenho por listas da turma com submissoes e respostas', async () => {
+    const mockListas = [{ id: 'lista-turma-1' }];
+    (prismaMock.listaTurma.findMany as jest.Mock).mockResolvedValue(mockListas);
+
+    const result = await repository.findDesempenhoPorListasDaTurma('turma-123');
+
+    expect(prismaMock.listaTurma.findMany).toHaveBeenCalledWith({
+      where: { turmaId: 'turma-123' },
+      include: {
+        listaQuestao: {
+          select: {
+            nome: true,
+          },
+        },
+        resolucoes: {
+          where: { status: 'SUBMETIDA' },
+          include: {
+            respostas: {
+              include: {
+                questao: {
+                  select: {
+                    respostaCorreta: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        criadoEm: 'desc',
+      },
+    });
+    expect(result).toEqual(mockListas);
   });
 });

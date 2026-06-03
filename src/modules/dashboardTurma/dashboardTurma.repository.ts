@@ -25,4 +25,34 @@ export class TurmaDashboardRepository {
       },
     });
   }
+
+  async findDesempenhoPorListasDaTurma(turmaId: string) {
+    return await prisma.listaTurma.findMany({
+      where: { turmaId },
+      include: {
+        listaQuestao: {
+          select: {
+            nome: true,
+          },
+        },
+        resolucoes: {
+          where: { status: 'SUBMETIDA' },
+          include: {
+            respostas: {
+              include: {
+                questao: {
+                  select: {
+                    respostaCorreta: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        criadoEm: 'desc',
+      },
+    });
+  }
 }

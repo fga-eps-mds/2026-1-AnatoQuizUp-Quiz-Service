@@ -141,4 +141,65 @@ describe('TurmaDashboardController', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('listarPorListas', () => {
+    it('deve retornar 200 e os dados de desempenho por listas', async () => {
+      const req = {
+        params: { id: 'turma-123' },
+        usuario: { id: 'prof-123' },
+      } as unknown as Request;
+
+      const res = createMockResponse();
+
+      const mockData = [
+        {
+          listaTurmaId: 'lista-turma-1',
+          nomeLista: 'Simulado de Anatomia',
+          totalAlunos: 10,
+          totalSubmeteram: 6,
+          totalPendentes: 4,
+          taxaMediaAcerto: 73.4,
+          prazo: '2026-06-10T23:59:00.000Z',
+        },
+      ];
+
+      serviceMock.getDesempenhoPorListas.mockResolvedValue(mockData);
+
+      await controller.listarPorListas(req, res);
+
+      expect(serviceMock.getDesempenhoPorListas).toHaveBeenCalledWith('turma-123', 'prof-123');
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockData);
+    });
+
+    it('deve retornar 401 se o professor nao estiver autenticado', async () => {
+      const req = { params: { id: 'turma-123' } } as unknown as Request;
+      const res = createMockResponse();
+
+      await controller.listarPorListas(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: 'UsuÃ¡rio nÃ£o autenticado ou sessÃ£o expirada.' });
+    });
+
+    it('deve retornar 500 se o service lancar um erro', async () => {
+      const req = {
+        params: { id: 'turma-123' },
+        usuario: { id: 'prof-123' },
+      } as unknown as Request;
+
+      const res = createMockResponse();
+
+      serviceMock.getDesempenhoPorListas.mockRejectedValue(new Error('Erro interno'));
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await controller.listarPorListas(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Erro ao buscar desempenho por lista.' });
+
+      consoleSpy.mockRestore();
+    });
+  });
 });

@@ -29,4 +29,11 @@ dashboardRouter.get(
   turmaDashboardController.listarIndividual
 );
 
+dashboardRouter.get(
+  '/:id/listas',
+  apenasGestao,
+  validarRequisicao(schemaParamsDashboard, 'params'),
+  turmaDashboardController.listarPorListas
+);
+
 export { dashboardRouter };
