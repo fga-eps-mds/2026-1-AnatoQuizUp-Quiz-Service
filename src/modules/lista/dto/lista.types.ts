@@ -40,6 +40,26 @@ export interface VincularTurmasListaDTO {
   turmasIds: string[];
 }
 
+export interface VincularTurmaComConfigDTO {
+  turmaId: string;
+  prazo?: string | null;
+  gabaritoLiberado?: boolean;
+}
+
+export interface AtualizarVinculoListaTurmaDTO {
+  prazo?: string | null;
+  gabaritoLiberado?: boolean;
+}
+
+export interface VinculoListaTurmaDTO {
+  id: string;
+  listaQuestaoId: string;
+  nome: string;
+  quantidadeQuestoes: number;
+  prazo: Date | null;
+  gabaritoLiberado: boolean;
+}
+
 export interface ListaQuestaoRespostaDTO {
   id: string;
   nome: string;

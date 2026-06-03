@@ -20,6 +20,8 @@ jest.mock('@/config/db', () => {
     },
     listaTurma: {
       createMany: jest.fn(),
+      findMany: jest.fn(),
+      update: jest.fn(),
       deleteMany: jest.fn(),
     },
     turmaAluno: {
@@ -58,7 +60,12 @@ const mockPrisma = prisma as never as {
     findMany: jest.Mock;
     update: jest.Mock;
   };
-  listaTurma: { createMany: jest.Mock; deleteMany: jest.Mock };
+  listaTurma: {
+    createMany: jest.Mock;
+    findMany: jest.Mock;
+    update: jest.Mock;
+    deleteMany: jest.Mock;
+  };
   turmaAluno: { findMany: jest.Mock };
   resolucaoQuestao: { findMany: jest.Mock };
   $transaction: jest.Mock;
@@ -132,6 +139,37 @@ describe('ListaQuestaoRepository', () => {
       orderBy: { criadoEm: 'desc' },
     });
     expect(resultado).toEqual(listas);
+  });
+
+  it('deve listar vinculos da turma com configuracao', async () => {
+    const vinculos = [
+      {
+        id: 'vinculo-1',
+        listaQuestaoId: 'lista-1',
+        turmaId: 'turma-1',
+        prazo: null,
+        gabaritoLiberado: false,
+        listaQuestao: { id: 'lista-1', nome: 'Lista 1', _count: { itens: 3 } },
+      },
+    ];
+    mockPrisma.listaTurma.findMany.mockResolvedValue(vinculos);
+
+    const resultado = await repository.listarVinculosDaTurma('turma-1', 'prof-1');
+
+    expect(mockPrisma.listaTurma.findMany).toHaveBeenCalledWith({
+      where: {
+        turmaId: 'turma-1',
+        listaQuestao: {
+          criadoPorId: 'prof-1',
+          excluidoEm: null,
+        },
+      },
+      include: expect.objectContaining({
+        listaQuestao: expect.any(Object),
+      }),
+      orderBy: { criadoEm: 'desc' },
+    });
+    expect(resultado).toEqual(vinculos);
   });
 
   it('deve criar lista com itens e turmas', async () => {
@@ -264,6 +302,63 @@ describe('ListaQuestaoRepository', () => {
     expect(mockPrisma.listaTurma.deleteMany).toHaveBeenCalledWith({
       where: { listaQuestaoId: 'lista-1', turmaId: 'turma-1' },
     });
+  });
+
+  it('deve vincular turma com prazo e gabarito', async () => {
+    mockPrisma.listaTurma.createMany.mockResolvedValue({ count: 1 });
+    mockPrisma.listaQuestao.findFirst.mockResolvedValue({ id: 'lista-1' });
+
+    await repository.vincularTurmas('lista-1', [
+      {
+        turmaId: 'turma-1',
+        prazo: '2026-06-10T23:59:00.000Z',
+        gabaritoLiberado: true,
+      },
+    ]);
+
+    expect(mockPrisma.listaTurma.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          listaQuestaoId: 'lista-1',
+          turmaId: 'turma-1',
+          prazo: '2026-06-10T23:59:00.000Z',
+          gabaritoLiberado: true,
+        },
+      ],
+    });
+  });
+
+  it('deve atualizar prazo e gabarito de um vinculo lista-turma', async () => {
+    const vinculo = {
+      id: 'vinculo-1',
+      listaQuestaoId: 'lista-1',
+      turmaId: 'turma-1',
+      prazo: null,
+      gabaritoLiberado: true,
+    };
+    mockPrisma.listaTurma.update.mockResolvedValue(vinculo);
+
+    const resultado = await repository.atualizarVinculo('lista-1', 'turma-1', {
+      prazo: null,
+      gabaritoLiberado: true,
+    });
+
+    expect(mockPrisma.listaTurma.update).toHaveBeenCalledWith({
+      where: {
+        listaQuestaoId_turmaId: {
+          listaQuestaoId: 'lista-1',
+          turmaId: 'turma-1',
+        },
+      },
+      data: {
+        prazo: null,
+        gabaritoLiberado: true,
+      },
+      include: expect.objectContaining({
+        listaQuestao: expect.any(Object),
+      }),
+    });
+    expect(resultado).toEqual(vinculo);
   });
 
   it('deve buscar dados base para estatisticas da turma', async () => {

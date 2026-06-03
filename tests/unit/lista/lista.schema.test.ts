@@ -1,4 +1,5 @@
 import {
+  schemaAtualizarVinculoListaTurma,
   schemaAtualizarLista,
   schemaCriarLista,
   schemaEstatisticasParams,
@@ -8,6 +9,7 @@ import {
   schemaParametroListaTurma,
   schemaParametroTurmaId,
   schemaReordenarQuestoes,
+  schemaVincularTurmaComConfig,
   schemaVincularQuestoes,
   schemaVincularTurmas,
 } from '../../../src/modules/lista/lista.schemas';
@@ -92,5 +94,38 @@ describe('ListaQuestao Schemas', () => {
     expect(schemaVincularTurmas.safeParse({ turmasIds: [cuid] }).success).toBe(true);
     expect(schemaVincularTurmas.safeParse({ turmasIds: [] }).success).toBe(false);
     expect(schemaVincularTurmas.safeParse({ turmasIds: ['x'] }).success).toBe(false);
+  });
+
+  it('deve validar vinculo de turma com configuracao', () => {
+    expect(
+      schemaVincularTurmaComConfig.safeParse({
+        turmaId: cuid,
+        prazo: '2026-06-10T23:59:00.000Z',
+        gabaritoLiberado: false,
+      }).success,
+    ).toBe(true);
+    expect(schemaVincularTurmaComConfig.safeParse({ turmaId: cuid, prazo: null }).success).toBe(
+      true,
+    );
+    expect(schemaVincularTurmaComConfig.safeParse({ turmaId: cuid }).success).toBe(true);
+    expect(schemaVincularTurmaComConfig.safeParse({ turmaId: 'x' }).success).toBe(false);
+    expect(schemaVincularTurmaComConfig.safeParse({ turmaId: cuid, prazo: 'data' }).success).toBe(
+      false,
+    );
+  });
+
+  it('deve validar atualizacao de vinculo lista-turma', () => {
+    expect(schemaAtualizarVinculoListaTurma.safeParse({ prazo: null }).success).toBe(true);
+    expect(
+      schemaAtualizarVinculoListaTurma.safeParse({
+        prazo: '2026-06-10T23:59:00.000Z',
+        gabaritoLiberado: true,
+      }).success,
+    ).toBe(true);
+    expect(schemaAtualizarVinculoListaTurma.safeParse({ gabaritoLiberado: false }).success).toBe(
+      true,
+    );
+    expect(schemaAtualizarVinculoListaTurma.safeParse({}).success).toBe(false);
+    expect(schemaAtualizarVinculoListaTurma.safeParse({ prazo: 'data' }).success).toBe(false);
   });
 });
