@@ -92,6 +92,13 @@ describe('ListaQuestao Schemas', () => {
 
   it('deve validar vinculo de turmas', () => {
     expect(schemaVincularTurmas.safeParse({ turmasIds: [cuid] }).success).toBe(true);
+    expect(
+      schemaVincularTurmas.safeParse({
+        turmaId: cuid,
+        prazo: '2026-06-10T23:59:00.000Z',
+        gabaritoLiberado: true,
+      }).success,
+    ).toBe(true);
     expect(schemaVincularTurmas.safeParse({ turmasIds: [] }).success).toBe(false);
     expect(schemaVincularTurmas.safeParse({ turmasIds: ['x'] }).success).toBe(false);
   });

@@ -9,6 +9,7 @@ import { ListaQuestaoController } from './lista.controller';
 import { ListaQuestaoRepository } from './lista.repository';
 import { ListaQuestaoService } from './lista.service';
 import {
+  schemaAtualizarVinculoListaTurma,
   schemaAtualizarLista,
   schemaCriarLista,
   schemaEstatisticasParams,
@@ -41,6 +42,12 @@ listaQuestaoRouter.get(
   '/',
   validarRequisicao(schemaListarListas, 'query'),
   listaQuestaoController.listarDoUsuario,
+);
+
+listaQuestaoRouter.get(
+  '/turma/:turmaId/vinculos',
+  validarRequisicao(schemaParametroTurmaId, 'params'),
+  listaQuestaoController.listarVinculosDaTurma,
 );
 
 listaQuestaoRouter.get(
@@ -81,6 +88,13 @@ listaQuestaoRouter.post(
   validarRequisicao(schemaParametroId, 'params'),
   validarRequisicao(schemaVincularTurmas),
   listaQuestaoController.vincularTurmas,
+);
+
+listaQuestaoRouter.patch(
+  '/:id/turmas/:turmaId',
+  validarRequisicao(schemaParametroListaTurma, 'params'),
+  validarRequisicao(schemaAtualizarVinculoListaTurma),
+  listaQuestaoController.atualizarVinculo,
 );
 
 listaQuestaoRouter.delete(

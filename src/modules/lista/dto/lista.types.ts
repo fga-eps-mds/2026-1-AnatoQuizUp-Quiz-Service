@@ -46,6 +46,10 @@ export interface VincularTurmaComConfigDTO {
   gabaritoLiberado?: boolean;
 }
 
+export type VincularTurmasListaPayloadDTO =
+  | VincularTurmasListaDTO
+  | VincularTurmaComConfigDTO;
+
 export interface AtualizarVinculoListaTurmaDTO {
   prazo?: string | null;
   gabaritoLiberado?: boolean;

@@ -68,7 +68,7 @@ export const schemaReordenarQuestoes = z.object({
   questoesIds: schemaIdsObrigatorios('ID da questao invalido.'),
 });
 
-export const schemaVincularTurmas = z.object({
+const schemaVincularTurmasLegado = z.object({
   turmasIds: schemaIdsObrigatorios('ID da turma invalido.'),
 });
 
@@ -77,6 +77,11 @@ export const schemaVincularTurmaComConfig = z.object({
   prazo: schemaPrazoVinculo,
   gabaritoLiberado: z.boolean().optional(),
 });
+
+export const schemaVincularTurmas = z.union([
+  schemaVincularTurmasLegado,
+  schemaVincularTurmaComConfig,
+]);
 
 export const schemaAtualizarVinculoListaTurma = z
   .object({

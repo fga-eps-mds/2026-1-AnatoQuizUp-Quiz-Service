@@ -1,12 +1,13 @@
 import type { NextFunction, Request, Response } from 'express';
 
 import type {
+  AtualizarVinculoListaTurmaDTO,
   AtualizarListaQuestaoDTO,
   CriarListaQuestaoDTO,
   FiltrosListaDTO,
   ReordenarQuestoesListaDTO,
   VincularQuestoesListaDTO,
-  VincularTurmasListaDTO,
+  VincularTurmasListaPayloadDTO,
 } from './dto/lista.types';
 import type { ListaQuestaoService } from './lista.service';
 
@@ -95,6 +96,24 @@ export class ListaQuestaoController {
     }
   };
 
+  listarVinculosDaTurma = async (
+    req: Request<{ turmaId: string }>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const professorId = req.usuario!.id;
+      const vinculos = await this.service.listarVinculosDaTurma(req.params.turmaId, professorId);
+
+      res.status(200).json({
+        mensagem: 'Vinculos da turma recuperados com sucesso.',
+        dados: vinculos,
+      });
+    } catch (erro) {
+      next(erro);
+    }
+  };
+
   deletar = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
     try {
       const professorId = req.usuario!.id;
@@ -169,7 +188,7 @@ export class ListaQuestaoController {
   };
 
   vincularTurmas = async (
-    req: Request<{ id: string }, unknown, VincularTurmasListaDTO>,
+    req: Request<{ id: string }, unknown, VincularTurmasListaPayloadDTO>,
     res: Response,
     next: NextFunction,
   ) => {
@@ -180,6 +199,29 @@ export class ListaQuestaoController {
       res.status(200).json({
         mensagem: 'Turmas vinculadas com sucesso.',
         dados: lista,
+      });
+    } catch (erro) {
+      next(erro);
+    }
+  };
+
+  atualizarVinculo = async (
+    req: Request<{ id: string; turmaId: string }, unknown, AtualizarVinculoListaTurmaDTO>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const professorId = req.usuario!.id;
+      const vinculo = await this.service.atualizarVinculo(
+        req.params.id,
+        req.params.turmaId,
+        professorId,
+        req.body,
+      );
+
+      res.status(200).json({
+        mensagem: 'Vinculo atualizado com sucesso.',
+        dados: vinculo,
       });
     } catch (erro) {
       next(erro);

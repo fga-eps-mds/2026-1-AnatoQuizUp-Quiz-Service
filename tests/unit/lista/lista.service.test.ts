@@ -34,6 +34,7 @@ describe('ListaQuestaoService', () => {
       buscarPorId: jest.fn(),
       listarDoProfessor: jest.fn(),
       listarPorTurma: jest.fn(),
+      listarVinculosDaTurma: jest.fn(),
       deletar: jest.fn(),
       listarQuestoesAtivasPorIds: jest.fn(),
       listarTurmasAtivasDoProfessorPorIds: jest.fn(),
@@ -41,6 +42,7 @@ describe('ListaQuestaoService', () => {
       desvincularQuestao: jest.fn(),
       reordenarQuestoes: jest.fn(),
       vincularTurmas: jest.fn(),
+      atualizarVinculo: jest.fn(),
       desvincularTurma: jest.fn(),
       buscarEstatisticasTurma: jest.fn(),
     } as unknown as jest.Mocked<ListaQuestaoRepository>;
@@ -235,6 +237,39 @@ describe('ListaQuestaoService', () => {
       expect(resultado).toEqual(listas);
     });
 
+    it('deve listar vinculos da turma com configuracao formatada', async () => {
+      const prazo = new Date('2026-06-10T23:59:00.000Z');
+      mockRepository.listarTurmasAtivasDoProfessorPorIds.mockResolvedValue([{ id: 'turma-1' }] as never);
+      mockRepository.listarVinculosDaTurma.mockResolvedValue([
+        {
+          id: 'vinculo-1',
+          listaQuestaoId: 'lista-1',
+          turmaId: 'turma-1',
+          prazo,
+          gabaritoLiberado: true,
+          listaQuestao: {
+            id: 'lista-1',
+            nome: 'Lista 1',
+            _count: { itens: 2 },
+          },
+        },
+      ] as never);
+
+      const resultado = await service.listarVinculosDaTurma('turma-1', 'prof-1');
+
+      expect(mockRepository.listarVinculosDaTurma).toHaveBeenCalledWith('turma-1', 'prof-1');
+      expect(resultado).toEqual([
+        {
+          id: 'vinculo-1',
+          listaQuestaoId: 'lista-1',
+          nome: 'Lista 1',
+          quantidadeQuestoes: 2,
+          prazo,
+          gabaritoLiberado: true,
+        },
+      ]);
+    });
+
     it('deve vincular turmas ainda nao vinculadas', async () => {
       mockRepository.buscarPorId.mockResolvedValue(listaBase as never);
       mockRepository.listarTurmasAtivasDoProfessorPorIds.mockResolvedValue([{ id: 'turma-2' }] as never);
@@ -245,6 +280,21 @@ describe('ListaQuestaoService', () => {
       expect(mockRepository.vincularTurmas).toHaveBeenCalledWith('lista-1', ['turma-2']);
     });
 
+    it('deve vincular turma com prazo e gabarito', async () => {
+      const payload = {
+        turmaId: 'turma-2',
+        prazo: '2026-06-10T23:59:00.000Z',
+        gabaritoLiberado: true,
+      };
+      mockRepository.buscarPorId.mockResolvedValue(listaBase as never);
+      mockRepository.listarTurmasAtivasDoProfessorPorIds.mockResolvedValue([{ id: 'turma-2' }] as never);
+      mockRepository.vincularTurmas.mockResolvedValue(listaBase as never);
+
+      await service.vincularTurmas('lista-1', 'prof-1', payload);
+
+      expect(mockRepository.vincularTurmas).toHaveBeenCalledWith('lista-1', [payload]);
+    });
+
     it('deve rejeitar turma ja vinculada', async () => {
       mockRepository.buscarPorId.mockResolvedValue(listaBase as never);
       mockRepository.listarTurmasAtivasDoProfessorPorIds.mockResolvedValue([{ id: 'turma-1' }] as never);
@@ -252,6 +302,51 @@ describe('ListaQuestaoService', () => {
       await expect(
         service.vincularTurmas('lista-1', 'prof-1', { turmasIds: ['turma-1'] }),
       ).rejects.toMatchObject({ codigo: 'CONFLITO' });
+    });
+
+    it('deve atualizar prazo e gabarito de vinculo existente', async () => {
+      const prazo = new Date('2026-06-10T23:59:00.000Z');
+      mockRepository.buscarPorId.mockResolvedValue(listaBase as never);
+      mockRepository.listarTurmasAtivasDoProfessorPorIds.mockResolvedValue([{ id: 'turma-1' }] as never);
+      mockRepository.atualizarVinculo.mockResolvedValue({
+        id: 'lt-1',
+        listaQuestaoId: 'lista-1',
+        turmaId: 'turma-1',
+        prazo,
+        gabaritoLiberado: true,
+        listaQuestao: {
+          id: 'lista-1',
+          nome: 'Lista 1',
+          _count: { itens: 2 },
+        },
+      } as never);
+
+      const resultado = await service.atualizarVinculo('lista-1', 'turma-1', 'prof-1', {
+        prazo: '2026-06-10T23:59:00.000Z',
+        gabaritoLiberado: true,
+      });
+
+      expect(mockRepository.atualizarVinculo).toHaveBeenCalledWith('lista-1', 'turma-1', {
+        prazo: '2026-06-10T23:59:00.000Z',
+        gabaritoLiberado: true,
+      });
+      expect(resultado).toEqual({
+        id: 'lt-1',
+        listaQuestaoId: 'lista-1',
+        nome: 'Lista 1',
+        quantidadeQuestoes: 2,
+        prazo,
+        gabaritoLiberado: true,
+      });
+    });
+
+    it('deve rejeitar atualizacao de vinculo inexistente na lista', async () => {
+      mockRepository.buscarPorId.mockResolvedValue(listaBase as never);
+      mockRepository.listarTurmasAtivasDoProfessorPorIds.mockResolvedValue([{ id: 'turma-2' }] as never);
+
+      await expect(
+        service.atualizarVinculo('lista-1', 'turma-2', 'prof-1', { gabaritoLiberado: true }),
+      ).rejects.toMatchObject({ codigo: 'NAO_ENCONTRADO' });
     });
 
     it('deve desvincular turma vinculada', async () => {
