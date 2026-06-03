@@ -40,6 +40,11 @@ enum FonteMoeda {
   ACERTO_QUESTAO
 }
 
+enum StatusResolucaoLista {
+  EM_ANDAMENTO
+  SUBMETIDA
+}
+
 model Tema {
   id   String @id @default(cuid())
   nome String
@@ -70,12 +75,13 @@ model Questao {
   questaoOriginal   Questao?  @relation("VersoesQuestao", fields: [questaoOriginalId], references: [id])
   versoes           Questao[] @relation("VersoesQuestao")
 
-  tema         Tema                @relation(fields: [temaId], references: [id], onDelete: Restrict)
-  alternativas QuestaoAlternativa?
-  resolucoes   ResolucaoQuestao[]
+  tema             Tema                    @relation(fields: [temaId], references: [id], onDelete: Restrict)
+  alternativas     QuestaoAlternativa?
+  resolucoes       ResolucaoQuestao[]
+  resolucoesListas ResolucaoQuestaoLista[]
   transacoesMoedas TransacaoMoeda[]
 
-  listas       ListaQuestaoItem[]
+  listas ListaQuestaoItem[]
 
   dificuldade Dificuldade @default(MEDIA)
 
@@ -135,14 +141,14 @@ model CarteiraMoedas {
 }
 
 model TransacaoMoeda {
-  id         String      @id @default(cuid())
+  id         String     @id @default(cuid())
   usuarioId  String
   questaoId  String
   quantidade Int
-  fonte      FonteMoeda  @default(ACERTO_QUESTAO)
+  fonte      FonteMoeda @default(ACERTO_QUESTAO)
 
   carteira CarteiraMoedas @relation(fields: [usuarioId], references: [usuarioId], onDelete: Restrict)
-  questao   Questao         @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+  questao  Questao        @relation(fields: [questaoId], references: [id], onDelete: Restrict)
 
   criadoEm DateTime @default(now())
 
@@ -221,15 +227,55 @@ model ListaQuestaoItem {
 }
 
 model ListaTurma {
-  id             String @id @default(cuid())
-  listaQuestaoId String
-  turmaId        String
+  id               String    @id @default(cuid())
+  listaQuestaoId   String
+  turmaId          String
+  prazo            DateTime?
+  gabaritoLiberado Boolean   @default(false)
 
-  listaQuestao ListaQuestao @relation(fields: [listaQuestaoId], references: [id], onDelete: Cascade)
-  turma        Turma        @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+  listaQuestao ListaQuestao     @relation(fields: [listaQuestaoId], references: [id], onDelete: Cascade)
+  turma        Turma            @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+  resolucoes   ResolucaoLista[]
 
   criadoEm DateTime @default(now())
 
   @@unique([listaQuestaoId, turmaId])
   @@map("listas_turmas")
+}
+
+model ResolucaoLista {
+  id           String @id @default(cuid())
+  alunoId      String
+  listaTurmaId String
+
+  status      StatusResolucaoLista @default(EM_ANDAMENTO)
+  submissaoEm DateTime?
+
+  listaTurma ListaTurma              @relation(fields: [listaTurmaId], references: [id], onDelete: Cascade)
+  respostas  ResolucaoQuestaoLista[]
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@unique([alunoId, listaTurmaId])
+  @@index([listaTurmaId])
+  @@index([alunoId])
+  @@map("resolucoes_listas")
+}
+
+model ResolucaoQuestaoLista {
+  id               String             @id @default(cuid())
+  resolucaoListaId String
+  questaoId        String
+  respostaMarcada  AlternativaQuestao
+
+  resolucaoLista ResolucaoLista @relation(fields: [resolucaoListaId], references: [id], onDelete: Cascade)
+  questao        Questao        @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@unique([resolucaoListaId, questaoId])
+  @@index([questaoId])
+  @@map("resolucoes_questoes_listas")
 }
