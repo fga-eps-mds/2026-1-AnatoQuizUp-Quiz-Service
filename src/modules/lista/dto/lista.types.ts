@@ -60,7 +60,7 @@ export interface VinculoListaTurmaDTO {
   listaQuestaoId: string;
   nome: string;
   quantidadeQuestoes: number;
-  prazo: Date | null;
+  prazo: string | null;
   gabaritoLiberado: boolean;
 }
 

@@ -264,7 +264,7 @@ describe('ListaQuestaoService', () => {
           listaQuestaoId: 'lista-1',
           nome: 'Lista 1',
           quantidadeQuestoes: 2,
-          prazo,
+          prazo: prazo.toISOString(),
           gabaritoLiberado: true,
         },
       ]);
@@ -335,7 +335,7 @@ describe('ListaQuestaoService', () => {
         listaQuestaoId: 'lista-1',
         nome: 'Lista 1',
         quantidadeQuestoes: 2,
-        prazo,
+        prazo: prazo.toISOString(),
         gabaritoLiberado: true,
       });
     });

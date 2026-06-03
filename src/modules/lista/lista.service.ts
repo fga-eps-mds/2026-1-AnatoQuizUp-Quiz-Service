@@ -424,7 +424,7 @@ export class ListaQuestaoService {
       listaQuestaoId: vinculo.listaQuestaoId,
       nome: vinculo.listaQuestao.nome,
       quantidadeQuestoes: vinculo.listaQuestao._count.itens,
-      prazo: vinculo.prazo,
+      prazo: vinculo.prazo?.toISOString() ?? null,
       gabaritoLiberado: vinculo.gabaritoLiberado,
     };
   }
