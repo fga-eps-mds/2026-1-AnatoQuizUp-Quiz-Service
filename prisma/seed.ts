@@ -17,9 +17,10 @@ async function main() {
   await prisma.tema.deleteMany({});
   await prisma.turma.deleteMany({});
 
-  const PROFESSOR_ID = "cmp7fx97j00034hyqazqwrk3e"; 
-  const ALUNO_1_ID   = "cmp7fx99d00044hyqq4msqsyt";
-  const ALUNO_2_ID   = "cmp7fx99d00044hyqq4mswgsr";
+  const PROFESSOR_ID   = "cmp7fx97j00034hyqazqwrk3e"; 
+  const ALUNO_1_ID     = "cmp7fx99d00044hyqq4msqsyt";
+  const ALUNO_2_ID     = "cmp7fx99d00044hyqq4mswgsr";
+  const MEU_USUARIO_ID = "d56fd5df-29f0-4319-a4b1-b4c0d326226c"; // <--- SEU USUARIO
 
   // 2. Criando Temas
   const temas = {
@@ -29,7 +30,7 @@ async function main() {
   };
   console.log("Temas criados com sucesso.");
 
-  // 3. Criando todas as Turmas
+  // 3. Criando todas as Turmas (Com o seu utilizador em todas)
   await prisma.turma.create({
     data: {
       codigo: "ANAT-01-2026",
@@ -39,7 +40,7 @@ async function main() {
       descricao: "Turma matutina de Anatomia Sistêmica",
       status: StatusTurma.ATIVA,
       professorId: PROFESSOR_ID,
-      alunos: { create: [{ alunoId: ALUNO_1_ID }, { alunoId: ALUNO_2_ID }] }
+      alunos: { create: [{ alunoId: ALUNO_1_ID }, { alunoId: ALUNO_2_ID }, { alunoId: MEU_USUARIO_ID }] }
     }
   });
 
@@ -52,7 +53,7 @@ async function main() {
       descricao: "Turma vespertina de Neuroanatomia",
       status: StatusTurma.ATIVA,
       professorId: PROFESSOR_ID,
-      alunos: { create: [{ alunoId: ALUNO_1_ID }] }
+      alunos: { create: [{ alunoId: ALUNO_1_ID }, { alunoId: MEU_USUARIO_ID }] }
     }
   });
 
@@ -69,6 +70,7 @@ async function main() {
           { alunoId: "aluno-teste-1" },
           { alunoId: "aluno-teste-2" },
           { alunoId: "aluno-teste-3" },
+          { alunoId: MEU_USUARIO_ID },
         ]
       }
     }
@@ -86,6 +88,7 @@ async function main() {
         create: [
           { alunoId: "aluno-teste-4" },
           { alunoId: "aluno-teste-5" },
+          { alunoId: MEU_USUARIO_ID },
         ]
       }
     }
@@ -257,7 +260,7 @@ async function main() {
   const questoesNeuro: string[] = [];
   const questoesAbdome: string[] = [];
   const questoesFaceis: string[] = [];
-  const todasQuestoesCriadas = []; // Guardar para usar no passo 7
+  const todasQuestoesCriadas = []; 
 
   for (const q of questoes) {
     const questaoCriada = await prisma.questao.create({
@@ -285,7 +288,12 @@ async function main() {
     if (q.dif === Dificuldade.FACIL) questoesFaceis.push(questaoCriada.id);
   }
 
-  // 6. Criando as Listas e Vinculando às Turmas
+  // Definição das Datas para testes dos prazos
+  const agora = new Date();
+  const prazoFuturo = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000); // Daqui a 7 dias
+  const prazoPassado = new Date(agora.getTime() - 2 * 24 * 60 * 60 * 1000); // Expirou há 2 dias
+
+  // 6. Criando as Listas e Vinculando às Turmas COM PRAZOS
   await prisma.listaQuestao.create({
     data: {
       nome: "Simulado de Neuroanatomia - 2026.1",
@@ -298,7 +306,8 @@ async function main() {
       },
       turmas: {
         create: [
-          { turmaId: turma4.id } 
+          // Tem prazo futuro, está ativa
+          { turmaId: turma4.id, prazo: prazoFuturo } 
         ]
       }
     }
@@ -316,7 +325,8 @@ async function main() {
       },
       turmas: {
         create: [
-          { turmaId: turma3.id } 
+          // Lista Expirada intencionalmente para teste (prazo passado, gabarito oculto)
+          { turmaId: turma3.id, prazo: prazoPassado, gabaritoLiberado: false } 
         ]
       }
     }
@@ -334,8 +344,9 @@ async function main() {
       },
       turmas: {
         create: [
-          { turmaId: turma3.id }, 
-          { turmaId: turma4.id }
+          // Uma com prazo futuro, outra Sem Prazo para testar a flexibilidade
+          { turmaId: turma3.id, prazo: prazoFuturo }, 
+          { turmaId: turma4.id } // Sem prazo estipulado
         ]
       }
     }
@@ -345,7 +356,7 @@ async function main() {
   console.log("Simulando resoluções de questões pelos alunos...");
 
   for (const q of todasQuestoesCriadas) {
-    // Aluno 1 responde (Vai ter uma taxa de acerto mais alta, ~80%)
+    // Aluno 1 responde
     const acertaAluno1 = Math.random() > 0.2; 
     await prisma.resolucaoQuestao.create({
       data: {
@@ -355,7 +366,7 @@ async function main() {
       }
     });
 
-    // Aluno 2 responde (Vai ter uma taxa de acerto média, ~50%)
+    // Aluno 2 responde
     const acertaAluno2 = Math.random() > 0.5; 
     await prisma.resolucaoQuestao.create({
       data: {

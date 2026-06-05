@@ -17,6 +17,7 @@ import { quizRouter } from "@/modules/quiz/quiz.routes";
 import { listaQuestaoRouter } from "@/modules/lista";
 import { dashboardRouter } from "@/modules/dashboardTurma/dashboardTurma.routes";
 import { dashboardAlunoRouter } from "@/modules/dashboardAluno";
+import { resolucaoListaRouter } from "@/modules/resolucaoLista/resolucaoLista.routes"; 
 
 const aplicacao = express();
 const roteadorApi = Router();
@@ -46,6 +47,7 @@ roteadorApi.use("/turmas", turmaRouter);
 roteadorApi.use("/lista", listaQuestaoRouter);
 roteadorApi.use("/turmasDashboard", dashboardRouter);
 roteadorApi.use("/dashboardAluno", dashboardAlunoRouter);
+roteadorApi.use("/listasAluno", resolucaoListaRouter);
 
 aplicacao.use("/api/v1", roteadorApi);
 
