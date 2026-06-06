@@ -108,4 +108,16 @@ export class ResolucaoListaController {
       next(erro);
     }
   }
+
+  downloadPdf = async (req: Request<{ listaTurmaId: string }>, res: Response, next: NextFunction) => {
+    try {
+      const { listaTurmaId } = req.params;
+      
+      const pdfBase64 = await this.service.gerarPdfListaAluno(listaTurmaId);
+
+      res.status(200).json({ base64: pdfBase64 });
+    } catch (erro) {
+      next(erro);
+    }
+  };
 }

@@ -47,4 +47,9 @@ resolucaoListaRouter.post(
   resolucaoListaController.submeter.bind(resolucaoListaController)
 );
 
+resolucaoListaRouter.get(
+  '/:listaTurmaId/pdf',
+  resolucaoListaController.downloadPdf
+);
+
 export { resolucaoListaRouter };

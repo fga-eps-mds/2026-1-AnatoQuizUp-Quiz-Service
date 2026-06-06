@@ -1,3 +1,7 @@
+jest.mock('../../../src/shared/utils/pdf.util', () => ({
+  gerarPdfBase64: jest.fn().mockResolvedValue('fake-pdf-base64'),
+}));
+
 import { ResolucaoListaService } from '../../../src/modules/resolucaoLista/resolucaoLista.service';
 import type { ResolucaoListaRepository } from '../../../src/modules/resolucaoLista/resolucaoLista.repository';
 import { ErroAplicacao } from '@/shared/errors/erro-aplicacao';

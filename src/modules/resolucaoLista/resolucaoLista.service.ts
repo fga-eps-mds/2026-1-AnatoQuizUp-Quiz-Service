@@ -3,6 +3,8 @@ import { ErroAplicacao } from '@/shared/errors/erro-aplicacao';
 import type { AlternativaQuestao} from '@prisma/client';
 import { StatusResolucaoLista } from '@prisma/client';
 import type { QuestaoFormatadaDTO } from './dto/types';
+import { gerarPdfBase64 } from '../../shared/utils/pdf.util';
+import { prisma } from '@/config/db';
 
 export class ResolucaoListaService {
   constructor(private readonly repository: ResolucaoListaRepository) {}
@@ -146,5 +148,42 @@ export class ResolucaoListaService {
     }
 
     await this.repository.submeterLista(alunoId, listaTurmaId);
+  }
+
+  async gerarPdfListaAluno(listaTurmaId: string): Promise<string> {
+    const listaTurma = await prisma.listaTurma.findUnique({
+      where: { id: listaTurmaId },
+      include: {
+        turma: true, 
+        listaQuestao: {
+          include: {
+            itens: {
+              include: {
+                questao: {
+                  include: {
+                    alternativas: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!listaTurma) {
+      throw new Error('Lista não encontrada na turma.');
+    }
+
+    const listaParaTemplate = listaTurma.listaQuestao;
+
+    const professorEmail = 'Professor(a) Responsável';
+
+    const pdfBase64 = await gerarPdfBase64('prova', { 
+      lista: listaParaTemplate,
+      professorEmail 
+    });
+
+    return pdfBase64;
   }
 }
