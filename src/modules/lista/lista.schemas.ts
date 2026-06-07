@@ -7,6 +7,17 @@ const schemaIds = (mensagem: string) => z.array(schemaCuid(mensagem)).optional()
 const schemaIdsObrigatorios = (mensagem: string) =>
   z.array(schemaCuid(mensagem)).min(1, 'Informe ao menos um ID.');
 
+const schemaPrazoVinculo = z
+  .union([
+    z
+      .string()
+      .trim()
+      .min(1, 'Prazo invalido.')
+      .refine((valor) => !Number.isNaN(Date.parse(valor)), 'Prazo invalido.'),
+    z.null(),
+  ])
+  .optional();
+
 export const schemaParametroId = z.object({
   id: schemaCuid('ID da lista invalido.'),
 });
@@ -57,6 +68,31 @@ export const schemaReordenarQuestoes = z.object({
   questoesIds: schemaIdsObrigatorios('ID da questao invalido.'),
 });
 
-export const schemaVincularTurmas = z.object({
+const schemaVincularTurmasLegado = z.object({
   turmasIds: schemaIdsObrigatorios('ID da turma invalido.'),
 });
+
+export const schemaVincularTurmaComConfig = z.object({
+  turmaId: schemaCuid('ID da turma invalido.'),
+  prazo: schemaPrazoVinculo,
+  gabaritoLiberado: z.boolean().optional(),
+});
+
+export const schemaVincularTurmas = z.union([
+  schemaVincularTurmasLegado,
+  schemaVincularTurmaComConfig,
+]);
+
+export const schemaAtualizarVinculoListaTurma = z
+  .object({
+    prazo: schemaPrazoVinculo,
+    gabaritoLiberado: z.boolean().optional(),
+  })
+  .refine(
+    (data) =>
+      Object.prototype.hasOwnProperty.call(data, 'prazo') ||
+      Object.prototype.hasOwnProperty.call(data, 'gabaritoLiberado'),
+    {
+      message: 'Informe ao menos um campo para atualizar.',
+    },
+  );

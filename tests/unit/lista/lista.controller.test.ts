@@ -16,11 +16,13 @@ describe('ListaQuestaoController', () => {
       buscarLista: jest.fn(),
       listarMinhasListas: jest.fn(),
       listarListasDaTurma: jest.fn(),
+      listarVinculosDaTurma: jest.fn(),
       deletarLista: jest.fn(),
       vincularQuestoes: jest.fn(),
       desvincularQuestao: jest.fn(),
       reordenarQuestoes: jest.fn(),
       vincularTurmas: jest.fn(),
+      atualizarVinculo: jest.fn(),
       desvincularTurma: jest.fn(),
       gerarEstatisticasTurma: jest.fn(),
       gerarPdfLista: jest.fn(),
@@ -113,6 +115,24 @@ describe('ListaQuestaoController', () => {
     expect(mockRes.status).toHaveBeenCalledWith(200);
   });
 
+  it('deve listar vinculos de uma turma do professor', async () => {
+    const vinculos = [{ id: 'vinculo-1', listaQuestaoId: 'lista-1' }];
+    mockService.listarVinculosDaTurma.mockResolvedValue(vinculos as never);
+
+    await controller.listarVinculosDaTurma(
+      request({ params: { turmaId: 'turma-1' } }),
+      mockRes as Response,
+      mockNext,
+    );
+
+    expect(mockService.listarVinculosDaTurma).toHaveBeenCalledWith('turma-1', 'prof-1');
+    expect(mockRes.status).toHaveBeenCalledWith(200);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      mensagem: 'Vinculos da turma recuperados com sucesso.',
+      dados: vinculos,
+    });
+  });
+
   it('deve listar com sucesso sem passar filtros na query', async () => {
     mockReq = { 
       usuario: { id: 'prof-1' },
@@ -195,6 +215,49 @@ describe('ListaQuestaoController', () => {
     expect(mockRes.status).toHaveBeenCalledWith(200);
   });
 
+  it('deve vincular uma turma com prazo e gabarito a uma lista', async () => {
+    const body = {
+      turmaId: 'turma-1',
+      prazo: '2026-06-10T23:59:00.000Z',
+      gabaritoLiberado: true,
+    };
+    const lista = { id: 'lista-1' };
+    mockService.vincularTurmas.mockResolvedValue(lista as never);
+
+    await controller.vincularTurmas(
+      request({ params: { id: 'lista-1' }, body }),
+      mockRes as Response,
+      mockNext,
+    );
+
+    expect(mockService.vincularTurmas).toHaveBeenCalledWith('lista-1', 'prof-1', body);
+    expect(mockRes.status).toHaveBeenCalledWith(200);
+  });
+
+  it('deve atualizar o vinculo lista-turma', async () => {
+    const body = { prazo: null, gabaritoLiberado: true };
+    const vinculo = { id: 'vinculo-1', gabaritoLiberado: true };
+    mockService.atualizarVinculo.mockResolvedValue(vinculo as never);
+
+    await controller.atualizarVinculo(
+      request({ params: { id: 'lista-1', turmaId: 'turma-1' }, body }),
+      mockRes as Response,
+      mockNext,
+    );
+
+    expect(mockService.atualizarVinculo).toHaveBeenCalledWith(
+      'lista-1',
+      'turma-1',
+      'prof-1',
+      body,
+    );
+    expect(mockRes.status).toHaveBeenCalledWith(200);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      mensagem: 'Vinculo atualizado com sucesso.',
+      dados: vinculo,
+    });
+  });
+
   it('deve desvincular uma turma da lista', async () => {
     const lista = { id: 'lista-1' };
     mockService.desvincularTurma.mockResolvedValue(lista as never);
@@ -264,6 +327,13 @@ describe('ListaQuestaoController', () => {
     expect(mockNext).toHaveBeenCalledWith(erro);
   });
 
+  it('deve chamar next em caso de erro no método listarVinculosDaTurma', async () => {
+    const erro = new Error('Erro ao listar vinculos por turma');
+    mockService.listarVinculosDaTurma.mockRejectedValue(erro);
+    await controller.listarVinculosDaTurma(request({ params: { turmaId: 'turma-1' } }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
   it('deve chamar next em caso de erro no método deletar', async () => {
     const erro = new Error('Erro ao deletar');
     mockService.deletarLista.mockRejectedValue(erro);
@@ -296,6 +366,13 @@ describe('ListaQuestaoController', () => {
     const erro = new Error('Erro ao vincular turmas');
     mockService.vincularTurmas.mockRejectedValue(erro);
     await controller.vincularTurmas(request({ params: { id: 'lista-1' }, body: {} }), mockRes as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(erro);
+  });
+
+  it('deve chamar next em caso de erro no método atualizarVinculo', async () => {
+    const erro = new Error('Erro ao atualizar vinculo');
+    mockService.atualizarVinculo.mockRejectedValue(erro);
+    await controller.atualizarVinculo(request({ params: { id: 'lista-1', turmaId: 'turma-1' }, body: {} }), mockRes as Response, mockNext);
     expect(mockNext).toHaveBeenCalledWith(erro);
   });
 

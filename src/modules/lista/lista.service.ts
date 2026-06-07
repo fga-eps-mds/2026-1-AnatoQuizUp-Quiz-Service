@@ -2,16 +2,22 @@ import { CodigoDeErro } from '@/shared/errors/codigos-de-erro';
 import { ErroAplicacao } from '@/shared/errors/erro-aplicacao';
 import { gerarPdfBase64 } from '@/shared/utils/pdf.util';
 
-import type { ListaQuestaoComDetalhes, ListaQuestaoRepository } from './lista.repository';
 import type {
+  ListaQuestaoComDetalhes,
+  ListaQuestaoRepository,
+  ListaTurmaComResumo,
+} from './lista.repository';
+import type {
+  AtualizarVinculoListaTurmaDTO,
   AtualizarListaQuestaoDTO,
   CriarListaQuestaoDTO,
   EstatisticasTurmaDTO,
   FiltrosListaDTO,
   ListaQuestaoRespostaDTO,
   ReordenarQuestoesListaDTO,
+  VinculoListaTurmaDTO,
   VincularQuestoesListaDTO,
-  VincularTurmasListaDTO,
+  VincularTurmasListaPayloadDTO,
 } from './dto/lista.types';
 
 export class ListaQuestaoService {
@@ -86,6 +92,17 @@ export class ListaQuestaoService {
     return this.repository.listarPorTurma(turmaId, professorId);
   }
 
+  async listarVinculosDaTurma(
+    turmaId: string,
+    professorId: string,
+  ): Promise<VinculoListaTurmaDTO[]> {
+    await this.validarTurmasAtivasDoProfessor([turmaId], professorId);
+
+    const vinculos = await this.repository.listarVinculosDaTurma(turmaId, professorId);
+
+    return vinculos.map((vinculo) => this.mapearVinculoListaTurma(vinculo));
+  }
+
   async deletarLista(id: string, professorId: string): Promise<void> {
     const lista = await this.obterListaDoProfessor(id, professorId);
 
@@ -142,15 +159,48 @@ export class ListaQuestaoService {
   async vincularTurmas(
     id: string,
     professorId: string,
-    data: VincularTurmasListaDTO,
+    data: VincularTurmasListaPayloadDTO,
   ): Promise<ListaQuestaoComDetalhes> {
     const lista = await this.obterListaDoProfessor(id, professorId);
-    const turmasIds = this.normalizarIds(data.turmasIds, 'turmasIds');
+
+    if ('turmasIds' in data) {
+      const turmasIds = this.normalizarIds(data.turmasIds, 'turmasIds');
+
+      await this.validarTurmasAtivasDoProfessor(turmasIds, professorId);
+      this.validarTurmasAindaNaoVinculadas(lista, turmasIds);
+
+      return this.repository.vincularTurmas(lista.id, turmasIds);
+    }
+
+    const turmasIds = this.normalizarIds([data.turmaId], 'turmaId');
 
     await this.validarTurmasAtivasDoProfessor(turmasIds, professorId);
     this.validarTurmasAindaNaoVinculadas(lista, turmasIds);
 
-    return this.repository.vincularTurmas(lista.id, turmasIds);
+    return this.repository.vincularTurmas(lista.id, [data]);
+  }
+
+  async atualizarVinculo(
+    id: string,
+    turmaId: string,
+    professorId: string,
+    data: AtualizarVinculoListaTurmaDTO,
+  ): Promise<VinculoListaTurmaDTO> {
+    const lista = await this.obterListaDoProfessor(id, professorId);
+
+    await this.validarTurmasAtivasDoProfessor([turmaId], professorId);
+
+    if (!lista.turmas.some((vinculo) => vinculo.turmaId === turmaId)) {
+      throw new ErroAplicacao({
+        codigo: CodigoDeErro.NAO_ENCONTRADO,
+        codigoStatus: 404,
+        mensagem: 'Turma nao vinculada a esta lista.',
+      });
+    }
+
+    const vinculoAtualizado = await this.repository.atualizarVinculo(lista.id, turmaId, data);
+
+    return this.mapearVinculoListaTurma(vinculoAtualizado);
   }
 
   async desvincularTurma(
@@ -366,5 +416,16 @@ export class ListaQuestaoService {
     const maiorOrdem = Math.max(0, ...lista.itens.map((item) => item.ordem));
 
     return maiorOrdem + 1;
+  }
+
+  private mapearVinculoListaTurma(vinculo: ListaTurmaComResumo): VinculoListaTurmaDTO {
+    return {
+      id: vinculo.id,
+      listaQuestaoId: vinculo.listaQuestaoId,
+      nome: vinculo.listaQuestao.nome,
+      quantidadeQuestoes: vinculo.listaQuestao._count.itens,
+      prazo: vinculo.prazo?.toISOString() ?? null,
+      gabaritoLiberado: vinculo.gabaritoLiberado,
+    };
   }
 }

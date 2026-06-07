@@ -1,0 +1,1 @@
+export { resolucaoListaRouter } from './resolucaoLista.routes';

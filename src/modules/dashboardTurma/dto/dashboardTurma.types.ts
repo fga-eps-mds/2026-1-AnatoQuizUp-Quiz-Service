@@ -11,3 +11,13 @@ export interface DashboardMacroResponseDTO {
   taxaMediaAcertos: number; 
   desempenhoPorTema: TemaDesempenhoDTO[];
 }
+
+export interface DesempenhoListaDTO {
+  listaTurmaId: string;
+  nomeLista: string;
+  totalAlunos: number;
+  totalSubmeteram: number;
+  totalPendentes: number;
+  taxaMediaAcerto: number;
+  prazo: string | null;
+}

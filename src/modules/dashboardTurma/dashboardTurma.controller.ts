@@ -39,4 +39,22 @@ export class TurmaDashboardController {
       return res.status(500).json({ error: 'Erro ao buscar desempenho individual.' });
     }
   };
+
+  listarPorListas = async (req: Request, res: Response) => {
+    try {
+      const turmaId = req.params.id as string;
+      const professorId = req.usuario?.id;
+
+      if (!professorId) {
+        return res.status(401).json({ error: 'UsuÃ¡rio nÃ£o autenticado ou sessÃ£o expirada.' });
+      }
+
+      const data = await this.service.getDesempenhoPorListas(turmaId, professorId);
+
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error('Erro no TurmaDashboardController [listas]:', error);
+      return res.status(500).json({ error: 'Erro ao buscar desempenho por lista.' });
+    }
+  };
 }

@@ -30,6 +30,16 @@ const incluirResumoLista = {
   },
 } satisfies Prisma.ListaQuestaoInclude;
 
+const incluirVinculoListaTurma = {
+  listaQuestao: {
+    include: {
+      _count: {
+        select: { itens: true },
+      },
+    },
+  },
+} satisfies Prisma.ListaTurmaInclude;
+
 export type ListaQuestaoComDetalhes = Prisma.ListaQuestaoGetPayload<{
   include: typeof incluirListaCompleta;
 }>;
@@ -38,11 +48,26 @@ export type ListaQuestaoResumo = Prisma.ListaQuestaoGetPayload<{
   include: typeof incluirResumoLista;
 }>;
 
+export type ListaTurmaComResumo = Prisma.ListaTurmaGetPayload<{
+  include: typeof incluirVinculoListaTurma;
+}>;
+
 type CriarListaQuestaoRepositorioDTO = {
   nome: string;
   criadoPorId: string;
   questoesIds: string[];
   turmasIds: string[];
+};
+
+type VinculoTurmaListaRepositorioDTO = {
+  turmaId: string;
+  prazo?: string | Date | null;
+  gabaritoLiberado?: boolean;
+};
+
+type AtualizarVinculoListaTurmaRepositorioDTO = {
+  prazo?: string | Date | null;
+  gabaritoLiberado?: boolean;
 };
 
 export class ListaQuestaoRepository {
@@ -92,6 +117,23 @@ export class ListaQuestaoRepository {
         },
       },
       include: incluirListaCompleta,
+      orderBy: { criadoEm: 'desc' },
+    });
+  }
+
+  async listarVinculosDaTurma(
+    turmaId: string,
+    professorId: string,
+  ): Promise<ListaTurmaComResumo[]> {
+    return prisma.listaTurma.findMany({
+      where: {
+        turmaId,
+        listaQuestao: {
+          criadoPorId: professorId,
+          excluidoEm: null,
+        },
+      },
+      include: incluirVinculoListaTurma,
       orderBy: { criadoEm: 'desc' },
     });
   }
@@ -228,16 +270,57 @@ export class ListaQuestaoRepository {
 
   async vincularTurmas(
     listaQuestaoId: string,
-    turmasIds: string[],
+    turmas: string[] | VinculoTurmaListaRepositorioDTO[],
   ): Promise<ListaQuestaoComDetalhes> {
+    const vinculos = this.normalizarVinculosTurmas(turmas);
+
     await prisma.listaTurma.createMany({
-      data: turmasIds.map((turmaId) => ({
-        listaQuestaoId,
-        turmaId,
-      })),
+      data: vinculos.map((vinculo) => {
+        const dados: Prisma.ListaTurmaCreateManyInput = {
+          listaQuestaoId,
+          turmaId: vinculo.turmaId,
+        };
+
+        if (Object.prototype.hasOwnProperty.call(vinculo, 'prazo')) {
+          dados.prazo = vinculo.prazo;
+        }
+
+        if (vinculo.gabaritoLiberado !== undefined) {
+          dados.gabaritoLiberado = vinculo.gabaritoLiberado;
+        }
+
+        return dados;
+      }),
     });
 
     return this.buscarPorIdObrigatorio(listaQuestaoId);
+  }
+
+  async atualizarVinculo(
+    listaQuestaoId: string,
+    turmaId: string,
+    data: AtualizarVinculoListaTurmaRepositorioDTO,
+  ): Promise<ListaTurmaComResumo> {
+    const dados: Prisma.ListaTurmaUpdateInput = {};
+
+    if (Object.prototype.hasOwnProperty.call(data, 'prazo')) {
+      dados.prazo = data.prazo;
+    }
+
+    if (data.gabaritoLiberado !== undefined) {
+      dados.gabaritoLiberado = data.gabaritoLiberado;
+    }
+
+    return prisma.listaTurma.update({
+      where: {
+        listaQuestaoId_turmaId: {
+          listaQuestaoId,
+          turmaId,
+        },
+      },
+      data: dados,
+      include: incluirVinculoListaTurma,
+    });
   }
 
   async desvincularTurma(
@@ -283,5 +366,11 @@ export class ListaQuestaoRepository {
     }
 
     return lista;
+  }
+
+  private normalizarVinculosTurmas(
+    turmas: string[] | VinculoTurmaListaRepositorioDTO[],
+  ): VinculoTurmaListaRepositorioDTO[] {
+    return turmas.map((turma) => (typeof turma === 'string' ? { turmaId: turma } : turma));
   }
 }
