@@ -338,7 +338,7 @@ describe("Testa QuizRepository", () => {
           respostaCorreta: true,
           saibaMais: true,
           status: true,
-          feitoPorIa: true,
+          origemQuestao: true,
           urlImagem: true,
           dificuldade: true,
           tema: {

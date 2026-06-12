@@ -69,7 +69,7 @@ export function converterResolucaoQuestaoBancoToApi(
 
       status: resolucaoQuestaoUsuarioBanco.questao.status,
 
-      feitoPorIa: resolucaoQuestaoUsuarioBanco.questao.feitoPorIa,
+      origemQuestao: resolucaoQuestaoUsuarioBanco.questao.origemQuestao,
 
       urlImagem: resolucaoQuestaoUsuarioBanco.questao.urlImagem,
 
