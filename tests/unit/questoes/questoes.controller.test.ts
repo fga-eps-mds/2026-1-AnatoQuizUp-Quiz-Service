@@ -17,7 +17,7 @@ function criarQuestaoResposta(): RespostaQuestaoDto {
     dificuldade: "MEDIA",
     imagem: null,
     alternativaCorreta: "A",
-    explicacaoPedagogica: "Explicacao",
+    saibaMais: "Explicacao",
     alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
     status: "ATIVO",
     criadoPorId: "professor-1",
@@ -74,7 +74,7 @@ describe("QuestionController", () => {
       enunciado: "Enunciado",
       tipo: "MULTIPLA_ESCOLHA",
       alternativaCorreta: "A",
-      explicacaoPedagogica: "Explicacao",
+      saibaMais: "Explicacao",
       alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
     };
 

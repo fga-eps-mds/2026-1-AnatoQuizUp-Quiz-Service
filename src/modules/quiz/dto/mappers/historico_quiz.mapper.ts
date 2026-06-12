@@ -1,4 +1,4 @@
-import { TIPO_QUESTAO_API, mapearTipoBancoParaApi } from "@/modules/questoes/dto/question.types";
+import { TIPO_QUESTAO_API } from "@/modules/questoes/dto/question.types";
 import type { TipoQuestaoApi } from "@/modules/questoes/dto/question.types";
 import type { ListarQuestoesRespondidasItem } from "../database/questoes_respondidas_banco_dto";
 import type {
@@ -22,7 +22,7 @@ export function montarAlternativasResolucao(
     return null;
   }
 
-  if (tipo === TIPO_QUESTAO_API.VERDADEIRO_FALSO) {
+  if (tipo === TIPO_QUESTAO_API.CERTO_ERRADO) {
     return {
       alternativaC: alternativas.alternativaC,
       alternativaE: alternativas.alternativaE,
@@ -43,7 +43,7 @@ export function converterResolucaoQuestaoBancoToApi(
   tentativas: number,
   distribuicao: Record<string, number>,
 ): ResolucaoQuestaoUsuarioDto {
-  const tipo = mapearTipoBancoParaApi(resolucaoQuestaoUsuarioBanco.questao.tipoQuestao);
+  const tipo = resolucaoQuestaoUsuarioBanco.questao.tipoQuestao;
 
   return {
     id: resolucaoQuestaoUsuarioBanco.id,

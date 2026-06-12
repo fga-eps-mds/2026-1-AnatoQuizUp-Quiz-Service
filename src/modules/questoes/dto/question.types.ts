@@ -4,14 +4,13 @@ import type {
   QuestaoAlternativa,
   StatusQuestao,
   Tema,
-  TipoQuestao,
   Dificuldade,
   Prisma,
 } from "@prisma/client";
 
 export const TIPO_QUESTAO_API = {
   MULTIPLA_ESCOLHA: "MULTIPLA_ESCOLHA",
-  VERDADEIRO_FALSO: "VERDADEIRO_FALSO",
+  CERTO_ERRADO: "CERTO_ERRADO",
 } as const;
 
 export type TipoQuestaoApi = (typeof TIPO_QUESTAO_API)[keyof typeof TIPO_QUESTAO_API];
@@ -32,14 +31,14 @@ export type AlternativasMultiplaEscolhaDto = {
   E: string;
 };
 
-export type AlternativasVerdadeiroFalsoDto = {
+export type AlternativasCertoErradoDto = {
   C: string;
   E: string;
 };
 
 export type AlternativasQuestaoDto =
   | AlternativasMultiplaEscolhaDto
-  | AlternativasVerdadeiroFalsoDto;
+  | AlternativasCertoErradoDto;
 
 export type CriarQuestaoDto = {
   tema: string;
@@ -48,7 +47,7 @@ export type CriarQuestaoDto = {
   dificuldade: Dificuldade;
   imagem: string;
   alternativaCorreta: AlternativaQuestao;
-  explicacaoPedagogica: string;
+  saibaMais: string;
   alternativas: AlternativasQuestaoDto;
 };
 
@@ -83,7 +82,7 @@ export type RespostaQuestaoDto = {
   dificuldade: DificuldadeApi;
   imagem: string | null;
   alternativaCorreta: AlternativaQuestao;
-  explicacaoPedagogica: string | null;
+  saibaMais: string | null;
   alternativas: Partial<AlternativasMultiplaEscolhaDto>;
   status: StatusQuestao;
   criadoPorId: string;
@@ -92,18 +91,8 @@ export type RespostaQuestaoDto = {
   excluidoEm: string | null;
 };
 
-export function mapearTipoApiParaBanco(tipo: TipoQuestaoApi): TipoQuestao {
-  return tipo === TIPO_QUESTAO_API.VERDADEIRO_FALSO ? "CERTO_ERRADO" : "MULTIPLA_ESCOLHA";
-}
-
-export function mapearTipoBancoParaApi(tipo: TipoQuestao): TipoQuestaoApi {
-  return tipo === "CERTO_ERRADO"
-    ? TIPO_QUESTAO_API.VERDADEIRO_FALSO
-    : TIPO_QUESTAO_API.MULTIPLA_ESCOLHA;
-}
-
 export function montarAlternativas(tipo: TipoQuestaoApi, alternativas: QuestaoAlternativa | null) {
-  if (tipo === TIPO_QUESTAO_API.VERDADEIRO_FALSO) {
+  if (tipo === TIPO_QUESTAO_API.CERTO_ERRADO) {
     return {
       C: alternativas?.alternativaC,
       E: alternativas?.alternativaE,
@@ -120,7 +109,7 @@ export function montarAlternativas(tipo: TipoQuestaoApi, alternativas: QuestaoAl
 }
 
 export function converterParaRespostaQuestao(questao: RegistroQuestaoCompleta): RespostaQuestaoDto {
-  const tipo = mapearTipoBancoParaApi(questao.tipoQuestao);
+  const tipo = questao.tipoQuestao;
   const alternativas = montarAlternativas(tipo, questao.alternativas);
 
   return {
@@ -134,7 +123,7 @@ export function converterParaRespostaQuestao(questao: RegistroQuestaoCompleta): 
     dificuldade: questao.dificuldade as DificuldadeApi,
     imagem: questao.urlImagem,
     alternativaCorreta: questao.respostaCorreta,
-    explicacaoPedagogica: questao.saibaMais,
+    saibaMais: questao.saibaMais,
     alternativas,
     status: questao.status,
     criadoPorId: questao.criadoPorId,
@@ -161,7 +150,7 @@ export function montarFiltroPrisma(
   }
 
   if (filtros.tipo) {
-    where.tipoQuestao = mapearTipoApiParaBanco(filtros.tipo);
+    where.tipoQuestao = filtros.tipo;
   }
 
   return where;

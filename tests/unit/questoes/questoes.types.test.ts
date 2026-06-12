@@ -1,4 +1,4 @@
-import { mapearTipoApiParaBanco, montarFiltroPrisma } from "@/modules/questoes/dto/question.types";
+import { montarFiltroPrisma } from "@/modules/questoes/dto/question.types";
 
 describe("Testa Questoes Types", () => {
   test("montarFiltroPrisma retorna filtro base quando não há filtros", () => {
@@ -39,7 +39,7 @@ describe("Testa Questoes Types", () => {
     });
   });
 
-  test("montarFiltroPrisma adiciona filtro de tipo mapeado para banco", () => {
+  test("montarFiltroPrisma adiciona filtro de tipo", () => {
     const resultado = montarFiltroPrisma({
       tipo: "MULTIPLA_ESCOLHA",
     });
@@ -47,7 +47,7 @@ describe("Testa Questoes Types", () => {
     expect(resultado).toEqual({
       excluidoEm: null,
       status: "ATIVO",
-      tipoQuestao: mapearTipoApiParaBanco("MULTIPLA_ESCOLHA"),
+      tipoQuestao: "MULTIPLA_ESCOLHA",
     });
   });
 
@@ -55,7 +55,7 @@ describe("Testa Questoes Types", () => {
     const resultado = montarFiltroPrisma({
       tema: "histologia",
       dificuldade: "FACIL",
-      tipo: "VERDADEIRO_FALSO",
+      tipo: "CERTO_ERRADO",
     });
 
     expect(resultado).toEqual({
@@ -68,7 +68,7 @@ describe("Testa Questoes Types", () => {
         },
       },
       dificuldade: "FACIL",
-      tipoQuestao: mapearTipoApiParaBanco("VERDADEIRO_FALSO"),
+      tipoQuestao: "CERTO_ERRADO",
     });
   });
 });

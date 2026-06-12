@@ -18,7 +18,7 @@ const schemaAlternativasMultiplaEscolha = z.object({
   E: alternativa,
 });
 
-const schemaAlternativasVerdadeiroFalso = z.object({
+const schemaAlternativasCertoErrado = z.object({
   C: alternativa,
   E: alternativa,
 });
@@ -37,7 +37,7 @@ export const schemaFiltrarQuestoes = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
   tema: z.string().trim().optional(),
   dificuldade: z.enum(VALORES_DIFICULDADE).optional(),
-  tipo: z.enum([TIPO_QUESTAO_API.MULTIPLA_ESCOLHA, TIPO_QUESTAO_API.VERDADEIRO_FALSO]).optional(),
+  tipo: z.enum([TIPO_QUESTAO_API.MULTIPLA_ESCOLHA, TIPO_QUESTAO_API.CERTO_ERRADO]).optional(),
 });
 
 export const schemaCriarQuestao = z.discriminatedUnion("tipo", [
@@ -48,18 +48,18 @@ export const schemaCriarQuestao = z.discriminatedUnion("tipo", [
     dificuldade: z.enum(VALORES_DIFICULDADE),
     imagem: z.string().trim().url().max(2048).optional(),
     alternativaCorreta: z.enum(["A", "B", "C", "D", "E"]),
-    explicacaoPedagogica: z.string().trim().min(1).max(5000),
+    saibaMais: z.string().trim().min(1).max(5000),
     alternativas: schemaAlternativasMultiplaEscolha,
   }),
   z.object({
     tema: z.string().trim().min(1).max(120),
     enunciado: z.string().trim().min(1).max(5000),
-    tipo: z.literal(TIPO_QUESTAO_API.VERDADEIRO_FALSO),
+    tipo: z.literal(TIPO_QUESTAO_API.CERTO_ERRADO),
     dificuldade: z.enum(VALORES_DIFICULDADE),
     imagem: z.string().trim().url().max(2048).optional(),
     alternativaCorreta: z.enum(["C", "E"]),
-    explicacaoPedagogica: z.string().trim().min(1).max(5000),
-    alternativas: schemaAlternativasVerdadeiroFalso,
+    saibaMais: z.string().trim().min(1).max(5000),
+    alternativas: schemaAlternativasCertoErrado,
   }),
 ]);
 
@@ -73,7 +73,7 @@ export const schemaAtualizarQuestao = z
         dificuldade: z.enum(VALORES_DIFICULDADE).optional(),
         imagem: z.string().trim().url().max(2048).nullable().optional(),
         alternativaCorreta: z.enum(["A", "B", "C", "D", "E"]).optional(),
-        explicacaoPedagogica: z.string().trim().min(1).max(5000).optional(),
+        saibaMais: z.string().trim().min(1).max(5000).optional(),
         alternativas: schemaAlternativasMultiplaEscolha.optional(),
       })
       .refine((data) => data.tipo || Object.keys(data).length > 0),
@@ -81,12 +81,12 @@ export const schemaAtualizarQuestao = z
       .object({
         tema: z.string().trim().min(1).max(120).optional(),
         enunciado: z.string().trim().min(1).max(5000).optional(),
-        tipo: z.literal(TIPO_QUESTAO_API.VERDADEIRO_FALSO),
+        tipo: z.literal(TIPO_QUESTAO_API.CERTO_ERRADO),
         dificuldade: z.enum(VALORES_DIFICULDADE).optional(),
         imagem: z.string().trim().url().max(2048).nullable().optional(),
         alternativaCorreta: z.enum(["C", "E"]).optional(),
-        explicacaoPedagogica: z.string().trim().min(1).max(5000).optional(),
-        alternativas: schemaAlternativasVerdadeiroFalso.optional(),
+        saibaMais: z.string().trim().min(1).max(5000).optional(),
+        alternativas: schemaAlternativasCertoErrado.optional(),
       })
       .refine((data) => Object.keys(data).length > 0),
   ])

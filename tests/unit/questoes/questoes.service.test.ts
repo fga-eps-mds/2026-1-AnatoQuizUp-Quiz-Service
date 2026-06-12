@@ -59,7 +59,7 @@ function criarInputValido(): CriarQuestaoDto {
     enunciado: "Enunciado teste",
     tipo: "MULTIPLA_ESCOLHA",
     alternativaCorreta: "B",
-    explicacaoPedagogica: "Explicacao",
+    saibaMais: "Explicacao",
     dificuldade: "DIFICIL",
     alternativas: {
       A: "A",
@@ -179,7 +179,7 @@ describe("QuestionService", () => {
     test("validar falta de C ou E no Verdadeiro/Falso", async () => {
       const input = {
         ...criarInputValido(),
-        tipo: "VERDADEIRO_FALSO",
+        tipo: "CERTO_ERRADO",
         alternativas: { C: "Certo" },
       } as unknown as CriarQuestaoDto;
       await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(
@@ -190,7 +190,7 @@ describe("QuestionService", () => {
     test("validar gabarito incompatível com V/F", async () => {
       const input = {
         ...criarInputValido(),
-        tipo: "VERDADEIRO_FALSO",
+        tipo: "CERTO_ERRADO",
         alternativas: { C: "C", E: "E" },
         alternativaCorreta: "A",
       } as unknown as CriarQuestaoDto;

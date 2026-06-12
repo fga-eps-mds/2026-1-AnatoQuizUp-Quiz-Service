@@ -129,7 +129,7 @@ describe("QuestionRepository", () => {
         dificuldade: "DIFICIL",
         imagem: "https://cdn.example.com/imagem.png",
         alternativaCorreta: "A",
-        explicacaoPedagogica: "Explicacao",
+        saibaMais: "Explicacao",
         alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
       },
       "professor-1",
@@ -208,6 +208,46 @@ describe("QuestionRepository", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           temaId: "tema-novo-id",
+        }),
+      }),
+    );
+  });
+
+  test("atualizar deve setar questaoOriginalId apontando para a questao substituida", async () => {
+    const transacaoMock = {
+      questao: {
+        update: jest.fn(),
+        create: jest.fn().mockResolvedValue({ id: "nova-questao-id" }),
+      },
+      tema: {
+        findFirst: jest.fn().mockResolvedValue({ id: "tema-existente-id" }),
+        create: jest.fn(),
+      },
+    };
+
+    transactionMock.mockImplementation((cb) => cb(transacaoMock));
+
+    const dadosParaAtualizar = {
+      tema: "Tema Existente",
+      enunciado: "Novo enunciado",
+      alternativas: {
+        A: "Opção A",
+        B: "Opção B",
+        C: "Opção C",
+        D: "Opção D",
+        E: "Opção E",
+      },
+      tipo: "MULTIPLA_ESCOLHA" as const,
+      dificuldade: "FACIL" as const,
+      alternativaCorreta: "A" as const,
+    };
+
+    await repository.atualizar("id-velho", dadosParaAtualizar, "autor-1");
+
+    expect(transacaoMock.questao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          questaoOriginalId: "id-velho",
         }),
       }),
     );

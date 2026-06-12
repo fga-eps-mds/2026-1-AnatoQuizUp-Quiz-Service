@@ -12,7 +12,7 @@ describe("schemas question", () => {
       imagem: "https://cdn.example.com/imagem.png",
       alternativaCorreta: "A",
       dificuldade: "DIFICIL",
-      explicacaoPedagogica: "Explicacao",
+      saibaMais: "Explicacao",
       alternativas: {
         A: "Alternativa A",
         B: "Alternativa B",
@@ -33,7 +33,7 @@ describe("schemas question", () => {
       dificuldade: "DIFICIL",
       imagem: "https://cdn.example.com/imagem.png",
       alternativaCorreta: "A",
-      explicacaoPedagogica: "Explicacao",
+      saibaMais: "Explicacao",
       alternativas: {
         A: "Alternativa A",
       },
@@ -46,11 +46,11 @@ describe("schemas question", () => {
     const resultado = schemaCriarQuestao.safeParse({
       tema: "Histologia",
       enunciado: "Enunciado",
-      tipo: "VERDADEIRO_FALSO",
+      tipo: "CERTO_ERRADO",
       dificuldade: "DIFICIL",
       imagem: "https://cdn.example.com/histologia.png",
       alternativaCorreta: "E",
-      explicacaoPedagogica: "Explicacao",
+      saibaMais: "Explicacao",
       alternativas: {
         C: "Verdadeiro",
         E: "Falso",
@@ -64,11 +64,11 @@ describe("schemas question", () => {
     const resultado = schemaCriarQuestao.safeParse({
       tema: "Histologia",
       enunciado: "Enunciado",
-      tipo: "VERDADEIRO_FALSO",
+      tipo: "CERTO_ERRADO",
       dificuldade: "DIFICIL",
       imagem: "https://cdn.example.com/histologia.png",
       alternativaCorreta: "A",
-      explicacaoPedagogica: "Explicacao",
+      saibaMais: "Explicacao",
       alternativas: {
         C: "Verdadeiro",
         E: "Falso",

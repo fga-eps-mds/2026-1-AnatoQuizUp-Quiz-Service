@@ -639,7 +639,7 @@ describe("Testa Quiz Service", () => {
     const query: FiltroListarQuestoesQueryDto = {
       tema: "tema-2",
       dificuldade: DIFICULDADE_API.FACIL,
-      tipo: TIPO_QUESTAO_API.VERDADEIRO_FALSO,
+      tipo: TIPO_QUESTAO_API.CERTO_ERRADO,
     };
 
     const resultado = await quizService.buscarHistorico("usuario-1", query);
@@ -654,7 +654,7 @@ describe("Testa Quiz Service", () => {
         C: 1,
       },
       questao: expect.objectContaining({
-        tipoQuestao: "VERDADEIRO_FALSO",
+        tipoQuestao: "CERTO_ERRADO",
         enunciado: "Pergunta V/F",
       }),
     });
