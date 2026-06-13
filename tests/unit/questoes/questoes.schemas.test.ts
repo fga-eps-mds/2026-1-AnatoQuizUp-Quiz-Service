@@ -1,6 +1,7 @@
 import {
   schemaAtualizarQuestao,
   schemaCriarQuestao,
+  schemaFiltrarQuestoes,
 } from "../../../src/modules/questoes/questoes.schemas";
 
 describe("schemas question", () => {
@@ -84,5 +85,55 @@ describe("schemas question", () => {
     });
 
     expect(resultado.success).toBe(true);
+  });
+
+  test("aceita criacao com os campos de classificacao pedagogica e anatomica", () => {
+    const resultado = schemaCriarQuestao.safeParse({
+      tema: "Anatomia",
+      enunciado: "Enunciado",
+      tipo: "MULTIPLA_ESCOLHA",
+      imagem: "https://cdn.example.com/imagem.png",
+      alternativaCorreta: "A",
+      dificuldade: "DIFICIL",
+      saibaMais: "Explicacao",
+      taxonomiaBloom: "ANALISAR",
+      origemQuestao: "PROVA_ANTERIOR",
+      regiaoAnatomica: "Tórax",
+      estruturaAlvo: "Coração",
+      sistemaAnatomico: "Cardiovascular",
+      planoAnatomico: "AXIAL",
+      modalidade: "TC",
+      alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
+    });
+
+    expect(resultado.success).toBe(true);
+  });
+
+  test("rejeita taxonomiaBloom fora do enum", () => {
+    const resultado = schemaCriarQuestao.safeParse({
+      tema: "Anatomia",
+      enunciado: "Enunciado",
+      tipo: "MULTIPLA_ESCOLHA",
+      imagem: "https://cdn.example.com/imagem.png",
+      alternativaCorreta: "A",
+      dificuldade: "DIFICIL",
+      saibaMais: "Explicacao",
+      taxonomiaBloom: "MEMORIZAR",
+      alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
+    });
+
+    expect(resultado.success).toBe(false);
+  });
+
+  test("schemaFiltrarQuestoes aceita taxonomiaBloom valido", () => {
+    const resultado = schemaFiltrarQuestoes.safeParse({ taxonomiaBloom: "LEMBRAR" });
+
+    expect(resultado.success).toBe(true);
+  });
+
+  test("schemaFiltrarQuestoes rejeita taxonomiaBloom invalido", () => {
+    const resultado = schemaFiltrarQuestoes.safeParse({ taxonomiaBloom: "FOO" });
+
+    expect(resultado.success).toBe(false);
   });
 });

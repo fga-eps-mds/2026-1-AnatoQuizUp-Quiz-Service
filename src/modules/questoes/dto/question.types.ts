@@ -6,6 +6,9 @@ import type {
   Tema,
   Dificuldade,
   Prisma,
+  TaxonomiaBloom,
+  OrigemQuestao,
+  PlanoAnatomico,
 } from "@prisma/client";
 
 export const TIPO_QUESTAO_API = {
@@ -48,6 +51,13 @@ export type CriarQuestaoDto = {
   imagem: string;
   alternativaCorreta: AlternativaQuestao;
   saibaMais: string;
+  taxonomiaBloom?: TaxonomiaBloom;
+  origemQuestao?: OrigemQuestao;
+  regiaoAnatomica?: string;
+  estruturaAlvo?: string;
+  sistemaAnatomico?: string;
+  planoAnatomico?: PlanoAnatomico;
+  modalidade?: string;
   alternativas: AlternativasQuestaoDto;
 };
 
@@ -64,6 +74,7 @@ export type FiltroListarQuestoesQueryDto = {
   tema?: string;
   dificuldade?: DificuldadeApi;
   tipo?: TipoQuestaoApi;
+  taxonomiaBloom?: TaxonomiaBloom;
 };
 
 export type RegistroQuestaoCompleta = Questao & {
@@ -83,6 +94,13 @@ export type RespostaQuestaoDto = {
   imagem: string | null;
   alternativaCorreta: AlternativaQuestao;
   saibaMais: string | null;
+  taxonomiaBloom: TaxonomiaBloom | null;
+  origemQuestao: OrigemQuestao;
+  regiaoAnatomica: string | null;
+  estruturaAlvo: string | null;
+  sistemaAnatomico: string | null;
+  planoAnatomico: PlanoAnatomico | null;
+  modalidade: string | null;
   alternativas: Partial<AlternativasMultiplaEscolhaDto>;
   status: StatusQuestao;
   criadoPorId: string;
@@ -124,6 +142,13 @@ export function converterParaRespostaQuestao(questao: RegistroQuestaoCompleta): 
     imagem: questao.urlImagem,
     alternativaCorreta: questao.respostaCorreta,
     saibaMais: questao.saibaMais,
+    taxonomiaBloom: questao.taxonomiaBloom,
+    origemQuestao: questao.origemQuestao,
+    regiaoAnatomica: questao.regiaoAnatomica,
+    estruturaAlvo: questao.estruturaAlvo,
+    sistemaAnatomico: questao.sistemaAnatomico,
+    planoAnatomico: questao.planoAnatomico,
+    modalidade: questao.modalidade,
     alternativas,
     status: questao.status,
     criadoPorId: questao.criadoPorId,
@@ -151,6 +176,10 @@ export function montarFiltroPrisma(
 
   if (filtros.tipo) {
     where.tipoQuestao = filtros.tipo;
+  }
+
+  if (filtros.taxonomiaBloom) {
+    where.taxonomiaBloom = filtros.taxonomiaBloom;
   }
 
   return where;

@@ -213,6 +213,54 @@ describe("QuestionService", () => {
       );
     });
 
+    test("atualizar mantem os campos de classificacao da questao antiga quando nao enviados", async () => {
+      const antiga = criarQuestao({
+        taxonomiaBloom: "AVALIAR",
+        origemQuestao: "LIVRO",
+        regiaoAnatomica: "Abdome",
+        planoAnatomico: "SAGITAL",
+        modalidade: "RM",
+      });
+      repository.buscarPorId.mockResolvedValue(antiga);
+      repository.atualizar.mockResolvedValue(antiga);
+
+      await service.atualizar("1", { enunciado: "Novo enunciado" }, undefined, "u-1");
+
+      expect(repository.atualizar).toHaveBeenCalledWith(
+        "1",
+        expect.objectContaining({
+          taxonomiaBloom: "AVALIAR",
+          origemQuestao: "LIVRO",
+          regiaoAnatomica: "Abdome",
+          planoAnatomico: "SAGITAL",
+          modalidade: "RM",
+        }),
+        "u-1",
+      );
+    });
+
+    test("atualizar sobrescreve os campos de classificacao quando enviados", async () => {
+      const antiga = criarQuestao({ taxonomiaBloom: "LEMBRAR", origemQuestao: "LIVRO" });
+      repository.buscarPorId.mockResolvedValue(antiga);
+      repository.atualizar.mockResolvedValue(antiga);
+
+      await service.atualizar(
+        "1",
+        { taxonomiaBloom: "CRIAR", origemQuestao: "GERADA_POR_IA" },
+        undefined,
+        "u-1",
+      );
+
+      expect(repository.atualizar).toHaveBeenCalledWith(
+        "1",
+        expect.objectContaining({
+          taxonomiaBloom: "CRIAR",
+          origemQuestao: "GERADA_POR_IA",
+        }),
+        "u-1",
+      );
+    });
+
     test("atualizar deve carregar nova imagem se enviada", async () => {
       repository.buscarPorId.mockResolvedValue(criarQuestao());
       minioService.uploadImagem.mockResolvedValue("nova-url");

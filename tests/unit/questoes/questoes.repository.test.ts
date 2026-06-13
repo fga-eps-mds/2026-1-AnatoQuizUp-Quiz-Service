@@ -153,6 +153,50 @@ describe("QuestionRepository", () => {
     expect(resposta).toBe(questao);
   });
 
+  test("criar persiste os campos de classificacao e usa default de origemQuestao quando ausente", async () => {
+    const tema = { id: "tema-1", nome: "Anatomia" };
+    const transacao = {
+      tema: {
+        findFirst: jest.fn().mockResolvedValue(tema),
+        create: jest.fn(),
+      },
+      questao: {
+        create: jest.fn().mockResolvedValue({ id: "questao-1" }),
+      },
+    };
+    transactionMock.mockImplementation((callback) => callback(transacao));
+
+    await repository.criar(
+      {
+        tema: "Anatomia",
+        enunciado: "Enunciado",
+        tipo: "MULTIPLA_ESCOLHA",
+        dificuldade: "DIFICIL",
+        imagem: "https://cdn.example.com/imagem.png",
+        alternativaCorreta: "A",
+        saibaMais: "Explicacao",
+        taxonomiaBloom: "ANALISAR",
+        regiaoAnatomica: "Tórax",
+        planoAnatomico: "AXIAL",
+        modalidade: "TC",
+        alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
+      },
+      "professor-1",
+    );
+
+    expect(transacao.questao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          taxonomiaBloom: "ANALISAR",
+          regiaoAnatomica: "Tórax",
+          planoAnatomico: "AXIAL",
+          modalidade: "TC",
+          origemQuestao: undefined, // ausente → Prisma aplica o default do schema
+        }),
+      }),
+    );
+  });
+
   test("desativa questao usando soft delete", async () => {
     updateMock.mockResolvedValue({ id: "questao-1", status: "INATIVO" });
 
