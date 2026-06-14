@@ -252,4 +252,61 @@ describe('TurmaDashboardService', () => {
       expect(result[0].totalPendentes).toBe(0);
     });
   });
+
+  describe('getDesempenhoAlunosNaLista', () => {
+    it('deve mapear corretamente os alunos que responderam e os que estão pendentes sem usar any', async () => {
+      repoMock.findAlunosByTurmaId.mockResolvedValue(['aluno-1', 'aluno-2']);
+
+      const mockListaComResolucoes = {
+        id: 'lista-turma-1',
+        turmaId: 'turma-123',
+        listaQuestao: {
+          nome: 'Simulado de Neuro',
+          itens: [{}, {}], // Duas questões no total
+        },
+        resolucoes: [
+          {
+            alunoId: 'aluno-1',
+            status: 'SUBMETIDA' as const,
+            submissaoEm: new Date('2026-06-14T12:00:00.000Z'),
+            respostas: [
+              { respostaMarcada: 'A', questao: { respostaCorreta: 'A' } }, // Acertou
+              { respostaMarcada: 'B', questao: { respostaCorreta: 'C' } }, // Errou
+            ],
+          },
+        ],
+      } as unknown as Awaited<ReturnType<TurmaDashboardRepository['findListaTurmaById']>>;
+
+      repoMock.findListaTurmaById.mockResolvedValue(mockListaComResolucoes);
+
+      const result = await service.getDesempenhoAlunosNaLista('turma-123', 'lista-turma-1');
+
+      expect(result.nomeLista).toBe('Simulado de Neuro');
+      expect(result.totalQuestoes).toBe(2);
+      expect(result.desempenhoAlunos).toHaveLength(2);
+
+      // Verificação do Aluno 1 (Submeteu com 50% de acertos)
+      const aluno1 = result.desempenhoAlunos.find((a) => a.alunoId === 'aluno-1');
+      expect(aluno1).toBeDefined();
+      expect(aluno1?.status).toBe('SUBMETIDA');
+      expect(aluno1?.totalAcertos).toBe(1);
+      expect(aluno1?.taxaAcerto).toBe(50);
+
+      // Verificação do Aluno 2 (Não respondeu nada)
+      const aluno2 = result.desempenhoAlunos.find((a) => a.alunoId === 'aluno-2');
+      expect(aluno2).toBeDefined();
+      expect(aluno2?.status).toBe('NAO_RESPONDEU');
+      expect(aluno2?.totalAcertos).toBe(0);
+      expect(aluno2?.taxaAcerto).toBe(0);
+    });
+
+    it('deve disparar uma exceção de erro caso a lista não pertença à turma consultada', async () => {
+      repoMock.findAlunosByTurmaId.mockResolvedValue(['aluno-1']);
+      repoMock.findListaTurmaById.mockResolvedValue(null);
+
+      await expect(
+        service.getDesempenhoAlunosNaLista('turma-123', 'lista-errada')
+      ).rejects.toThrow('Lista não encontrada ou não pertence a esta turma.');
+    });
+  });
 });
