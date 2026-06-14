@@ -21,8 +21,42 @@ export class DashboardAlunoRepository {
       select: selectResolucaoDashboard,
     });
   }
-}
 
-export type ResolucaoDashboardAluno = Awaited<
-  ReturnType<DashboardAlunoRepository["buscarResolucoesPorUsuario"]>
->[number];
+  async buscarListasDoUsuario(usuarioId: string) {
+    return prisma.listaTurma.findMany({
+      where: {
+        turma: {
+          alunos: {
+            some: { alunoId: usuarioId },
+          },
+        },
+      },
+      select: {
+        id: true,
+        prazo: true,
+        listaQuestao: {
+          select: {
+            nome: true,
+            _count: {
+              select: { itens: true },
+            },
+          },
+        },
+        resolucoes: {
+          where: { alunoId: usuarioId },
+          select: {
+            status: true,
+            submissaoEm: true,
+            respostas: {
+              select: {
+                respostaMarcada: true,
+                questao: { select: { respostaCorreta: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { criadoEm: "desc" },
+    });
+  }
+}
