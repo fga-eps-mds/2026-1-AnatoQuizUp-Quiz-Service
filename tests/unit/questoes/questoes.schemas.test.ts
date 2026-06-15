@@ -99,10 +99,6 @@ describe("schemas question", () => {
       taxonomiaBloom: "ANALISAR",
       origemQuestao: "PROVA_ANTERIOR",
       regiaoAnatomica: "Tórax",
-      estruturaAlvo: "Coração",
-      sistemaAnatomico: "Cardiovascular",
-      planoAnatomico: "AXIAL",
-      modalidade: "TC",
       alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
     });
 

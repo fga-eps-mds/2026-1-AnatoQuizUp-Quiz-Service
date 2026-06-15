@@ -19,10 +19,6 @@ function criarQuestao(overrides: Partial<RegistroQuestaoCompleta> = {}): Registr
     origemQuestao: "ELABORADA_POR_PROFESSOR",
     taxonomiaBloom: null,
     regiaoAnatomica: null,
-    estruturaAlvo: null,
-    sistemaAnatomico: null,
-    planoAnatomico: null,
-    modalidade: null,
     urlImagem: "https://cdn.example.com/coracao.png",
     criadoPorId: "professor-1",
     temaId: "tema-1",
@@ -218,8 +214,6 @@ describe("QuestionService", () => {
         taxonomiaBloom: "AVALIAR",
         origemQuestao: "LIVRO",
         regiaoAnatomica: "Abdome",
-        planoAnatomico: "SAGITAL",
-        modalidade: "RM",
       });
       repository.buscarPorId.mockResolvedValue(antiga);
       repository.atualizar.mockResolvedValue(antiga);
@@ -232,8 +226,6 @@ describe("QuestionService", () => {
           taxonomiaBloom: "AVALIAR",
           origemQuestao: "LIVRO",
           regiaoAnatomica: "Abdome",
-          planoAnatomico: "SAGITAL",
-          modalidade: "RM",
         }),
         "u-1",
       );

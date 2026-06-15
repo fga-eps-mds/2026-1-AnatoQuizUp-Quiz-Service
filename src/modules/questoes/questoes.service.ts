@@ -118,10 +118,6 @@ export class QuestionService {
       taxonomiaBloom: data.taxonomiaBloom ?? questaoAntiga.taxonomiaBloom ?? undefined,
       origemQuestao: data.origemQuestao ?? questaoAntiga.origemQuestao,
       regiaoAnatomica: data.regiaoAnatomica ?? questaoAntiga.regiaoAnatomica ?? undefined,
-      estruturaAlvo: data.estruturaAlvo ?? questaoAntiga.estruturaAlvo ?? undefined,
-      sistemaAnatomico: data.sistemaAnatomico ?? questaoAntiga.sistemaAnatomico ?? undefined,
-      planoAnatomico: data.planoAnatomico ?? questaoAntiga.planoAnatomico ?? undefined,
-      modalidade: data.modalidade ?? questaoAntiga.modalidade ?? undefined,
       alternativas: (data.alternativas ??
         this.extrairAlternativasAtuais(questaoAntiga)) as AlternativasQuestaoDto,
     };

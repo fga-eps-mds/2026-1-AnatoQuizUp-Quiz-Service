@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { TaxonomiaBloom, OrigemQuestao, PlanoAnatomico } from "@prisma/client";
+import { TaxonomiaBloom, OrigemQuestao } from "@prisma/client";
 
 import { TIPO_QUESTAO_API, DIFICULDADE_API } from "./dto/question.types";
 
@@ -12,10 +12,6 @@ const camposClassificacao = {
   taxonomiaBloom: z.enum(TaxonomiaBloom).optional(),
   origemQuestao: z.enum(OrigemQuestao).optional(),
   regiaoAnatomica: z.string().trim().max(255).optional(),
-  estruturaAlvo: z.string().trim().max(255).optional(),
-  sistemaAnatomico: z.string().trim().max(255).optional(),
-  planoAnatomico: z.enum(PlanoAnatomico).optional(),
-  modalidade: z.string().trim().max(255).optional(),
 };
 
 export const VALORES_DIFICULDADE = [

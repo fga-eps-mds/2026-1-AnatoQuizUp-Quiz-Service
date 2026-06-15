@@ -19,10 +19,6 @@ function criarRegistroCompleto(
     taxonomiaBloom: "ANALISAR",
     origemQuestao: "PROVA_ANTERIOR",
     regiaoAnatomica: "Tórax",
-    estruturaAlvo: "Coração",
-    sistemaAnatomico: "Cardiovascular",
-    planoAnatomico: "AXIAL",
-    modalidade: "TC",
     criadoPorId: "professor-1",
     temaId: "tema-1",
     questaoOriginalId: null,
@@ -123,10 +119,6 @@ describe("Testa Questoes Types", () => {
       taxonomiaBloom: "ANALISAR",
       origemQuestao: "PROVA_ANTERIOR",
       regiaoAnatomica: "Tórax",
-      estruturaAlvo: "Coração",
-      sistemaAnatomico: "Cardiovascular",
-      planoAnatomico: "AXIAL",
-      modalidade: "TC",
     });
   });
 
@@ -135,17 +127,11 @@ describe("Testa Questoes Types", () => {
       criarRegistroCompleto({
         taxonomiaBloom: null,
         regiaoAnatomica: null,
-        estruturaAlvo: null,
-        sistemaAnatomico: null,
-        planoAnatomico: null,
-        modalidade: null,
       }),
     );
 
     expect(resposta.taxonomiaBloom).toBeNull();
     expect(resposta.regiaoAnatomica).toBeNull();
-    expect(resposta.planoAnatomico).toBeNull();
-    expect(resposta.modalidade).toBeNull();
     // origemQuestao nunca é null (tem default no banco)
     expect(resposta.origemQuestao).toBe("PROVA_ANTERIOR");
   });

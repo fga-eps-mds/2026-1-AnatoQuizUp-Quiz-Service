@@ -177,8 +177,6 @@ describe("QuestionRepository", () => {
         saibaMais: "Explicacao",
         taxonomiaBloom: "ANALISAR",
         regiaoAnatomica: "Tórax",
-        planoAnatomico: "AXIAL",
-        modalidade: "TC",
         alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
       },
       "professor-1",
@@ -189,8 +187,6 @@ describe("QuestionRepository", () => {
         data: expect.objectContaining({
           taxonomiaBloom: "ANALISAR",
           regiaoAnatomica: "Tórax",
-          planoAnatomico: "AXIAL",
-          modalidade: "TC",
           origemQuestao: undefined, // ausente → Prisma aplica o default do schema
         }),
       }),

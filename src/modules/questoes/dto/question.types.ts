@@ -8,7 +8,6 @@ import type {
   Prisma,
   TaxonomiaBloom,
   OrigemQuestao,
-  PlanoAnatomico,
 } from "@prisma/client";
 
 export const TIPO_QUESTAO_API = {
@@ -54,10 +53,6 @@ export type CriarQuestaoDto = {
   taxonomiaBloom?: TaxonomiaBloom;
   origemQuestao?: OrigemQuestao;
   regiaoAnatomica?: string;
-  estruturaAlvo?: string;
-  sistemaAnatomico?: string;
-  planoAnatomico?: PlanoAnatomico;
-  modalidade?: string;
   alternativas: AlternativasQuestaoDto;
 };
 
@@ -97,10 +92,6 @@ export type RespostaQuestaoDto = {
   taxonomiaBloom: TaxonomiaBloom | null;
   origemQuestao: OrigemQuestao;
   regiaoAnatomica: string | null;
-  estruturaAlvo: string | null;
-  sistemaAnatomico: string | null;
-  planoAnatomico: PlanoAnatomico | null;
-  modalidade: string | null;
   alternativas: Partial<AlternativasMultiplaEscolhaDto>;
   status: StatusQuestao;
   criadoPorId: string;
@@ -145,10 +136,6 @@ export function converterParaRespostaQuestao(questao: RegistroQuestaoCompleta): 
     taxonomiaBloom: questao.taxonomiaBloom,
     origemQuestao: questao.origemQuestao,
     regiaoAnatomica: questao.regiaoAnatomica,
-    estruturaAlvo: questao.estruturaAlvo,
-    sistemaAnatomico: questao.sistemaAnatomico,
-    planoAnatomico: questao.planoAnatomico,
-    modalidade: questao.modalidade,
     alternativas,
     status: questao.status,
     criadoPorId: questao.criadoPorId,
