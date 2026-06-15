@@ -1,11 +1,11 @@
 import type { RegistroQuestaoCompleta } from "@/modules/questoes/dto/question.types";
 import type { RespostaQuestaoQuizDto } from "../responses/resposta_questao_quiz_dto";
-import { mapearTipoBancoParaApi, montarAlternativas } from "@/modules/questoes/dto/question.types";
+import { montarAlternativas } from "@/modules/questoes/dto/question.types";
 
 export function converterParaRespostaQuestaoQuiz(
   questao: RegistroQuestaoCompleta,
 ): RespostaQuestaoQuizDto {
-  const tipo = mapearTipoBancoParaApi(questao.tipoQuestao);
+  const tipo = questao.tipoQuestao;
   const alternativas = montarAlternativas(tipo, questao.alternativas);
 
   return {

@@ -45,9 +45,9 @@ describe('ResolucaoListaService', () => {
       }];
       repository.buscarListasDoAluno.mockResolvedValue(mockListas as never);
 
-      const result = await service.listarParaAluno('aluno-1');
+      const result = await service.listarParaAluno('aluno-1', undefined, undefined, undefined);
 
-      expect(repository.buscarListasDoAluno).toHaveBeenCalledWith('aluno-1', undefined);
+      expect(repository.buscarListasDoAluno).toHaveBeenCalledWith('aluno-1', undefined, undefined);
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
         listaTurmaId: 'lista-1',
@@ -107,7 +107,7 @@ describe('ResolucaoListaService', () => {
       ];
       repository.buscarListasDoAluno.mockResolvedValue(mockListas as never);
 
-      const result = await service.listarParaAluno('aluno-1', 'RESPONDIDA');
+      const result = await service.listarParaAluno('aluno-1', undefined, 'RESPONDIDA', undefined);
 
       expect(result).toHaveLength(1);
       expect(result[0].listaTurmaId).toBe('lista-2');

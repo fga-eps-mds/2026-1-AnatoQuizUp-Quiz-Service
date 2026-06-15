@@ -129,7 +129,7 @@ describe("QuestionRepository", () => {
         dificuldade: "DIFICIL",
         imagem: "https://cdn.example.com/imagem.png",
         alternativaCorreta: "A",
-        explicacaoPedagogica: "Explicacao",
+        saibaMais: "Explicacao",
         alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
       },
       "professor-1",
@@ -151,6 +151,46 @@ describe("QuestionRepository", () => {
       }),
     );
     expect(resposta).toBe(questao);
+  });
+
+  test("criar persiste os campos de classificacao e usa default de origemQuestao quando ausente", async () => {
+    const tema = { id: "tema-1", nome: "Anatomia" };
+    const transacao = {
+      tema: {
+        findFirst: jest.fn().mockResolvedValue(tema),
+        create: jest.fn(),
+      },
+      questao: {
+        create: jest.fn().mockResolvedValue({ id: "questao-1" }),
+      },
+    };
+    transactionMock.mockImplementation((callback) => callback(transacao));
+
+    await repository.criar(
+      {
+        tema: "Anatomia",
+        enunciado: "Enunciado",
+        tipo: "MULTIPLA_ESCOLHA",
+        dificuldade: "DIFICIL",
+        imagem: "https://cdn.example.com/imagem.png",
+        alternativaCorreta: "A",
+        saibaMais: "Explicacao",
+        taxonomiaBloom: "ANALISAR",
+        regiaoAnatomica: "Tórax",
+        alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
+      },
+      "professor-1",
+    );
+
+    expect(transacao.questao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          taxonomiaBloom: "ANALISAR",
+          regiaoAnatomica: "Tórax",
+          origemQuestao: undefined, // ausente → Prisma aplica o default do schema
+        }),
+      }),
+    );
   });
 
   test("desativa questao usando soft delete", async () => {
@@ -208,6 +248,46 @@ describe("QuestionRepository", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           temaId: "tema-novo-id",
+        }),
+      }),
+    );
+  });
+
+  test("atualizar deve setar questaoOriginalId apontando para a questao substituida", async () => {
+    const transacaoMock = {
+      questao: {
+        update: jest.fn(),
+        create: jest.fn().mockResolvedValue({ id: "nova-questao-id" }),
+      },
+      tema: {
+        findFirst: jest.fn().mockResolvedValue({ id: "tema-existente-id" }),
+        create: jest.fn(),
+      },
+    };
+
+    transactionMock.mockImplementation((cb) => cb(transacaoMock));
+
+    const dadosParaAtualizar = {
+      tema: "Tema Existente",
+      enunciado: "Novo enunciado",
+      alternativas: {
+        A: "Opção A",
+        B: "Opção B",
+        C: "Opção C",
+        D: "Opção D",
+        E: "Opção E",
+      },
+      tipo: "MULTIPLA_ESCOLHA" as const,
+      dificuldade: "FACIL" as const,
+      alternativaCorreta: "A" as const,
+    };
+
+    await repository.atualizar("id-velho", dadosParaAtualizar, "autor-1");
+
+    expect(transacaoMock.questao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          questaoOriginalId: "id-velho",
         }),
       }),
     );

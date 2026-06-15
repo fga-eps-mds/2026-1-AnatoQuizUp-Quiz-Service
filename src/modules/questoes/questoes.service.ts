@@ -17,7 +17,6 @@ import type {
 import {
   TIPO_QUESTAO_API,
   converterParaRespostaQuestao,
-  mapearTipoBancoParaApi,
 } from "./dto/question.types";
 import type { QuestionRepository } from "./questoes.repository";
 import type { AlternativaQuestao, Dificuldade } from "@prisma/client";
@@ -110,12 +109,15 @@ export class QuestionService {
     const dadosNovaQuestao: CriarQuestaoDto = {
       tema: data.tema ?? questaoAntiga.tema.nome,
       enunciado: data.enunciado ?? questaoAntiga.enunciado,
-      tipo: data.tipo ?? mapearTipoBancoParaApi(questaoAntiga.tipoQuestao),
+      tipo: data.tipo ?? questaoAntiga.tipoQuestao,
       dificuldade: (data.dificuldade ?? questaoAntiga.dificuldade) as Dificuldade,
       imagem: urlImagemFinal,
       alternativaCorreta: (data.alternativaCorreta ??
         questaoAntiga.respostaCorreta) as AlternativaQuestao,
-      explicacaoPedagogica: data.explicacaoPedagogica ?? questaoAntiga.saibaMais ?? "",
+      saibaMais: data.saibaMais ?? questaoAntiga.saibaMais ?? "",
+      taxonomiaBloom: data.taxonomiaBloom ?? questaoAntiga.taxonomiaBloom ?? undefined,
+      origemQuestao: data.origemQuestao ?? questaoAntiga.origemQuestao,
+      regiaoAnatomica: data.regiaoAnatomica ?? questaoAntiga.regiaoAnatomica ?? undefined,
       alternativas: (data.alternativas ??
         this.extrairAlternativasAtuais(questaoAntiga)) as AlternativasQuestaoDto,
     };
@@ -171,7 +173,7 @@ export class QuestionService {
       }
     }
 
-    if (data.tipo === TIPO_QUESTAO_API.VERDADEIRO_FALSO) {
+    if (data.tipo === TIPO_QUESTAO_API.CERTO_ERRADO) {
       const alternativas = data.alternativas;
       const possuiVerdadeiroFalso =
         typeof alternativas.C === "string" &&

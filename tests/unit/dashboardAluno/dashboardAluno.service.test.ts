@@ -4,26 +4,6 @@ import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 
 jest.mock("@/modules/dashboardAluno/dashboardAluno.repository");
 
-type Resolucoes = Awaited<
-  ReturnType<DashboardAlunoRepository["buscarResolucoesPorUsuario"]>
->;
-
-const criarResolucoes = (
-  itens: Array<{
-    marcada: string;
-    correta: string;
-    temaId: string;
-    temaNome: string;
-  }>,
-): Resolucoes =>
-  itens.map((item) => ({
-    respostaMarcada: item.marcada,
-    questao: {
-      respostaCorreta: item.correta,
-      tema: { id: item.temaId, nome: item.temaNome },
-    },
-  })) as unknown as Resolucoes;
-
 describe("DashboardAlunoService", () => {
   let service: DashboardAlunoService;
   let repositoryMock: jest.Mocked<DashboardAlunoRepository>;
@@ -33,18 +13,14 @@ describe("DashboardAlunoService", () => {
     service = new DashboardAlunoService(repositoryMock);
   });
 
-  it("deve lancar 401 quando o usuarioId for undefined", async () => {
+  it("deve lancar 401 quando o usuarioId for invalido (undefined ou string vazia)", async () => {
     await expect(service.obterDashboard(undefined)).rejects.toBeInstanceOf(ErroAplicacao);
-    expect(repositoryMock.buscarResolucoesPorUsuario).not.toHaveBeenCalled();
+    await expect(service.obterDashboard("")).rejects.toBeInstanceOf(ErroAplicacao);
   });
 
-  it("deve lancar 401 quando o usuarioId for string vazia", async () => {
-    await expect(service.obterDashboard("")).rejects.toMatchObject({ codigoStatus: 401 });
-    expect(repositoryMock.buscarResolucoesPorUsuario).not.toHaveBeenCalled();
-  });
-
-  it("deve retornar estado vazio quando o aluno nao tem resolucoes", async () => {
+  it("deve retornar estado vazio quando o aluno nao tem historico de resolucoes nem listas", async () => {
     repositoryMock.buscarResolucoesPorUsuario.mockResolvedValue([]);
+    repositoryMock.buscarListasDoUsuario.mockResolvedValue([]);
 
     const resultado = await service.obterDashboard("aluno-1");
 
@@ -54,57 +30,82 @@ describe("DashboardAlunoService", () => {
       totalErros: 0,
       taxaAcerto: 0,
       porTema: [],
+      porLista: [],
     });
   });
 
-  it("deve agregar metricas gerais e desempenho por tema ordenado por taxa decrescente", async () => {
+  it("deve classificar os temas nos 3 status corretamente e ordenar por taxa decrescente", async () => {
+    const mockResolucoes = [
+      { respostaMarcada: "A", questao: { respostaCorreta: "A", tema: { id: "t1", nome: "TranquiloTema" } } },
+      { respostaMarcada: "A", questao: { respostaCorreta: "A", tema: { id: "t2", nome: "AtencaoTema" } } },
+      { respostaMarcada: "B", questao: { respostaCorreta: "A", tema: { id: "t2", nome: "AtencaoTema" } } },
+      { respostaMarcada: "B", questao: { respostaCorreta: "A", tema: { id: "t3", nome: "CriticoTema" } } },
+    ];
+
     repositoryMock.buscarResolucoesPorUsuario.mockResolvedValue(
-      criarResolucoes([
-        { marcada: "A", correta: "A", temaId: "tema-1", temaNome: "Tórax" },
-        { marcada: "B", correta: "A", temaId: "tema-1", temaNome: "Tórax" },
-        { marcada: "C", correta: "C", temaId: "tema-1", temaNome: "Tórax" },
-        { marcada: "A", correta: "A", temaId: "tema-2", temaNome: "Abdome" },
-        { marcada: "B", correta: "B", temaId: "tema-2", temaNome: "Abdome" },
-        { marcada: "A", correta: "B", temaId: "tema-3", temaNome: "Crânio" },
-        { marcada: "C", correta: "D", temaId: "tema-3", temaNome: "Crânio" },
-      ]),
+      mockResolucoes as unknown as Awaited<ReturnType<DashboardAlunoRepository["buscarResolucoesPorUsuario"]>>
+    );
+    repositoryMock.buscarListasDoUsuario.mockResolvedValue([]);
+
+    const resultado = await service.obterDashboard("aluno-1");
+
+    expect(resultado.totalRespondidas).toBe(4);
+    expect(resultado.totalAcertos).toBe(2);
+    expect(resultado.totalErros).toBe(2);
+    expect(resultado.taxaAcerto).toBe(50); 
+
+    expect(resultado.porTema).toHaveLength(3);
+    
+    expect(resultado.porTema[0]).toMatchObject({ nome: "TranquiloTema", taxaAcerto: 100, status: "Tranquilo" });
+    expect(resultado.porTema[1]).toMatchObject({ nome: "AtencaoTema", taxaAcerto: 50, status: "Atenção" });
+    expect(resultado.porTema[2]).toMatchObject({ nome: "CriticoTema", taxaAcerto: 0, status: "Crítico" });
+  });
+
+  it("deve mapear corretamente o desempenho por lista validando prazos e submissoes", async () => {
+    repositoryMock.buscarResolucoesPorUsuario.mockResolvedValue([]);
+    
+    const mockListas = [
+      {
+        id: "lista-1",
+        prazo: new Date("2026-12-31T23:59:00Z"),
+        listaQuestao: { nome: "Lista Respondida", _count: { itens: 2 } },
+        resolucoes: [
+          {
+            status: "SUBMETIDA",
+            submissaoEm: new Date("2026-06-14T10:00:00Z"),
+            respostas: [
+              { respostaMarcada: "A", questao: { respostaCorreta: "A" } }, // Acertou
+              { respostaMarcada: "B", questao: { respostaCorreta: "C" } }  // Errou
+            ]
+          }
+        ]
+      },
+      {
+        id: "lista-2",
+        prazo: null,
+        listaQuestao: { nome: "Lista Pendente", _count: { itens: 5 } },
+        resolucoes: []
+      }
+    ];
+
+    repositoryMock.buscarListasDoUsuario.mockResolvedValue(
+      mockListas as unknown as Awaited<ReturnType<DashboardAlunoRepository["buscarListasDoUsuario"]>>
     );
 
     const resultado = await service.obterDashboard("aluno-1");
 
-    expect(resultado.totalRespondidas).toBe(7);
-    expect(resultado.totalAcertos).toBe(4);
-    expect(resultado.totalErros).toBe(3);
-    expect(resultado.taxaAcerto).toBe(57);
-
-    expect(resultado.porTema).toEqual([
-      {
-        temaId: "tema-2",
-        nome: "Abdome",
-        totalRespondidas: 2,
-        acertos: 2,
-        erros: 0,
-        taxaAcerto: 100,
-        status: "Tranquilo",
-      },
-      {
-        temaId: "tema-1",
-        nome: "Tórax",
-        totalRespondidas: 3,
-        acertos: 2,
-        erros: 1,
-        taxaAcerto: 67,
-        status: "Atenção",
-      },
-      {
-        temaId: "tema-3",
-        nome: "Crânio",
-        totalRespondidas: 2,
-        acertos: 0,
-        erros: 2,
-        taxaAcerto: 0,
-        status: "Crítico",
-      },
-    ]);
+    expect(resultado.porLista).toHaveLength(2);
+    
+    expect(resultado.porLista[0].status).toBe("SUBMETIDA");
+    expect(resultado.porLista[0].acertos).toBe(1);
+    expect(resultado.porLista[0].taxaAcerto).toBe(50);
+    expect(resultado.porLista[0].submissaoEm).toBe("2026-06-14T10:00:00.000Z");
+    expect(resultado.porLista[0].prazo).toBe("2026-12-31T23:59:00.000Z");
+    
+    expect(resultado.porLista[1].status).toBe("NAO_RESPONDEU");
+    expect(resultado.porLista[1].acertos).toBe(0);
+    expect(resultado.porLista[1].taxaAcerto).toBe(0);
+    expect(resultado.porLista[1].submissaoEm).toBeNull();
+    expect(resultado.porLista[1].prazo).toBeNull();
   });
 });

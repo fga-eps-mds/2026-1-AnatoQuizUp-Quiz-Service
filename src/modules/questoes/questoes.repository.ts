@@ -8,9 +8,9 @@ import type {
   FiltroListarQuestoesQueryDto,
   RegistroQuestaoCompleta,
   AlternativasMultiplaEscolhaDto,
-  AlternativasVerdadeiroFalsoDto,
+  AlternativasCertoErradoDto,
 } from "./dto/question.types";
-import { mapearTipoApiParaBanco, montarFiltroPrisma } from "./dto/question.types";
+import { montarFiltroPrisma } from "./dto/question.types";
 
 const includeQuestaoCompleta = {
   tema: true,
@@ -74,11 +74,14 @@ export class QuestionRepository {
       const questao = await transacao.questao.create({
         data: {
           enunciado: data.enunciado,
-          tipoQuestao: mapearTipoApiParaBanco(data.tipo),
+          tipoQuestao: data.tipo,
           dificuldade: data.dificuldade,
           respostaCorreta: data.alternativaCorreta,
-          saibaMais: data.explicacaoPedagogica,
+          saibaMais: data.saibaMais,
           urlImagem: data.imagem ?? null,
+          taxonomiaBloom: data.taxonomiaBloom ?? null,
+          origemQuestao: data.origemQuestao ?? undefined,
+          regiaoAnatomica: data.regiaoAnatomica?.trim() || null,
           criadoPorId,
           temaId: tema.id,
           alternativas: {
@@ -110,11 +113,15 @@ export class QuestionRepository {
       return await transacao.questao.create({
         data: {
           enunciado: data.enunciado,
-          tipoQuestao: mapearTipoApiParaBanco(data.tipo),
+          tipoQuestao: data.tipo,
           dificuldade: data.dificuldade,
           respostaCorreta: data.alternativaCorreta,
-          saibaMais: data.explicacaoPedagogica,
+          saibaMais: data.saibaMais,
           urlImagem: data.imagem ?? null,
+          taxonomiaBloom: data.taxonomiaBloom ?? null,
+          origemQuestao: data.origemQuestao ?? undefined,
+          regiaoAnatomica: data.regiaoAnatomica?.trim() || null,
+          questaoOriginalId: id,
           criadoPorId,
           temaId: tema.id,
           alternativas: {
@@ -138,8 +145,8 @@ export class QuestionRepository {
   }
 
   private mapearAlternativas(data: Pick<CriarQuestaoDto, "tipo" | "alternativas">) {
-    if (data.tipo === "VERDADEIRO_FALSO") {
-      const alternativas = data.alternativas as AlternativasVerdadeiroFalsoDto;
+    if (data.tipo === "CERTO_ERRADO") {
+      const alternativas = data.alternativas as AlternativasCertoErradoDto;
 
       return {
         alternativaA: "",

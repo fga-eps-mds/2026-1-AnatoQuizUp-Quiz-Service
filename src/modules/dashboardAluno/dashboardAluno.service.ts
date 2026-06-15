@@ -7,6 +7,7 @@ import type {
   DashboardAlunoDto,
   DesempenhoTemaAlunoDto,
   StatusDesempenhoTema,
+  DesempenhoListaAlunoDto,
 } from "./dto/dashboardAluno.types";
 
 const LIMITE_TRANQUILO = 70;
@@ -29,7 +30,7 @@ export class DashboardAlunoService {
   constructor(private readonly repository: DashboardAlunoRepository) {}
 
   async obterDashboard(usuarioId: string | undefined): Promise<DashboardAlunoDto> {
-    if (usuarioId === "" || usuarioId === undefined) {
+    if (!usuarioId) {
       throw new ErroAplicacao({
         codigoStatus: 401,
         codigo: CodigoDeErro.NAO_AUTORIZADO,
@@ -37,11 +38,10 @@ export class DashboardAlunoService {
       });
     }
 
-    const resolucoes = await this.repository.buscarResolucoesPorUsuario(usuarioId);
-
-    if (resolucoes.length === 0) {
-      return { totalRespondidas: 0, totalAcertos: 0, totalErros: 0, taxaAcerto: 0, porTema: [] };
-    }
+    const [resolucoes, listas] = await Promise.all([
+      this.repository.buscarResolucoesPorUsuario(usuarioId),
+      this.repository.buscarListasDoUsuario(usuarioId),
+    ]);
 
     let totalAcertos = 0;
     const temasMap = new Map<string, EstatisticaTema>();
@@ -77,12 +77,46 @@ export class DashboardAlunoService {
 
     porTema.sort((a, b) => b.taxaAcerto - a.taxaAcerto);
 
+    const porLista: DesempenhoListaAlunoDto[] = listas.map((lista) => {
+      const totalQuestoes = lista.listaQuestao._count.itens;
+      const resolucao = lista.resolucoes[0]; 
+
+      let acertos = 0;
+      let taxaAcerto = 0;
+      let status: "SUBMETIDA" | "EM_ANDAMENTO" | "NAO_RESPONDEU" = "NAO_RESPONDEU";
+      let submissaoEm: string | null = null;
+
+      if (resolucao) {
+        status = resolucao.status as "SUBMETIDA" | "EM_ANDAMENTO" | "NAO_RESPONDEU";
+        submissaoEm = resolucao.submissaoEm?.toISOString() ?? null;
+
+        acertos = resolucao.respostas.filter(
+          (r: { respostaMarcada: string | null; questao: { respostaCorreta: string } }) =>
+            r.respostaMarcada === r.questao.respostaCorreta
+        ).length;
+
+        taxaAcerto = calcularPercentual(acertos, totalQuestoes);
+      }
+
+      return {
+        listaTurmaId: lista.id,
+        nomeLista: lista.listaQuestao.nome,
+        totalQuestoes,
+        acertos,
+        taxaAcerto,
+        status,
+        submissaoEm,
+        prazo: lista.prazo?.toISOString() ?? null,
+      };
+    });
+
     return {
       totalRespondidas,
       totalAcertos,
       totalErros,
       taxaAcerto: calcularPercentual(totalAcertos, totalRespondidas),
       porTema,
+      porLista,
     };
   }
 }

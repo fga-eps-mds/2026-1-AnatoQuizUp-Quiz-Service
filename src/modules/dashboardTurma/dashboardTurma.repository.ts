@@ -55,4 +55,36 @@ export class TurmaDashboardRepository {
       },
     });
   }
+
+  async findListaTurmaById(turmaId: string, idDaLista: string) {
+    return await prisma.listaTurma.findFirst({
+      where: {
+        turmaId: turmaId,
+        OR: [
+          { id: idDaLista },
+          { listaQuestaoId: idDaLista }
+        ]
+      },
+      include: {
+        listaQuestao: {
+          include: {
+            itens: true,
+          },
+        },
+        resolucoes: {
+          include: {
+            respostas: {
+              include: {
+                questao: {
+                  select: {
+                    respostaCorreta: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }
