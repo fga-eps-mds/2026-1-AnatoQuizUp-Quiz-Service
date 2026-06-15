@@ -61,15 +61,6 @@ enum OrigemQuestao {
   ELABORADA_POR_PROFESSOR
 }
 
-enum PlanoAnatomico {
-  AXIAL
-  CORONAL
-  SAGITAL
-  PA
-  AP
-  OUTRO
-}
-
 model Tema {
   id   String @id @default(cuid())
   nome String
@@ -92,13 +83,9 @@ model Questao {
   status          StatusQuestao      @default(ATIVO)
   urlImagem       String?
 
-  taxonomiaBloom   TaxonomiaBloom?
-  origemQuestao    OrigemQuestao   @default(ELABORADA_POR_PROFESSOR)
-  regiaoAnatomica  String?
-  estruturaAlvo    String?
-  sistemaAnatomico String?
-  planoAnatomico   PlanoAnatomico?
-  modalidade       String?
+  taxonomiaBloom  TaxonomiaBloom?
+  origemQuestao   OrigemQuestao   @default(ELABORADA_POR_PROFESSOR)
+  regiaoAnatomica String?
 
   criadoPorId String
   temaId      String
