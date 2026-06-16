@@ -39,7 +39,6 @@ enum StatusTurma {
 enum FonteMoeda {
   ACERTO_QUESTAO
   COMPRA_ITEM_AVATAR
-  AJUSTE_MANUAL
 }
 
 enum StatusResolucaoLista {
