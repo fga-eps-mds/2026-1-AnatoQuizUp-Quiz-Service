@@ -38,11 +38,30 @@ enum StatusTurma {
 
 enum FonteMoeda {
   ACERTO_QUESTAO
+  COMPRA_ITEM_AVATAR
+  AJUSTE_MANUAL
 }
 
 enum StatusResolucaoLista {
   EM_ANDAMENTO
   SUBMETIDA
+}
+
+enum TipoItemAvatar {
+  CABELO
+  ROUPA
+  JALECO
+  OCULOS
+  ACESSORIO
+  CALCADO
+  OUTRO
+}
+
+enum RaridadeItemAvatar {
+  COMUM
+  RARO
+  EPICO
+  LENDARIO
 }
 
 model Tema {
@@ -140,21 +159,82 @@ model CarteiraMoedas {
   @@map("carteiras_moedas")
 }
 
+model ItemAvatarLoja {
+  id String @id @default(cuid())
+
+  codigo    String  @unique
+  nome      String
+  descricao String?
+
+  tipo     TipoItemAvatar
+  raridade RaridadeItemAvatar @default(COMUM)
+
+  precoMoedas Int
+
+  imagemUrl        String?
+  previewImagemUrl String?
+
+  ativo Boolean @default(true)
+
+  inventarios      InventarioAvatarItem[]
+  transacoesMoedas TransacaoMoeda[]
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@index([tipo])
+  @@index([ativo])
+  @@map("itens_avatar_loja")
+}
+
+model InventarioAvatarItem {
+  id String @id @default(cuid())
+
+  usuarioId        String
+  itemAvatarLojaId String
+
+  equipado Boolean @default(false)
+
+  adquiridoEm DateTime @default(now())
+
+  itemAvatarLoja ItemAvatarLoja @relation(fields: [itemAvatarLojaId], references: [id], onDelete: Restrict)
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@unique([usuarioId, itemAvatarLojaId])
+  @@index([usuarioId])
+  @@index([itemAvatarLojaId])
+  @@map("inventario_avatar_itens")
+}
+
 model TransacaoMoeda {
-  id         String     @id @default(cuid())
-  usuarioId  String
-  questaoId  String
+  id String @id @default(cuid())
+
+  usuarioId String
+
+  questaoId        String?
+  itemAvatarLojaId String?
+
   quantidade Int
   fonte      FonteMoeda @default(ACERTO_QUESTAO)
 
+  descricao String?
+
   carteira CarteiraMoedas @relation(fields: [usuarioId], references: [usuarioId], onDelete: Restrict)
-  questao  Questao        @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+
+  questao         Questao?        @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+  itemAvatarLoja ItemAvatarLoja? @relation(fields: [itemAvatarLojaId], references: [id], onDelete: Restrict)
 
   criadoEm DateTime @default(now())
 
   @@unique([usuarioId, questaoId, fonte])
+  @@unique([usuarioId, itemAvatarLojaId, fonte])
   @@index([usuarioId])
   @@index([questaoId])
+  @@index([itemAvatarLojaId])
   @@map("transacoes_moedas")
 }
 
