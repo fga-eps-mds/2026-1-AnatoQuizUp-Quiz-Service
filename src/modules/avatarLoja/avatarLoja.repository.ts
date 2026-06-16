@@ -4,7 +4,6 @@ import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
 import type {
   ListarCatalogoAvatarQueryDto,
-  ListarInventarioAvatarQueryDto,
 } from "./avatarLoja.schemas";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
@@ -64,7 +63,6 @@ export class AvatarLojaRepository {
   async listarInventario(
     usuarioId: string,
     paginacao: ParametrosPaginacao,
-    _filtros: ListarInventarioAvatarQueryDto,
   ) {
     const where: Prisma.InventarioAvatarItemWhereInput = {
       usuarioId,

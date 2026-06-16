@@ -51,8 +51,7 @@ export class AvatarLojaService {
 
     const { data, total } = await this.avatarLojaRepository.listarInventario(
       usuarioId,
-      paginacao,
-      query,
+      paginacao
     );
 
     return {
