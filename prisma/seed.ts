@@ -1,4 +1,4 @@
-import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao } from "@prisma/client";
+import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao, TipoItemAvatar, RaridadeItemAvatar, } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -7,6 +7,10 @@ async function main() {
 
   // 1. Limpando as tabelas na ordem correta logo no início para evitar erros de FK
   await prisma.transacaoMoeda.deleteMany({});
+  await prisma.inventarioAvatarItem.deleteMany({});
+  await prisma.itemAvatarLoja.deleteMany({});
+  await prisma.carteiraMoedas.deleteMany({});
+
   await prisma.listaTurma.deleteMany({});
   await prisma.turmaAluno.deleteMany({});
   await prisma.listaQuestaoItem.deleteMany({});
@@ -20,7 +24,179 @@ async function main() {
   const PROFESSOR_ID   = "cmp7fx97j00034hyqazqwrk3e"; 
   const ALUNO_1_ID     = "cmp7fx99d00044hyqq4msqsyt";
   const ALUNO_2_ID     = "cmp7fx99d00044hyqq4mswgsr";
-  const MEU_USUARIO_ID = "d56fd5df-29f0-4319-a4b1-b4c0d326226c"; // <--- SEU USUARIO
+  const MEU_USUARIO_ID = "2098cd8a-4997-4947-a056-6b8a57382b5b"; // <--- SEU USUARIO
+
+    // 2. Criando carteira de moedas para testar a loja
+  await prisma.carteiraMoedas.create({
+    data: {
+      usuarioId: MEU_USUARIO_ID,
+      saldo: 5000,
+    },
+  });
+
+  console.log("Carteira de moedas criada para o usuário de teste.");
+
+  // 3. Criando itens da Loja Virtual de Avatar
+  await prisma.itemAvatarLoja.createMany({
+    data: [
+      {
+        codigo: "cabelo-curto-classico",
+        nome: "Cabelo Curto Clássico",
+        descricao: "Um corte simples e elegante para o avatar.",
+        tipo: TipoItemAvatar.CABELO,
+        raridade: RaridadeItemAvatar.COMUM,
+        precoMoedas: 100,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "cabelo-anime-espetado",
+        nome: "Cabelo Anime Espetado",
+        descricao: "Visual marcante para alunos com energia de protagonista.",
+        tipo: TipoItemAvatar.CABELO,
+        raridade: RaridadeItemAvatar.RARO,
+        precoMoedas: 350,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "camiseta-anatomia",
+        nome: "Camiseta Anatomia",
+        descricao: "Camiseta temática para estudantes de anatomia.",
+        tipo: TipoItemAvatar.ROUPA,
+        raridade: RaridadeItemAvatar.COMUM,
+        precoMoedas: 150,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "moletom-neuro",
+        nome: "Moletom Neuro",
+        descricao: "Moletom estiloso com estampa inspirada no sistema nervoso.",
+        tipo: TipoItemAvatar.ROUPA,
+        raridade: RaridadeItemAvatar.RARO,
+        precoMoedas: 450,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "jaleco-classico",
+        nome: "Jaleco Clássico",
+        descricao: "Jaleco branco tradicional para o avatar.",
+        tipo: TipoItemAvatar.JALECO,
+        raridade: RaridadeItemAvatar.COMUM,
+        precoMoedas: 250,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "jaleco-premium",
+        nome: "Jaleco Premium",
+        descricao: "Jaleco especial com acabamento diferenciado.",
+        tipo: TipoItemAvatar.JALECO,
+        raridade: RaridadeItemAvatar.EPICO,
+        precoMoedas: 900,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "oculos-redondo",
+        nome: "Óculos Redondo",
+        descricao: "Óculos redondo para um visual mais intelectual.",
+        tipo: TipoItemAvatar.OCULOS,
+        raridade: RaridadeItemAvatar.COMUM,
+        precoMoedas: 180,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "oculos-cirurgiao",
+        nome: "Óculos de Cirurgião",
+        descricao: "Óculos estilizado para um visual mais profissional.",
+        tipo: TipoItemAvatar.OCULOS,
+        raridade: RaridadeItemAvatar.RARO,
+        precoMoedas: 400,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "estetoscopio",
+        nome: "Estetoscópio",
+        descricao: "Acessório clássico para compor o avatar.",
+        tipo: TipoItemAvatar.ACESSORIO,
+        raridade: RaridadeItemAvatar.RARO,
+        precoMoedas: 500,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "cafe-da-madrugada",
+        nome: "Café da Madrugada",
+        descricao: "Acessório indispensável para sobreviver aos estudos.",
+        tipo: TipoItemAvatar.ACESSORIO,
+        raridade: RaridadeItemAvatar.EPICO,
+        precoMoedas: 750,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "tenis-basico",
+        nome: "Tênis Básico",
+        descricao: "Calçado simples para o avatar.",
+        tipo: TipoItemAvatar.CALCADO,
+        raridade: RaridadeItemAvatar.COMUM,
+        precoMoedas: 120,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "tenis-atp",
+        nome: "Tênis ATP",
+        descricao: "Tênis especial inspirado nas moedas da plataforma.",
+        tipo: TipoItemAvatar.CALCADO,
+        raridade: RaridadeItemAvatar.LENDARIO,
+        precoMoedas: 2000,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "cracha-monitor",
+        nome: "Crachá de Monitor",
+        descricao: "Item especial para destacar o avatar.",
+        tipo: TipoItemAvatar.OUTRO,
+        raridade: RaridadeItemAvatar.RARO,
+        precoMoedas: 600,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+      {
+        codigo: "aura-genio-anatomia",
+        nome: "Aura Gênio da Anatomia",
+        descricao: "Efeito visual lendário para o avatar.",
+        tipo: TipoItemAvatar.OUTRO,
+        raridade: RaridadeItemAvatar.LENDARIO,
+        precoMoedas: 1800,
+        imagemUrl: null,
+        previewImagemUrl: null,
+        ativo: true,
+      },
+    ],
+  });
+
+  console.log("Itens da loja virtual de avatar criados com sucesso.");
 
   // 2. Criando Temas
   const temas = {
