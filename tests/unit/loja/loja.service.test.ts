@@ -1,24 +1,24 @@
-import { RaridadeItemAvatar, TipoItemAvatar } from "@prisma/client";
+import { TipoItemLoja } from "@prisma/client";
 
-import { AvatarLojaService } from "@/modules/avatarLoja/avatarLoja.service";
+import { LojaService } from "@/modules/loja/loja.service";
 import type {
-  AvatarLojaRepository,
-  InventarioAvatarBanco,
-  ItemAvatarBanco,
-} from "@/modules/avatarLoja/avatarLoja.repository";
+  InventarioBanco,
+  ItemLojaBanco,
+  LojaRepository,
+} from "@/modules/loja/loja.repository";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 
-function criarItemAvatar(overrides: Partial<ItemAvatarBanco> = {}): ItemAvatarBanco {
+function criarItemLoja(overrides: Partial<ItemLojaBanco> = {}): ItemLojaBanco {
   const agora = new Date("2026-06-16T00:00:00.000Z");
 
   return {
-    id: "item-avatar-id",
-    codigo: "cabelo-curto-classico",
-    nome: "Cabelo Curto Clássico",
-    descricao: "Um corte simples e elegante para o avatar.",
-    tipo: TipoItemAvatar.CABELO,
-    raridade: RaridadeItemAvatar.COMUM,
-    precoMoedas: 100,
+    id: "item-loja-id",
+    codigo: "icone-coruja-sabia",
+    nome: "Coruja Sábia",
+    descricao: "Ícone de perfil para os estudiosos de plantão.",
+    tipo: TipoItemLoja.ICONE_PERFIL,
+    precoMoedas: 1,
+    valor: null,
     imagemUrl: null,
     previewImagemUrl: null,
     ativo: true,
@@ -29,46 +29,44 @@ function criarItemAvatar(overrides: Partial<ItemAvatarBanco> = {}): ItemAvatarBa
   };
 }
 
-function criarInventarioAvatar(
-  overrides: Partial<InventarioAvatarBanco> = {},
-): InventarioAvatarBanco {
+function criarInventario(overrides: Partial<InventarioBanco> = {}): InventarioBanco {
   const agora = new Date("2026-06-16T00:00:00.000Z");
-  const itemAvatarLoja = criarItemAvatar();
+  const itemLoja = criarItemLoja();
 
   return {
     id: "inventario-id",
     usuarioId: "usuario-id",
-    itemAvatarLojaId: itemAvatarLoja.id,
+    itemLojaId: itemLoja.id,
     equipado: false,
     adquiridoEm: agora,
     criadoEm: agora,
     atualizadoEm: agora,
     excluidoEm: null,
-    itemAvatarLoja,
+    itemLoja,
     ...overrides,
   };
 }
 
 function criarRepositoryMock() {
   return {
-    listarCatalogo: jest.fn<AvatarLojaRepository["listarCatalogo"]>(),
-    listarInventario: jest.fn<AvatarLojaRepository["listarInventario"]>(),
-    comprarItem: jest.fn<AvatarLojaRepository["comprarItem"]>(),
-  } as unknown as jest.Mocked<AvatarLojaRepository>;
+    listarCatalogo: jest.fn<LojaRepository["listarCatalogo"]>(),
+    listarInventario: jest.fn<LojaRepository["listarInventario"]>(),
+    comprarItem: jest.fn<LojaRepository["comprarItem"]>(),
+  } as unknown as jest.Mocked<LojaRepository>;
 }
 
-describe("Testa AvatarLoja Service", () => {
-  let repository: jest.Mocked<AvatarLojaRepository>;
-  let service: AvatarLojaService;
+describe("Testa Loja Service", () => {
+  let repository: jest.Mocked<LojaRepository>;
+  let service: LojaService;
 
   beforeEach(() => {
     repository = criarRepositoryMock();
-    service = new AvatarLojaService(repository);
+    service = new LojaService(repository);
     jest.clearAllMocks();
   });
 
   test("deve listar catalogo marcando item adquirido", async () => {
-    const item = criarItemAvatar();
+    const item = criarItemLoja();
 
     repository.listarCatalogo.mockResolvedValue({
       data: [item],
@@ -113,7 +111,7 @@ describe("Testa AvatarLoja Service", () => {
   });
 
   test("deve listar catalogo marcando item nao adquirido", async () => {
-    const item = criarItemAvatar();
+    const item = criarItemLoja();
 
     repository.listarCatalogo.mockResolvedValue({
       data: [item],
@@ -130,7 +128,7 @@ describe("Testa AvatarLoja Service", () => {
   });
 
   test("deve listar inventario do usuario", async () => {
-    const inventario = criarInventarioAvatar();
+    const inventario = criarInventario();
 
     repository.listarInventario.mockResolvedValue({
       data: [inventario],
@@ -156,31 +154,31 @@ describe("Testa AvatarLoja Service", () => {
       id: inventario.id,
       equipado: false,
       item: {
-        id: inventario.itemAvatarLoja.id,
-        codigo: inventario.itemAvatarLoja.codigo,
+        id: inventario.itemLoja.id,
+        codigo: inventario.itemLoja.codigo,
       },
     });
   });
 
   test("deve comprar item com sucesso", async () => {
-    const inventario = criarInventarioAvatar();
+    const inventario = criarInventario();
 
     repository.comprarItem.mockResolvedValue({
       saldoMoedas: 4900,
       inventarioItem: inventario,
     });
 
-    const resultado = await service.comprar("usuario-id", "item-avatar-id");
+    const resultado = await service.comprar("usuario-id", "item-loja-id");
 
-    expect(repository.comprarItem).toHaveBeenCalledWith("usuario-id", "item-avatar-id");
+    expect(repository.comprarItem).toHaveBeenCalledWith("usuario-id", "item-loja-id");
 
     expect(resultado).toEqual({
-      mensagem: "Item de avatar comprado com sucesso.",
+      mensagem: "Item comprado com sucesso.",
       saldoMoedas: 4900,
       item: expect.objectContaining({
         id: inventario.id,
         item: expect.objectContaining({
-          id: inventario.itemAvatarLoja.id,
+          id: inventario.itemLoja.id,
         }),
       }),
     });
@@ -199,9 +197,7 @@ describe("Testa AvatarLoja Service", () => {
   });
 
   test("deve lançar erro ao comprar sem usuario autenticado", async () => {
-    await expect(service.comprar(undefined, "item-avatar-id")).rejects.toBeInstanceOf(
-      ErroAplicacao,
-    );
+    await expect(service.comprar(undefined, "item-loja-id")).rejects.toBeInstanceOf(ErroAplicacao);
 
     expect(repository.comprarItem).not.toHaveBeenCalled();
   });

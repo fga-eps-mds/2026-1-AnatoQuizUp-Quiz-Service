@@ -1,4 +1,4 @@
-import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao, TipoItemAvatar, RaridadeItemAvatar, } from "@prisma/client";
+import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao, TipoItemLoja, } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -7,8 +7,8 @@ async function main() {
 
   // 1. Limpando as tabelas na ordem correta logo no início para evitar erros de FK
   await prisma.transacaoMoeda.deleteMany({});
-  await prisma.inventarioAvatarItem.deleteMany({});
-  await prisma.itemAvatarLoja.deleteMany({});
+  await prisma.inventarioItem.deleteMany({});
+  await prisma.itemLoja.deleteMany({});
   await prisma.carteiraMoedas.deleteMany({});
 
   await prisma.listaTurma.deleteMany({});
@@ -36,167 +36,201 @@ async function main() {
 
   console.log("Carteira de moedas criada para o usuário de teste.");
 
-  // 3. Criando itens da Loja Virtual de Avatar
-  await prisma.itemAvatarLoja.createMany({
+  // 3. Criando itens da Loja Virtual (cosméticos)
+  // Categorias: ICONE_PERFIL, MOLDURA, AVATAR, TITULO, PLANO_FUNDO.
+  // Preços diversificados (recompensa por acerto: FACIL 10 / MEDIA 25 / DIFICIL 50).
+  // `valor` guarda a cor/gradiente decorativo (círculo do ícone, anel da moldura, fundo);
+  // ícones de anatomia vêm do Iconify (silhueta branca); títulos são texto;
+  // o ícone premium (logo dourada do AnatoQuiz) é renderizado no front a partir do `codigo`.
+  const iconeAnatomia = (nome: string) =>
+    `https://api.iconify.design/game-icons/${nome}.svg?color=%23ffffff`;
+  const avatar = (seed: string, skinColor: string) =>
+    `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&skinColor=${skinColor}`;
+
+  const GRADIENTE_OURO = "linear-gradient(135deg, #FCD34D 0%, #D4AF37 100%)";
+
+  await prisma.itemLoja.createMany({
     data: [
+      // --- Ícones de perfil (4) ---
       {
-        codigo: "cabelo-curto-classico",
-        nome: "Cabelo Curto Clássico",
-        descricao: "Um corte simples e elegante para o avatar.",
-        tipo: TipoItemAvatar.CABELO,
-        raridade: RaridadeItemAvatar.COMUM,
-        precoMoedas: 100,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
+        codigo: "icone-coruja",
+        nome: "Coruja",
+        descricao: "Para os estudiosos de plantão.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
+        precoMoedas: 60,
+        valor: "linear-gradient(135deg, #71edc8 0%, #00A88F 100%)",
+        imagemUrl: iconeAnatomia("owl"),
+        previewImagemUrl: iconeAnatomia("owl"),
       },
       {
-        codigo: "cabelo-anime-espetado",
-        nome: "Cabelo Anime Espetado",
-        descricao: "Visual marcante para alunos com energia de protagonista.",
-        tipo: TipoItemAvatar.CABELO,
-        raridade: RaridadeItemAvatar.RARO,
-        precoMoedas: 350,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
-      },
-      {
-        codigo: "camiseta-anatomia",
-        nome: "Camiseta Anatomia",
-        descricao: "Camiseta temática para estudantes de anatomia.",
-        tipo: TipoItemAvatar.ROUPA,
-        raridade: RaridadeItemAvatar.COMUM,
-        precoMoedas: 150,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
-      },
-      {
-        codigo: "moletom-neuro",
-        nome: "Moletom Neuro",
-        descricao: "Moletom estiloso com estampa inspirada no sistema nervoso.",
-        tipo: TipoItemAvatar.ROUPA,
-        raridade: RaridadeItemAvatar.RARO,
-        precoMoedas: 450,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
-      },
-      {
-        codigo: "jaleco-classico",
-        nome: "Jaleco Clássico",
-        descricao: "Jaleco branco tradicional para o avatar.",
-        tipo: TipoItemAvatar.JALECO,
-        raridade: RaridadeItemAvatar.COMUM,
-        precoMoedas: 250,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
-      },
-      {
-        codigo: "jaleco-premium",
-        nome: "Jaleco Premium",
-        descricao: "Jaleco especial com acabamento diferenciado.",
-        tipo: TipoItemAvatar.JALECO,
-        raridade: RaridadeItemAvatar.EPICO,
-        precoMoedas: 900,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
-      },
-      {
-        codigo: "oculos-redondo",
-        nome: "Óculos Redondo",
-        descricao: "Óculos redondo para um visual mais intelectual.",
-        tipo: TipoItemAvatar.OCULOS,
-        raridade: RaridadeItemAvatar.COMUM,
-        precoMoedas: 180,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
-      },
-      {
-        codigo: "oculos-cirurgiao",
-        nome: "Óculos de Cirurgião",
-        descricao: "Óculos estilizado para um visual mais profissional.",
-        tipo: TipoItemAvatar.OCULOS,
-        raridade: RaridadeItemAvatar.RARO,
-        precoMoedas: 400,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
-      },
-      {
-        codigo: "estetoscopio",
-        nome: "Estetoscópio",
-        descricao: "Acessório clássico para compor o avatar.",
-        tipo: TipoItemAvatar.ACESSORIO,
-        raridade: RaridadeItemAvatar.RARO,
-        precoMoedas: 500,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
-      },
-      {
-        codigo: "cafe-da-madrugada",
-        nome: "Café da Madrugada",
-        descricao: "Acessório indispensável para sobreviver aos estudos.",
-        tipo: TipoItemAvatar.ACESSORIO,
-        raridade: RaridadeItemAvatar.EPICO,
-        precoMoedas: 750,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
-      },
-      {
-        codigo: "tenis-basico",
-        nome: "Tênis Básico",
-        descricao: "Calçado simples para o avatar.",
-        tipo: TipoItemAvatar.CALCADO,
-        raridade: RaridadeItemAvatar.COMUM,
+        codigo: "icone-coracao",
+        nome: "Coração",
+        descricao: "O órgão que move tudo.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
         precoMoedas: 120,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
+        valor: "linear-gradient(135deg, #fb7185 0%, #e11d48 100%)",
+        imagemUrl: iconeAnatomia("heart-organ"),
+        previewImagemUrl: iconeAnatomia("heart-organ"),
       },
       {
-        codigo: "tenis-atp",
-        nome: "Tênis ATP",
-        descricao: "Tênis especial inspirado nas moedas da plataforma.",
-        tipo: TipoItemAvatar.CALCADO,
-        raridade: RaridadeItemAvatar.LENDARIO,
-        precoMoedas: 2000,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
+        codigo: "icone-cerebro",
+        nome: "Cérebro",
+        descricao: "Para as mentes brilhantes.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
+        precoMoedas: 200,
+        valor: "linear-gradient(135deg, #c4b5fd 0%, #7c3aed 100%)",
+        imagemUrl: iconeAnatomia("brain"),
+        previewImagemUrl: iconeAnatomia("brain"),
       },
       {
-        codigo: "cracha-monitor",
-        nome: "Crachá de Monitor",
-        descricao: "Item especial para destacar o avatar.",
-        tipo: TipoItemAvatar.OUTRO,
-        raridade: RaridadeItemAvatar.RARO,
-        precoMoedas: 600,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
+        codigo: "icone-anatoquiz-dourado",
+        nome: "AnatoQuiz Dourado",
+        descricao: "Ícone premium com a logo do AnatoQuiz em dourado.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
+        precoMoedas: 500,
+        valor: GRADIENTE_OURO,
+        // logo renderizada no front a partir do codigo (asset local)
+      },
+
+      // --- Molduras de ícone de perfil (4) - anel em `valor` ---
+      {
+        codigo: "moldura-bronze",
+        nome: "Bronze",
+        descricao: "Moldura de bronze para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 90,
+        valor: "linear-gradient(135deg, #d97706 0%, #92400e 100%)",
       },
       {
-        codigo: "aura-genio-anatomia",
-        nome: "Aura Gênio da Anatomia",
-        descricao: "Efeito visual lendário para o avatar.",
-        tipo: TipoItemAvatar.OUTRO,
-        raridade: RaridadeItemAvatar.LENDARIO,
-        precoMoedas: 1800,
-        imagemUrl: null,
-        previewImagemUrl: null,
-        ativo: true,
+        codigo: "moldura-prateada",
+        nome: "Prateada",
+        descricao: "Moldura prateada para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 140,
+        valor: "linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%)",
+      },
+      {
+        codigo: "moldura-dourada",
+        nome: "Dourada",
+        descricao: "Moldura dourada para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 220,
+        valor: GRADIENTE_OURO,
+      },
+      {
+        codigo: "moldura-neon",
+        nome: "Neon",
+        descricao: "Moldura neon vibrante para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 380,
+        valor: "linear-gradient(135deg, #22d3ee 0%, #a855f7 100%)",
+      },
+
+      // --- Avatares (4) - modelos prontos, sem customização. Mesmo preço (100). ---
+      {
+        codigo: "avatar-estudioso",
+        nome: "O Estudioso",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("Estudioso7", "ae5d29"),
+        previewImagemUrl: avatar("Estudioso7", "ae5d29"),
+      },
+      {
+        codigo: "avatar-mundo-da-lua",
+        nome: "Mundo da Lua",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("MundoDaLua3", "d08b5b"),
+        previewImagemUrl: avatar("MundoDaLua3", "d08b5b"),
+      },
+      {
+        codigo: "avatar-nerd",
+        nome: "Nerd de Plantão",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("NerdDePlantao", "edb98a"),
+        previewImagemUrl: avatar("NerdDePlantao", "edb98a"),
+      },
+      {
+        codigo: "avatar-modo-tedio",
+        nome: "Modo Tédio",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("ModoTedio9", "ffdbb4"),
+        previewImagemUrl: avatar("ModoTedio9", "ffdbb4"),
+      },
+
+      // --- Títulos (4) - renderizados como texto ---
+      {
+        codigo: "titulo-calouro-curioso",
+        nome: "Calouro Curioso",
+        descricao: "Título de destaque para quem está começando a jornada.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 50,
+      },
+      {
+        codigo: "titulo-veterano-dos-ossos",
+        nome: "Veterano dos Ossos",
+        descricao: "Título de destaque para os experientes em osteologia.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 150,
+      },
+      {
+        codigo: "titulo-mestre-anatomia",
+        nome: "Mestre da Anatomia",
+        descricao: "Título de destaque para quem domina o corpo humano.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 250,
+      },
+      {
+        codigo: "titulo-doutor-em-formacao",
+        nome: "Doutor em Formação",
+        descricao: "Título de destaque para os futuros doutores.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 400,
+      },
+
+      // --- Planos de fundo (4) - cor/gradiente em `valor` ---
+      {
+        codigo: "fundo-azul-noturno",
+        nome: "Azul Noturno",
+        descricao: "Plano de fundo em azul escuro, padrão da plataforma.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 80,
+        valor: "#0A1128",
+      },
+      {
+        codigo: "fundo-verde-menta",
+        nome: "Verde Menta",
+        descricao: "Plano de fundo em verde menta suave.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 130,
+        valor: "linear-gradient(135deg, #71edc8 0%, #34d399 100%)",
+      },
+      {
+        codigo: "fundo-laranja-vibrante",
+        nome: "Laranja Vibrante",
+        descricao: "Plano de fundo em laranja energético.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 180,
+        valor: "linear-gradient(135deg, #fb923c 0%, #F97316 100%)",
+      },
+      {
+        codigo: "fundo-textura-anatomica",
+        nome: "Textura Anatômica",
+        descricao: "Plano de fundo com gradiente inspirado na identidade do AnatoQuizUp.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 350,
+        valor: "linear-gradient(135deg, #0A1128 0%, #00214d 100%)",
       },
     ],
   });
 
-  console.log("Itens da loja virtual de avatar criados com sucesso.");
+  console.log("Itens da loja virtual (cosméticos) criados com sucesso.");
 
   // 2. Criando Temas
   const temas = {

@@ -7,29 +7,22 @@ import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { MENSAGENS } from "@/shared/constants/mensagens";
 
-import type { AvatarLojaRepository, InventarioAvatarBanco, ItemAvatarBanco } from "./avatarLoja.repository";
-import type {
-  CompraItemAvatarDto,
-  InventarioAvatarItemDto,
-  ItemAvatarLojaDto,
-} from "./dto/avatar_loja.dto";
-import type {
-  ListarCatalogoAvatarQueryDto,
-  ListarInventarioAvatarQueryDto,
-} from "./avatarLoja.schemas";
+import type { InventarioBanco, ItemLojaBanco, LojaRepository } from "./loja.repository";
+import type { CompraItemDto, InventarioItemDto, ItemLojaDto } from "./dto/loja.dto";
+import type { ListarCatalogoQueryDto, ListarInventarioQueryDto } from "./loja.schemas";
 
-export class AvatarLojaService {
-  constructor(private readonly avatarLojaRepository: AvatarLojaRepository) {}
+export class LojaService {
+  constructor(private readonly lojaRepository: LojaRepository) {}
 
   async listarCatalogo(
     usuarioId: string | undefined,
-    query: ListarCatalogoAvatarQueryDto,
-  ): Promise<RespostaPaginada<ItemAvatarLojaDto>> {
+    query: ListarCatalogoQueryDto,
+  ): Promise<RespostaPaginada<ItemLojaDto>> {
     this.validarUsuarioAutenticado(usuarioId);
 
     const paginacao = resolverParametrosPaginacao(query);
 
-    const { data, total, itensAdquiridos } = await this.avatarLojaRepository.listarCatalogo(
+    const { data, total, itensAdquiridos } = await this.lojaRepository.listarCatalogo(
       usuarioId,
       paginacao,
       query,
@@ -43,16 +36,13 @@ export class AvatarLojaService {
 
   async listarInventario(
     usuarioId: string | undefined,
-    query: ListarInventarioAvatarQueryDto,
-  ): Promise<RespostaPaginada<InventarioAvatarItemDto>> {
+    query: ListarInventarioQueryDto,
+  ): Promise<RespostaPaginada<InventarioItemDto>> {
     this.validarUsuarioAutenticado(usuarioId);
 
     const paginacao = resolverParametrosPaginacao(query);
 
-    const { data, total } = await this.avatarLojaRepository.listarInventario(
-      usuarioId,
-      paginacao
-    );
+    const { data, total } = await this.lojaRepository.listarInventario(usuarioId, paginacao);
 
     return {
       dados: data.map((item) => this.converterInventario(item)),
@@ -60,16 +50,13 @@ export class AvatarLojaService {
     };
   }
 
-  async comprar(
-    usuarioId: string | undefined,
-    itemAvatarLojaId: string,
-  ): Promise<CompraItemAvatarDto> {
+  async comprar(usuarioId: string | undefined, itemLojaId: string): Promise<CompraItemDto> {
     this.validarUsuarioAutenticado(usuarioId);
 
-    const compra = await this.avatarLojaRepository.comprarItem(usuarioId, itemAvatarLojaId);
+    const compra = await this.lojaRepository.comprarItem(usuarioId, itemLojaId);
 
     return {
-      mensagem: "Item de avatar comprado com sucesso.",
+      mensagem: "Item comprado com sucesso.",
       saldoMoedas: compra.saldoMoedas,
       item: this.converterInventario(compra.inventarioItem),
     };
@@ -85,15 +72,15 @@ export class AvatarLojaService {
     }
   }
 
-  private converterItemLoja(item: ItemAvatarBanco, adquirido: boolean): ItemAvatarLojaDto {
+  private converterItemLoja(item: ItemLojaBanco, adquirido: boolean): ItemLojaDto {
     return {
       id: item.id,
       codigo: item.codigo,
       nome: item.nome,
       descricao: item.descricao,
       tipo: item.tipo,
-      raridade: item.raridade,
       precoMoedas: item.precoMoedas,
+      valor: item.valor,
       imagemUrl: item.imagemUrl,
       previewImagemUrl: item.previewImagemUrl,
       ativo: item.ativo,
@@ -101,22 +88,22 @@ export class AvatarLojaService {
     };
   }
 
-  private converterInventario(item: InventarioAvatarBanco): InventarioAvatarItemDto {
+  private converterInventario(item: InventarioBanco): InventarioItemDto {
     return {
       id: item.id,
       equipado: item.equipado,
       adquiridoEm: item.adquiridoEm,
       item: {
-        id: item.itemAvatarLoja.id,
-        codigo: item.itemAvatarLoja.codigo,
-        nome: item.itemAvatarLoja.nome,
-        descricao: item.itemAvatarLoja.descricao,
-        tipo: item.itemAvatarLoja.tipo,
-        raridade: item.itemAvatarLoja.raridade,
-        precoMoedas: item.itemAvatarLoja.precoMoedas,
-        imagemUrl: item.itemAvatarLoja.imagemUrl,
-        previewImagemUrl: item.itemAvatarLoja.previewImagemUrl,
-        ativo: item.itemAvatarLoja.ativo,
+        id: item.itemLoja.id,
+        codigo: item.itemLoja.codigo,
+        nome: item.itemLoja.nome,
+        descricao: item.itemLoja.descricao,
+        tipo: item.itemLoja.tipo,
+        precoMoedas: item.itemLoja.precoMoedas,
+        valor: item.itemLoja.valor,
+        imagemUrl: item.itemLoja.imagemUrl,
+        previewImagemUrl: item.itemLoja.previewImagemUrl,
+        ativo: item.itemLoja.ativo,
       },
     };
   }

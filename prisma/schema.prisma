@@ -38,7 +38,7 @@ enum StatusTurma {
 
 enum FonteMoeda {
   ACERTO_QUESTAO
-  COMPRA_ITEM_AVATAR
+  COMPRA_ITEM
 }
 
 enum StatusResolucaoLista {
@@ -46,21 +46,12 @@ enum StatusResolucaoLista {
   SUBMETIDA
 }
 
-enum TipoItemAvatar {
-  CABELO
-  ROUPA
-  JALECO
-  OCULOS
-  ACESSORIO
-  CALCADO
-  OUTRO
-}
-
-enum RaridadeItemAvatar {
-  COMUM
-  RARO
-  EPICO
-  LENDARIO
+enum TipoItemLoja {
+  ICONE_PERFIL
+  AVATAR
+  TITULO
+  PLANO_FUNDO
+  MOLDURA
 }
 
 model Tema {
@@ -158,24 +149,26 @@ model CarteiraMoedas {
   @@map("carteiras_moedas")
 }
 
-model ItemAvatarLoja {
+model ItemLoja {
   id String @id @default(cuid())
 
   codigo    String  @unique
   nome      String
   descricao String?
 
-  tipo     TipoItemAvatar
-  raridade RaridadeItemAvatar @default(COMUM)
+  tipo TipoItemLoja
 
   precoMoedas Int
+
+  // Cor (hex) ou chave de textura para PLANO_FUNDO; null nas demais categorias.
+  valor String?
 
   imagemUrl        String?
   previewImagemUrl String?
 
   ativo Boolean @default(true)
 
-  inventarios      InventarioAvatarItem[]
+  inventarios      InventarioItem[]
   transacoesMoedas TransacaoMoeda[]
 
   criadoEm     DateTime  @default(now())
@@ -184,29 +177,29 @@ model ItemAvatarLoja {
 
   @@index([tipo])
   @@index([ativo])
-  @@map("itens_avatar_loja")
+  @@map("itens_loja")
 }
 
-model InventarioAvatarItem {
+model InventarioItem {
   id String @id @default(cuid())
 
-  usuarioId        String
-  itemAvatarLojaId String
+  usuarioId  String
+  itemLojaId String
 
   equipado Boolean @default(false)
 
   adquiridoEm DateTime @default(now())
 
-  itemAvatarLoja ItemAvatarLoja @relation(fields: [itemAvatarLojaId], references: [id], onDelete: Restrict)
+  itemLoja ItemLoja @relation(fields: [itemLojaId], references: [id], onDelete: Restrict)
 
   criadoEm     DateTime  @default(now())
   atualizadoEm DateTime  @updatedAt
   excluidoEm   DateTime?
 
-  @@unique([usuarioId, itemAvatarLojaId])
+  @@unique([usuarioId, itemLojaId])
   @@index([usuarioId])
-  @@index([itemAvatarLojaId])
-  @@map("inventario_avatar_itens")
+  @@index([itemLojaId])
+  @@map("inventario_itens")
 }
 
 model TransacaoMoeda {
@@ -214,8 +207,8 @@ model TransacaoMoeda {
 
   usuarioId String
 
-  questaoId        String?
-  itemAvatarLojaId String?
+  questaoId  String?
+  itemLojaId String?
 
   quantidade Int
   fonte      FonteMoeda @default(ACERTO_QUESTAO)
@@ -224,16 +217,16 @@ model TransacaoMoeda {
 
   carteira CarteiraMoedas @relation(fields: [usuarioId], references: [usuarioId], onDelete: Restrict)
 
-  questao         Questao?        @relation(fields: [questaoId], references: [id], onDelete: Restrict)
-  itemAvatarLoja ItemAvatarLoja? @relation(fields: [itemAvatarLojaId], references: [id], onDelete: Restrict)
+  questao  Questao?  @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+  itemLoja ItemLoja? @relation(fields: [itemLojaId], references: [id], onDelete: Restrict)
 
   criadoEm DateTime @default(now())
 
   @@unique([usuarioId, questaoId, fonte])
-  @@unique([usuarioId, itemAvatarLojaId, fonte])
+  @@unique([usuarioId, itemLojaId, fonte])
   @@index([usuarioId])
   @@index([questaoId])
-  @@index([itemAvatarLojaId])
+  @@index([itemLojaId])
   @@map("transacoes_moedas")
 }
 

@@ -2,56 +2,53 @@ import { FonteMoeda, type Prisma } from "@prisma/client";
 
 import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
-import type {
-  ListarCatalogoAvatarQueryDto,
-} from "./avatarLoja.schemas";
+import type { ListarCatalogoQueryDto } from "./loja.schemas";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 
-type ItemAvatarBanco = Prisma.ItemAvatarLojaGetPayload<object>;
+type ItemLojaBanco = Prisma.ItemLojaGetPayload<object>;
 
-type InventarioAvatarBanco = Prisma.InventarioAvatarItemGetPayload<{
+type InventarioBanco = Prisma.InventarioItemGetPayload<{
   include: {
-    itemAvatarLoja: true;
+    itemLoja: true;
   };
 }>;
 
-export class AvatarLojaRepository {
+export class LojaRepository {
   async listarCatalogo(
     usuarioId: string,
     paginacao: ParametrosPaginacao,
-    filtros: ListarCatalogoAvatarQueryDto,
+    filtros: ListarCatalogoQueryDto,
   ) {
-    const where: Prisma.ItemAvatarLojaWhereInput = {
+    const where: Prisma.ItemLojaWhereInput = {
       ativo: true,
       excluidoEm: null,
       ...(filtros.tipo && { tipo: filtros.tipo }),
-      ...(filtros.raridade && { raridade: filtros.raridade }),
     };
 
     const [itens, total] = await prisma.$transaction([
-      prisma.itemAvatarLoja.findMany({
+      prisma.itemLoja.findMany({
         where,
         skip: paginacao.skip,
         take: paginacao.limit,
         orderBy: [{ tipo: "asc" }, { precoMoedas: "asc" }, { nome: "asc" }],
       }),
-      prisma.itemAvatarLoja.count({ where }),
+      prisma.itemLoja.count({ where }),
     ]);
 
-    const inventario = await prisma.inventarioAvatarItem.findMany({
+    const inventario = await prisma.inventarioItem.findMany({
       where: {
         usuarioId,
-        itemAvatarLojaId: {
+        itemLojaId: {
           in: itens.map((item) => item.id),
         },
       },
       select: {
-        itemAvatarLojaId: true,
+        itemLojaId: true,
       },
     });
 
-    const itensAdquiridos = new Set(inventario.map((item) => item.itemAvatarLojaId));
+    const itensAdquiridos = new Set(inventario.map((item) => item.itemLojaId));
 
     return {
       data: itens,
@@ -60,23 +57,20 @@ export class AvatarLojaRepository {
     };
   }
 
-  async listarInventario(
-    usuarioId: string,
-    paginacao: ParametrosPaginacao,
-  ) {
-    const where: Prisma.InventarioAvatarItemWhereInput = {
+  async listarInventario(usuarioId: string, paginacao: ParametrosPaginacao) {
+    const where: Prisma.InventarioItemWhereInput = {
       usuarioId,
       excluidoEm: null,
-      itemAvatarLoja: {
+      itemLoja: {
         excluidoEm: null,
       },
     };
 
     const [data, total] = await prisma.$transaction([
-      prisma.inventarioAvatarItem.findMany({
+      prisma.inventarioItem.findMany({
         where,
         include: {
-          itemAvatarLoja: true,
+          itemLoja: true,
         },
         skip: paginacao.skip,
         take: paginacao.limit,
@@ -84,23 +78,23 @@ export class AvatarLojaRepository {
           adquiridoEm: "desc",
         },
       }),
-      prisma.inventarioAvatarItem.count({ where }),
+      prisma.inventarioItem.count({ where }),
     ]);
 
     return { data, total };
   }
 
-  async comprarItem(usuarioId: string, itemAvatarLojaId: string) {
+  async comprarItem(usuarioId: string, itemLojaId: string) {
     return await prisma.$transaction(async (tx) => {
-      const item = await tx.itemAvatarLoja.findUnique({
-        where: { id: itemAvatarLojaId },
+      const item = await tx.itemLoja.findUnique({
+        where: { id: itemLojaId },
       });
 
       if (!item || item.excluidoEm !== null) {
         throw new ErroAplicacao({
           codigoStatus: 404,
           codigo: CodigoDeErro.NAO_ENCONTRADO,
-          mensagem: "Item de avatar nao encontrado.",
+          mensagem: "Item nao encontrado.",
         });
       }
 
@@ -108,15 +102,15 @@ export class AvatarLojaRepository {
         throw new ErroAplicacao({
           codigoStatus: 422,
           codigo: CodigoDeErro.REQUISICAO_INVALIDA,
-          mensagem: "Este item de avatar nao esta disponivel para compra.",
+          mensagem: "Este item nao esta disponivel para compra.",
         });
       }
 
-      const inventarioCriado = await tx.inventarioAvatarItem.createMany({
+      const inventarioCriado = await tx.inventarioItem.createMany({
         data: [
           {
             usuarioId,
-            itemAvatarLojaId,
+            itemLojaId,
           },
         ],
         skipDuplicates: true,
@@ -126,7 +120,7 @@ export class AvatarLojaRepository {
         throw new ErroAplicacao({
           codigoStatus: 409,
           codigo: CodigoDeErro.CONFLITO,
-          mensagem: "Este item de avatar ja foi adquirido pelo aluno.",
+          mensagem: "Este item ja foi adquirido pelo aluno.",
         });
       }
 
@@ -164,10 +158,10 @@ export class AvatarLojaRepository {
       await tx.transacaoMoeda.create({
         data: {
           usuarioId,
-          itemAvatarLojaId,
+          itemLojaId,
           quantidade: -item.precoMoedas,
-          fonte: FonteMoeda.COMPRA_ITEM_AVATAR,
-          descricao: `Compra do item de avatar: ${item.nome}`,
+          fonte: FonteMoeda.COMPRA_ITEM,
+          descricao: `Compra do item: ${item.nome}`,
         },
       });
 
@@ -176,15 +170,15 @@ export class AvatarLojaRepository {
         select: { saldo: true },
       });
 
-      const inventarioItem = await tx.inventarioAvatarItem.findUniqueOrThrow({
+      const inventarioItem = await tx.inventarioItem.findUniqueOrThrow({
         where: {
-          usuarioId_itemAvatarLojaId: {
+          usuarioId_itemLojaId: {
             usuarioId,
-            itemAvatarLojaId,
+            itemLojaId,
           },
         },
         include: {
-          itemAvatarLoja: true,
+          itemLoja: true,
         },
       });
 
@@ -196,4 +190,4 @@ export class AvatarLojaRepository {
   }
 }
 
-export type { ItemAvatarBanco, InventarioAvatarBanco };
+export type { ItemLojaBanco, InventarioBanco };

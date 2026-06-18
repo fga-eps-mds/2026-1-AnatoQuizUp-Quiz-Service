@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
-import { AvatarLojaController } from "@/modules/avatarLoja/avatarLoja.controller";
-import type { AvatarLojaService } from "@/modules/avatarLoja/avatarLoja.service";
+import { LojaController } from "@/modules/loja/loja.controller";
+import type { LojaService } from "@/modules/loja/loja.service";
 
 function criarResponseMock<T>() {
   const json = jest.fn();
@@ -14,19 +14,19 @@ function criarResponseMock<T>() {
   };
 }
 
-describe("Testa AvatarLoja Controller", () => {
-  let controller: AvatarLojaController;
-  let avatarLojaService: jest.Mocked<AvatarLojaService>;
+describe("Testa Loja Controller", () => {
+  let controller: LojaController;
+  let lojaService: jest.Mocked<LojaService>;
   const next = jest.fn() as NextFunction;
 
   beforeEach(() => {
-    avatarLojaService = {
+    lojaService = {
       listarCatalogo: jest.fn(),
       listarInventario: jest.fn(),
       comprar: jest.fn(),
-    } as unknown as jest.Mocked<AvatarLojaService>;
+    } as unknown as jest.Mocked<LojaService>;
 
-    controller = new AvatarLojaController(avatarLojaService);
+    controller = new LojaController(lojaService);
     jest.clearAllMocks();
   });
 
@@ -35,12 +35,12 @@ describe("Testa AvatarLoja Controller", () => {
       dados: [
         {
           id: "item-id",
-          codigo: "cabelo-curto-classico",
-          nome: "Cabelo Curto Clássico",
+          codigo: "icone-coruja-sabia",
+          nome: "Coruja Sábia",
           descricao: null,
-          tipo: "CABELO",
-          raridade: "COMUM",
-          precoMoedas: 100,
+          tipo: "ICONE_PERFIL" as const,
+          precoMoedas: 1,
+          valor: null,
           imagemUrl: null,
           previewImagemUrl: null,
           ativo: true,
@@ -55,7 +55,7 @@ describe("Testa AvatarLoja Controller", () => {
       },
     };
 
-    avatarLojaService.listarCatalogo.mockResolvedValue(respostaMock);
+    lojaService.listarCatalogo.mockResolvedValue(respostaMock);
 
     const request = {
       usuario: {
@@ -71,7 +71,7 @@ describe("Testa AvatarLoja Controller", () => {
 
     await controller.listarCatalogo(request, response, next);
 
-    expect(avatarLojaService.listarCatalogo).toHaveBeenCalledWith("usuario-id", request.query);
+    expect(lojaService.listarCatalogo).toHaveBeenCalledWith("usuario-id", request.query);
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith(respostaMock);
   });
@@ -79,7 +79,7 @@ describe("Testa AvatarLoja Controller", () => {
   test("deve chamar next quando service lançar erro ao listar catalogo", async () => {
     const erro = new Error("Erro ao listar catalogo");
 
-    avatarLojaService.listarCatalogo.mockRejectedValue(erro);
+    lojaService.listarCatalogo.mockRejectedValue(erro);
 
     const request = {
       usuario: {
@@ -105,12 +105,12 @@ describe("Testa AvatarLoja Controller", () => {
           adquiridoEm: new Date("2026-06-16T00:00:00.000Z"),
           item: {
             id: "item-id",
-            codigo: "cabelo-curto-classico",
-            nome: "Cabelo Curto Clássico",
+            codigo: "icone-coruja-sabia",
+            nome: "Coruja Sábia",
             descricao: null,
-            tipo: "CABELO",
-            raridade: "COMUM",
-            precoMoedas: 100,
+            tipo: "ICONE_PERFIL" as const,
+            precoMoedas: 1,
+            valor: null,
             imagemUrl: null,
             previewImagemUrl: null,
             ativo: true,
@@ -125,7 +125,7 @@ describe("Testa AvatarLoja Controller", () => {
       },
     };
 
-    avatarLojaService.listarInventario.mockResolvedValue(respostaMock);
+    lojaService.listarInventario.mockResolvedValue(respostaMock);
 
     const request = {
       usuario: {
@@ -138,14 +138,14 @@ describe("Testa AvatarLoja Controller", () => {
 
     await controller.listarInventario(request, response, next);
 
-    expect(avatarLojaService.listarInventario).toHaveBeenCalledWith("usuario-id", request.query);
+    expect(lojaService.listarInventario).toHaveBeenCalledWith("usuario-id", request.query);
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith(respostaMock);
   });
 
   test("deve comprar item com sucesso", async () => {
     const respostaMock = {
-      mensagem: "Item de avatar comprado com sucesso.",
+      mensagem: "Item comprado com sucesso.",
       saldoMoedas: 4900,
       item: {
         id: "inventario-id",
@@ -153,12 +153,12 @@ describe("Testa AvatarLoja Controller", () => {
         adquiridoEm: new Date("2026-06-16T00:00:00.000Z"),
         item: {
           id: "item-id",
-          codigo: "cabelo-curto-classico",
-          nome: "Cabelo Curto Clássico",
+          codigo: "icone-coruja-sabia",
+          nome: "Coruja Sábia",
           descricao: null,
-          tipo: "CABELO",
-          raridade: "COMUM",
-          precoMoedas: 100,
+          tipo: "ICONE_PERFIL" as const,
+          precoMoedas: 1,
+          valor: null,
           imagemUrl: null,
           previewImagemUrl: null,
           ativo: true,
@@ -166,14 +166,14 @@ describe("Testa AvatarLoja Controller", () => {
       },
     };
 
-    avatarLojaService.comprar.mockResolvedValue(respostaMock);
+    lojaService.comprar.mockResolvedValue(respostaMock);
 
     const request = {
       usuario: {
         id: "usuario-id",
       },
       body: {
-        itemAvatarLojaId: "item-id",
+        itemLojaId: "item-id",
       },
     } as unknown as Request;
 
@@ -181,7 +181,7 @@ describe("Testa AvatarLoja Controller", () => {
 
     await controller.comprar(request, response, next);
 
-    expect(avatarLojaService.comprar).toHaveBeenCalledWith("usuario-id", "item-id");
+    expect(lojaService.comprar).toHaveBeenCalledWith("usuario-id", "item-id");
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith(respostaMock);
   });
@@ -189,14 +189,14 @@ describe("Testa AvatarLoja Controller", () => {
   test("deve chamar next quando service lançar erro ao comprar item", async () => {
     const erro = new Error("Erro ao comprar item");
 
-    avatarLojaService.comprar.mockRejectedValue(erro);
+    lojaService.comprar.mockRejectedValue(erro);
 
     const request = {
       usuario: {
         id: "usuario-id",
       },
       body: {
-        itemAvatarLojaId: "item-id",
+        itemLojaId: "item-id",
       },
     } as unknown as Request;
 

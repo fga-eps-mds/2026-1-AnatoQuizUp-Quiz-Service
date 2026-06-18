@@ -1,19 +1,19 @@
 import { prisma } from "@/config/db";
-import { AvatarLojaRepository } from "@/modules/avatarLoja/avatarLoja.repository";
-import { FonteMoeda, RaridadeItemAvatar, TipoItemAvatar } from "@prisma/client";
+import { LojaRepository } from "@/modules/loja/loja.repository";
+import { FonteMoeda, TipoItemLoja } from "@prisma/client";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 
 jest.mock("@/config/db", () => ({
   prisma: {
     $transaction: jest.fn(),
 
-    itemAvatarLoja: {
+    itemLoja: {
       findMany: jest.fn(),
       count: jest.fn(),
       findUnique: jest.fn(),
     },
 
-    inventarioAvatarItem: {
+    inventarioItem: {
       findMany: jest.fn(),
       count: jest.fn(),
       createMany: jest.fn(),
@@ -34,17 +34,17 @@ jest.mock("@/config/db", () => ({
 
 const transactionMock = prisma.$transaction as jest.Mock;
 
-function criarItemAvatar(overrides = {}) {
+function criarItemLoja(overrides = {}) {
   const agora = new Date("2026-06-16T00:00:00.000Z");
 
   return {
-    id: "item-avatar-id",
-    codigo: "cabelo-curto-classico",
-    nome: "Cabelo Curto Clássico",
-    descricao: "Um corte simples e elegante para o avatar.",
-    tipo: TipoItemAvatar.CABELO,
-    raridade: RaridadeItemAvatar.COMUM,
-    precoMoedas: 100,
+    id: "item-loja-id",
+    codigo: "icone-coruja-sabia",
+    nome: "Coruja Sábia",
+    descricao: "Ícone de perfil para os estudiosos de plantão.",
+    tipo: TipoItemLoja.ICONE_PERFIL,
+    precoMoedas: 1,
+    valor: null,
     imagemUrl: null,
     previewImagemUrl: null,
     ativo: true,
@@ -55,40 +55,40 @@ function criarItemAvatar(overrides = {}) {
   };
 }
 
-function criarInventarioAvatar(itemAvatarLoja = criarItemAvatar()) {
+function criarInventario(itemLoja = criarItemLoja()) {
   const agora = new Date("2026-06-16T00:00:00.000Z");
 
   return {
     id: "inventario-id",
     usuarioId: "usuario-id",
-    itemAvatarLojaId: itemAvatarLoja.id,
+    itemLojaId: itemLoja.id,
     equipado: false,
     adquiridoEm: agora,
     criadoEm: agora,
     atualizadoEm: agora,
     excluidoEm: null,
-    itemAvatarLoja,
+    itemLoja,
   };
 }
 
-describe("Testa AvatarLoja Repository", () => {
-  let repository: AvatarLojaRepository;
+describe("Testa Loja Repository", () => {
+  let repository: LojaRepository;
 
   beforeEach(() => {
-    repository = new AvatarLojaRepository();
+    repository = new LojaRepository();
     jest.clearAllMocks();
   });
 
   test("deve listar catalogo com filtros e itens adquiridos", async () => {
-    const item = criarItemAvatar();
+    const item = criarItemLoja();
     const registros = [item];
     const totalRegistros = 1;
 
     transactionMock.mockResolvedValue([registros, totalRegistros]);
 
-    (prisma.inventarioAvatarItem.findMany as jest.Mock).mockResolvedValue([
+    (prisma.inventarioItem.findMany as jest.Mock).mockResolvedValue([
       {
-        itemAvatarLojaId: item.id,
+        itemLojaId: item.id,
       },
     ]);
 
@@ -100,18 +100,16 @@ describe("Testa AvatarLoja Repository", () => {
         skip: 0,
       },
       {
-        tipo: TipoItemAvatar.CABELO,
-        raridade: RaridadeItemAvatar.COMUM,
+        tipo: TipoItemLoja.ICONE_PERFIL,
       },
     );
 
-    expect(prisma.itemAvatarLoja.findMany).toHaveBeenCalledWith(
+    expect(prisma.itemLoja.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           ativo: true,
           excluidoEm: null,
-          tipo: TipoItemAvatar.CABELO,
-          raridade: RaridadeItemAvatar.COMUM,
+          tipo: TipoItemLoja.ICONE_PERFIL,
         }),
         skip: 0,
         take: 10,
@@ -119,26 +117,25 @@ describe("Testa AvatarLoja Repository", () => {
       }),
     );
 
-    expect(prisma.itemAvatarLoja.count).toHaveBeenCalledWith(
+    expect(prisma.itemLoja.count).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           ativo: true,
           excluidoEm: null,
-          tipo: TipoItemAvatar.CABELO,
-          raridade: RaridadeItemAvatar.COMUM,
+          tipo: TipoItemLoja.ICONE_PERFIL,
         }),
       }),
     );
 
-    expect(prisma.inventarioAvatarItem.findMany).toHaveBeenCalledWith({
+    expect(prisma.inventarioItem.findMany).toHaveBeenCalledWith({
       where: {
         usuarioId: "usuario-id",
-        itemAvatarLojaId: {
+        itemLojaId: {
           in: [item.id],
         },
       },
       select: {
-        itemAvatarLojaId: true,
+        itemLojaId: true,
       },
     });
 
@@ -150,31 +147,28 @@ describe("Testa AvatarLoja Repository", () => {
   });
 
   test("deve listar inventario do usuario", async () => {
-    const inventario = criarInventarioAvatar();
+    const inventario = criarInventario();
 
     transactionMock.mockResolvedValue([[inventario], 1]);
 
-    const resultado = await repository.listarInventario(
-      "usuario-id",
-      {
-        page: 1,
-        limit: 10,
-        skip: 0,
-      },
-    );
+    const resultado = await repository.listarInventario("usuario-id", {
+      page: 1,
+      limit: 10,
+      skip: 0,
+    });
 
     const where = {
       usuarioId: "usuario-id",
       excluidoEm: null,
-      itemAvatarLoja: {
+      itemLoja: {
         excluidoEm: null,
       },
     };
 
-    expect(prisma.inventarioAvatarItem.findMany).toHaveBeenCalledWith({
+    expect(prisma.inventarioItem.findMany).toHaveBeenCalledWith({
       where,
       include: {
-        itemAvatarLoja: true,
+        itemLoja: true,
       },
       skip: 0,
       take: 10,
@@ -183,7 +177,7 @@ describe("Testa AvatarLoja Repository", () => {
       },
     });
 
-    expect(prisma.inventarioAvatarItem.count).toHaveBeenCalledWith({ where });
+    expect(prisma.inventarioItem.count).toHaveBeenCalledWith({ where });
 
     expect(resultado).toEqual({
       data: [inventario],
@@ -192,14 +186,14 @@ describe("Testa AvatarLoja Repository", () => {
   });
 
   test("deve comprar item com sucesso", async () => {
-    const item = criarItemAvatar();
-    const inventario = criarInventarioAvatar(item);
+    const item = criarItemLoja();
+    const inventario = criarInventario(item);
 
     const tx = {
-      itemAvatarLoja: {
+      itemLoja: {
         findUnique: jest.fn().mockResolvedValue(item),
       },
-      inventarioAvatarItem: {
+      inventarioItem: {
         createMany: jest.fn().mockResolvedValue({ count: 1 }),
         findUniqueOrThrow: jest.fn().mockResolvedValue(inventario),
       },
@@ -217,17 +211,17 @@ describe("Testa AvatarLoja Repository", () => {
 
     const resultado = await repository.comprarItem("usuario-id", item.id);
 
-    expect(tx.itemAvatarLoja.findUnique).toHaveBeenCalledWith({
+    expect(tx.itemLoja.findUnique).toHaveBeenCalledWith({
       where: {
         id: item.id,
       },
     });
 
-    expect(tx.inventarioAvatarItem.createMany).toHaveBeenCalledWith({
+    expect(tx.inventarioItem.createMany).toHaveBeenCalledWith({
       data: [
         {
           usuarioId: "usuario-id",
-          itemAvatarLojaId: item.id,
+          itemLojaId: item.id,
         },
       ],
       skipDuplicates: true,
@@ -261,10 +255,10 @@ describe("Testa AvatarLoja Repository", () => {
     expect(tx.transacaoMoeda.create).toHaveBeenCalledWith({
       data: {
         usuarioId: "usuario-id",
-        itemAvatarLojaId: item.id,
+        itemLojaId: item.id,
         quantidade: -item.precoMoedas,
-        fonte: FonteMoeda.COMPRA_ITEM_AVATAR,
-        descricao: `Compra do item de avatar: ${item.nome}`,
+        fonte: FonteMoeda.COMPRA_ITEM,
+        descricao: `Compra do item: ${item.nome}`,
       },
     });
 
@@ -277,15 +271,15 @@ describe("Testa AvatarLoja Repository", () => {
       },
     });
 
-    expect(tx.inventarioAvatarItem.findUniqueOrThrow).toHaveBeenCalledWith({
+    expect(tx.inventarioItem.findUniqueOrThrow).toHaveBeenCalledWith({
       where: {
-        usuarioId_itemAvatarLojaId: {
+        usuarioId_itemLojaId: {
           usuarioId: "usuario-id",
-          itemAvatarLojaId: item.id,
+          itemLojaId: item.id,
         },
       },
       include: {
-        itemAvatarLoja: true,
+        itemLoja: true,
       },
     });
 
@@ -297,7 +291,7 @@ describe("Testa AvatarLoja Repository", () => {
 
   test("deve lançar erro quando item nao existir", async () => {
     const tx = {
-      itemAvatarLoja: {
+      itemLoja: {
         findUnique: jest.fn().mockResolvedValue(null),
       },
     };
@@ -310,12 +304,12 @@ describe("Testa AvatarLoja Repository", () => {
   });
 
   test("deve lançar erro quando item estiver inativo", async () => {
-    const item = criarItemAvatar({
+    const item = criarItemLoja({
       ativo: false,
     });
 
     const tx = {
-      itemAvatarLoja: {
+      itemLoja: {
         findUnique: jest.fn().mockResolvedValue(item),
       },
     };
@@ -328,13 +322,13 @@ describe("Testa AvatarLoja Repository", () => {
   });
 
   test("deve lançar erro quando item ja tiver sido adquirido", async () => {
-    const item = criarItemAvatar();
+    const item = criarItemLoja();
 
     const tx = {
-      itemAvatarLoja: {
+      itemLoja: {
         findUnique: jest.fn().mockResolvedValue(item),
       },
-      inventarioAvatarItem: {
+      inventarioItem: {
         createMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       carteiraMoedas: {
@@ -357,13 +351,13 @@ describe("Testa AvatarLoja Repository", () => {
   });
 
   test("deve lançar erro quando saldo for insuficiente", async () => {
-    const item = criarItemAvatar();
+    const item = criarItemLoja();
 
     const tx = {
-      itemAvatarLoja: {
+      itemLoja: {
         findUnique: jest.fn().mockResolvedValue(item),
       },
-      inventarioAvatarItem: {
+      inventarioItem: {
         createMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       carteiraMoedas: {
