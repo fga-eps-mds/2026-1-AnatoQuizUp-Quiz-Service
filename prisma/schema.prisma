@@ -45,11 +45,25 @@ enum StatusResolucaoLista {
   SUBMETIDA
 }
 
+enum TipoConquista {
+  STREAK_ACERTOS
+  TOTAL_ACERTOS
+  TOTAL_ACERTOS_TEMA
+  PERCENTUAL_ACERTO_TEMA
+}
+
+enum TierConquista {
+  BRONZE
+  PRATA
+  OURO
+}
+
 model Tema {
   id   String @id @default(cuid())
   nome String
 
-  questoes Questao[]
+  questoes   Questao[]
+  conquistas Conquista[]
 
   criadoEm     DateTime  @default(now())
   atualizadoEm DateTime  @updatedAt
@@ -278,4 +292,68 @@ model ResolucaoQuestaoLista {
   @@unique([resolucaoListaId, questaoId])
   @@index([questaoId])
   @@map("resolucoes_questoes_listas")
+}
+
+model Conquista {
+  id String @id @default(cuid())
+
+  nome         String
+  descricao    String
+  tipoConquista TipoConquista
+
+  temaId String?
+  ativo  Boolean @default(true)
+
+  tema Tema? @relation(fields: [temaId], references: [id], onDelete: Restrict)
+
+  usuarios     ConquistaUsuario[]
+  desbloqueios DesbloqueioConquista[]
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([tipoConquista])
+  @@index([temaId])
+  @@map("conquistas")
+}
+
+model ConquistaUsuario {
+  id String @id @default(cuid())
+
+  usuarioId String
+
+  conquistaId String
+
+  valorProgresso Int @default(0)
+
+  conquista Conquista @relation(fields: [conquistaId], references: [id], onDelete: Cascade)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@unique([usuarioId, conquistaId])
+  @@index([usuarioId])
+  @@index([conquistaId])
+  @@map("conquistas_usuarios")
+}
+
+model DesbloqueioConquista {
+  id String @id @default(cuid())
+
+  usuarioId String
+
+  conquistaId String
+
+  tier TierConquista
+
+  destaque Boolean @default(false)
+
+  conquistadoEm DateTime @default(now())
+
+  conquista Conquista @relation(fields: [conquistaId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, conquistaId, tier])
+  @@index([usuarioId])
+  @@index([conquistaId])
+  @@map("desbloqueios_conquistas")
 }

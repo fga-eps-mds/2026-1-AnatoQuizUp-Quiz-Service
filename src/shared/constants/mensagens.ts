@@ -97,4 +97,6 @@ export const MENSAGENS = {
   erroFeedback: "Erro no feedback da questão",
 
   temasNaoEncontrados: "Temas das questões não foram encontrados",
+
+  operacaoRealizadaComSucesso: "Destaques alterados com sucesso",
 } as const;

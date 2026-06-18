@@ -11,9 +11,13 @@ import {
   schemaResponderQuestaoQuiz,
   schemaHistoricoQuizQuestoesUsuario,
 } from "./quiz.schemas";
+import { ConquistaService } from "../conquistas/conquistas.service";
+import { ConquistaRepository } from "../conquistas/conquistas.repository";
 
 const quizRepository = new QuizRepository();
-const quizService = new QuizService(quizRepository);
+const conquistaRepository = new ConquistaRepository();
+const conquistaService = new ConquistaService(conquistaRepository);
+const quizService = new QuizService(quizRepository, conquistaService);
 const quizController = new QuizController(quizService);
 
 const quizRouter = Router();

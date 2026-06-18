@@ -34,6 +34,8 @@ export const CodigoDeErro = {
   ERRO_FEEDBACK: "ERRO_FEEDBACK",
 
   TEMAS_NAO_ENCONTRADOS: "TEMAS_NAO_ENCONTRADOS",
+
+  RECURSO_NAO_ENCONTRADO: "RECURSO_NAO_ENCONTRADO",
 } as const;
 
 export type ValorCodigoDeErro = (typeof CodigoDeErro)[keyof typeof CodigoDeErro];

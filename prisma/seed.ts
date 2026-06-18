@@ -1,4 +1,4 @@
-import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao } from "@prisma/client";
+import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao, TipoConquista } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -21,6 +21,33 @@ async function main() {
   const ALUNO_1_ID     = "cmp7fx99d00044hyqq4msqsyt";
   const ALUNO_2_ID     = "cmp7fx99d00044hyqq4mswgsr";
   const MEU_USUARIO_ID = "d56fd5df-29f0-4319-a4b1-b4c0d326226c"; // <--- SEU USUARIO
+
+    await prisma.conquista.upsert({
+    where: {
+      id: "total-acertos",
+    },
+    update: {},
+    create: {
+      id: "total-acertos",
+      nome: "Primeiros Passos",
+      descricao: "Acumule acertos em quizzes.",
+      tipoConquista: TipoConquista.TOTAL_ACERTOS,
+    },
+  });
+
+  await prisma.conquista.upsert({
+    where: {
+      id: "streak-acertos",
+    },
+    update: {},
+    create: {
+      id: "streak-acertos",
+      nome: "Inabalável",
+      descricao: "Mantenha uma sequência de acertos.",
+      tipoConquista: TipoConquista.STREAK_ACERTOS,
+    },
+  });
+
 
   // 2. Criando Temas
   const temas = {
@@ -375,6 +402,7 @@ async function main() {
         respostaMarcada: acertaAluno2 ? q.respostaCorreta : (q.respostaCorreta === AlternativaQuestao.A ? AlternativaQuestao.C : AlternativaQuestao.A)
       }
     });
+    
   }
 
 }

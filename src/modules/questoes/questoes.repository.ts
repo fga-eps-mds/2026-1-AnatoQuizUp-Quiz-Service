@@ -69,6 +69,7 @@ export class QuestionRepository {
       const temaExistente = await transacao.tema.findFirst({
         where: { nome: data.tema, excluidoEm: null },
       });
+      const temaCriado = !temaExistente;
       const tema = temaExistente ?? (await transacao.tema.create({ data: { nome: data.tema } }));
 
       const questao = await transacao.questao.create({
@@ -88,7 +89,12 @@ export class QuestionRepository {
         include: includeQuestaoCompleta,
       });
 
-      return questao as RegistroQuestaoCompleta;
+      return {
+        questao: questao as RegistroQuestaoCompleta,
+        temaCriado,
+        temaId: tema.id,
+        nomeTema: tema.nome,
+      };
     });
   }
 

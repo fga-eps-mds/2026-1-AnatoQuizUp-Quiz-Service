@@ -7,6 +7,12 @@ export type FeedbackQuizDto = {
   moedasConcedidas: number;
   saldoMoedas: number;
   moedasJaConcedidas: boolean;
+  conquistasDesbloqueadas: {
+    conquistaId: string;
+    nome: string;
+    descricao: string;
+    tier: string;
+  }[];
 };
 
 export type SaldoMoedasDto = {

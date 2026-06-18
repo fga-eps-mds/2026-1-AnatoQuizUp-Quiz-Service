@@ -17,6 +17,7 @@ import type { QuantidadeQuestoesPorTema } from "./dto/responses/quantidade_quest
 import { type ResolucaoQuestaoUsuarioDto } from "./dto/responses/resolucao_questao_usuario_dto";
 import { converterResolucaoQuestaoBancoToApi } from "./dto/mappers/historico_quiz.mapper";
 import type { Dificuldade } from "@prisma/client";
+import { ConquistaService } from "../conquistas/conquistas.service";
 
 const MOEDAS_POR_DIFICULDADE: Record<Dificuldade, number> = {
   FACIL: 10,
@@ -25,7 +26,10 @@ const MOEDAS_POR_DIFICULDADE: Record<Dificuldade, number> = {
 };
 
 export class QuizService {
-  constructor(private readonly quizRepository: QuizRepository) { }
+  constructor(
+    private readonly quizRepository: QuizRepository,
+    private readonly conquistaService: ConquistaService,
+  ) {}
 
   async buscarQuestoesQuiz(
     query: FiltroListarQuestoesQueryDto,
@@ -90,6 +94,14 @@ export class QuizService {
     }
 
     const correcao = gabarito.respostaCorreta === data.respostaMarcada;
+
+    const conquistasDesbloqueadas = await this.conquistaService.processarRespostaQuestao(
+      id_usuario,
+      gabarito.temaId,
+      gabarito.tema.nome,
+      correcao,
+    );
+
     const alunoPodeReceberMoedas = papel_usuario === PAPEIS.ALUNO;
 
     let recompensa = {
@@ -111,6 +123,7 @@ export class QuizService {
       saibaMais: gabarito.saibaMais ?? "",
       respostaCorreta: gabarito.respostaCorreta,
       ...recompensa,
+      conquistasDesbloqueadas,
     };
   }
 
@@ -150,7 +163,9 @@ export class QuizService {
 
     return temas.map((tema) => {
       const quantidadePorDificuldade = { FACIL: 0, MEDIA: 0, DIFICIL: 0 };
-      tema.questoes.forEach((questao) => { quantidadePorDificuldade[questao.dificuldade]++; });
+      tema.questoes.forEach((questao) => {
+        quantidadePorDificuldade[questao.dificuldade]++;
+      });
 
       return {
         nome: tema.nome,
