@@ -1,10 +1,13 @@
-import { TierConquista, TipoConquista } from "@prisma/client";
+import type { TierConquista, TipoConquista } from "@prisma/client";
 
 export type ConquistaDesbloqueadaDto = {
   conquistaId: string;
+  desbloqueioId: string;
   nome: string;
   descricao: string;
-  tier: string;
+  tier: TierConquista;
+  tipoConquista: TipoConquista;
+  temaId?: string | null;
 };
 
 export type ResumoConquistaDto = {

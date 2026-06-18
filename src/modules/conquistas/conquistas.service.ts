@@ -1,6 +1,6 @@
-import { Conquista, TierConquista } from "@prisma/client";
+import type { Conquista, TierConquista } from "@prisma/client";
 import { CONFIG_TIERS } from "./conquistas.constants";
-import { ConquistaRepository } from "./conquistas.repository";
+import type { ConquistaRepository } from "./conquistas.repository";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 import { MENSAGENS } from "@/shared/constants/mensagens";
@@ -8,8 +8,8 @@ import {
   montarMetadadosPaginacao,
   resolverParametrosPaginacao,
 } from "@/shared/utils/paginacao.util";
-import { RespostaPaginada } from "@/shared/types/api.types";
-import {
+import type { RespostaPaginada } from "@/shared/types/api.types";
+import type {
   ConquistaDesbloqueadaDto,
   PaginacaoQueryDto,
   ProgressoConquistaDto,
@@ -131,13 +131,16 @@ export class ConquistaService {
         continue;
       }
 
-      await this.conquistaRepository.criarDesbloqueio(usuarioId, conquista.id, tier);
+      const desbloqueio = await this.conquistaRepository.criarDesbloqueio(usuarioId, conquista.id, tier);
 
       desbloqueadas.push({
         conquistaId: conquista.id,
+        desbloqueioId: desbloqueio.id,
         nome: conquista.nome,
         descricao: conquista.descricao,
         tier,
+        tipoConquista: conquista.tipoConquista,
+        tema: conquista.temaId,
       });
     }
     return desbloqueadas;

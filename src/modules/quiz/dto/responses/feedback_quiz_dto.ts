@@ -4,14 +4,15 @@ export type FeedbackQuizDto = {
   correcao: boolean;
   saibaMais: string | null;
   respostaCorreta: AlternativaQuestao;
-  moedasConcedidas: number;
   saldoMoedas: number;
+  moedasConcedidas: number;
   moedasJaConcedidas: boolean;
   conquistasDesbloqueadas: {
     conquistaId: string;
     nome: string;
     descricao: string;
     tier: string;
+    moedasConcedidas: number;
   }[];
 };
 

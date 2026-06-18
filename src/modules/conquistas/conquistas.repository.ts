@@ -1,6 +1,6 @@
 import { prisma } from "@/config/db";
-import { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
-import { TierConquista, TipoConquista } from "@prisma/client";
+import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
+import { type TierConquista, TipoConquista } from "@prisma/client";
 
 export class ConquistaRepository {
   async criarConquistaTema(temaId: string, nomeTema: string) {

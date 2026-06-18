@@ -38,6 +38,7 @@ enum StatusTurma {
 
 enum FonteMoeda {
   ACERTO_QUESTAO
+  DESBLOQUEIO_CONQUISTA
 }
 
 enum StatusResolucaoLista {
@@ -155,18 +156,23 @@ model CarteiraMoedas {
 }
 
 model TransacaoMoeda {
-  id         String     @id @default(cuid())
-  usuarioId  String
-  questaoId  String
+  id        String @id @default(cuid())
+  usuarioId String
+
+  questaoId     String?
+  desbloqueioId String?
+
   quantidade Int
   fonte      FonteMoeda @default(ACERTO_QUESTAO)
 
-  carteira CarteiraMoedas @relation(fields: [usuarioId], references: [usuarioId], onDelete: Restrict)
-  questao  Questao        @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+  carteira    CarteiraMoedas        @relation(fields: [usuarioId], references: [usuarioId], onDelete: Restrict)
+  questao     Questao?              @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+  desbloqueio DesbloqueioConquista? @relation(fields: [desbloqueioId], references: [id], onDelete: Restrict)
 
-  criadoEm DateTime @default(now())
+  criadoEm    DateTime   @default(now())
 
   @@unique([usuarioId, questaoId, fonte])
+  @@unique([usuarioId, desbloqueioId, fonte])
   @@index([usuarioId])
   @@index([questaoId])
   @@map("transacoes_moedas")
@@ -297,8 +303,8 @@ model ResolucaoQuestaoLista {
 model Conquista {
   id String @id @default(cuid())
 
-  nome         String
-  descricao    String
+  nome          String
+  descricao     String
   tipoConquista TipoConquista
 
   temaId String?
@@ -309,8 +315,8 @@ model Conquista {
   usuarios     ConquistaUsuario[]
   desbloqueios DesbloqueioConquista[]
 
-  criadoEm     DateTime @default(now())
-  atualizadoEm DateTime @updatedAt
+  criadoEm        DateTime         @default(now())
+  atualizadoEm    DateTime         @updatedAt
 
   @@index([tipoConquista])
   @@index([temaId])
@@ -350,7 +356,8 @@ model DesbloqueioConquista {
 
   conquistadoEm DateTime @default(now())
 
-  conquista Conquista @relation(fields: [conquistaId], references: [id], onDelete: Cascade)
+  conquista       Conquista        @relation(fields: [conquistaId], references: [id], onDelete: Cascade)
+  transacaoMoedas TransacaoMoeda[]
 
   @@unique([usuarioId, conquistaId, tier])
   @@index([usuarioId])
