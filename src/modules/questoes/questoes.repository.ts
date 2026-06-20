@@ -92,8 +92,6 @@ export class QuestionRepository {
       return {
         questao: questao as RegistroQuestaoCompleta,
         temaCriado,
-        temaId: tema.id,
-        nomeTema: tema.nome,
       };
     });
   }

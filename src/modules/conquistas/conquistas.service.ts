@@ -27,7 +27,17 @@ export class ConquistaService {
       return;
     }
 
-    return await this.conquistaRepository.criarConquistaTema(temaId, nomeTema);
+    const conquista_criada = await this.conquistaRepository.criarConquistaTema(temaId, nomeTema);
+
+    if(!conquista_criada){
+      throw new ErroAplicacao({
+          codigoStatus: 400,
+          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+          mensagem: "Não foi possível criar conquista",
+      });
+    }
+    
+    return conquista_criada
   }
 
   async processarRespostaQuestao(
@@ -50,7 +60,7 @@ export class ConquistaService {
     return desbloqueadas;
   }
 
-  private async processarTotalAcertos(usuarioId: string) {
+  protected async processarTotalAcertos(usuarioId: string) {
     const conquista = await this.conquistaRepository.buscarConquistaTotalAcertos();
 
     if (!conquista) {
@@ -62,10 +72,18 @@ export class ConquistaService {
       conquista.id,
     );
 
+    if(!progresso){
+      throw new ErroAplicacao({
+          codigoStatus: 400,
+          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+          mensagem: "Não foi possível registrar progresso em conquista",
+      });
+    }
+
     return this.atualizarConquista(usuarioId, conquista, progresso.valorProgresso + 1);
   }
 
-  private async processarTotalAcertosTema(usuarioId: string, temaId: string, temaNome: string) {
+  protected async processarTotalAcertosTema(usuarioId: string, temaId: string, temaNome: string) {
     await this.criarConquistaPadraoTema(temaId, temaNome);
 
     const conquista = await this.conquistaRepository.buscarConquistaTema(temaId);
@@ -79,10 +97,18 @@ export class ConquistaService {
       conquista.id,
     );
 
+    if(!progresso){
+      throw new ErroAplicacao({
+          codigoStatus: 400,
+          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+          mensagem: "Não foi possível registrar progresso em conquista",
+      });
+    }
+
     return this.atualizarConquista(usuarioId, conquista, progresso.valorProgresso + 1);
   }
 
-  private async processarStreak(usuarioId: string, correta: boolean) {
+  protected async processarStreak(usuarioId: string, correta: boolean) {
     const conquista = await this.conquistaRepository.buscarConquistaStreak();
 
     if (!conquista) {
@@ -94,6 +120,14 @@ export class ConquistaService {
       conquista.id,
     );
 
+    if(!progresso){
+      throw new ErroAplicacao({
+          codigoStatus: 400,
+          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+          mensagem: "Não foi possível registrar progresso em conquista",
+      });
+    }
+
     return this.atualizarConquista(
       usuarioId,
       conquista,
@@ -101,7 +135,7 @@ export class ConquistaService {
     );
   }
 
-  private async atualizarConquista(
+  protected async atualizarConquista(
     usuarioId: string,
     conquista: Conquista,
     novoValor: number,
@@ -111,6 +145,14 @@ export class ConquistaService {
       conquista.id,
       novoValor,
     );
+
+    if(!atualizado){
+      throw new ErroAplicacao({
+          codigoStatus: 400,
+          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+          mensagem: "Não foi possível atualizar progresso em conquista",
+      });
+    }
 
     const tiers = CONFIG_TIERS[conquista.tipoConquista];
     if (!tiers) {
@@ -133,6 +175,14 @@ export class ConquistaService {
 
       const desbloqueio = await this.conquistaRepository.criarDesbloqueio(usuarioId, conquista.id, tier);
 
+      if(!desbloqueio){
+        throw new ErroAplicacao({
+            codigoStatus: 400,
+            codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+            mensagem: "Não foi possível registrar desbloqueio de conquista",
+        });
+      }
+
       desbloqueadas.push({
         conquistaId: conquista.id,
         desbloqueioId: desbloqueio.id,
@@ -143,6 +193,7 @@ export class ConquistaService {
         tema: conquista.temaId,
       });
     }
+    
     return desbloqueadas;
   }
 
@@ -151,7 +202,7 @@ export class ConquistaService {
       throw new ErroAplicacao({
         codigoStatus: 401,
         codigo: CodigoDeErro.NAO_AUTORIZADO,
-        mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+        mensagem: MENSAGENS.usuarioNaoEncontrado,
       });
     }
 
@@ -171,6 +222,14 @@ export class ConquistaService {
     if (destaque) {
       const quantidade = await this.conquistaRepository.contarConquistasDestacadas(usuarioId);
 
+      if(!quantidade){
+        throw new ErroAplicacao({
+          codigoStatus: 400,
+          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+          mensagem: "Quantidade de destaques não encontrado",
+        });
+      }
+
       if (quantidade >= 3) {
         throw new ErroAplicacao({
           codigoStatus: 400,
@@ -180,7 +239,15 @@ export class ConquistaService {
       }
     }
 
-    await this.conquistaRepository.alterarDestaque(usuarioId, desbloqueioId, destaque);
+    const sucesso = await this.conquistaRepository.alterarDestaque(usuarioId, desbloqueioId, destaque);
+    
+    if(!sucesso){
+      throw new ErroAplicacao({
+          codigoStatus: 400,
+          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+          mensagem: "Não foi possível alterar destaques",
+      });
+    }
 
     return {
       sucesso: true,
@@ -192,11 +259,19 @@ export class ConquistaService {
       throw new ErroAplicacao({
         codigoStatus: 401,
         codigo: CodigoDeErro.NAO_AUTORIZADO,
-        mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+        mensagem: MENSAGENS.usuarioNaoEncontrado,
       });
     }
 
     const conquistas = await this.conquistaRepository.buscarConquistasDestacadas(usuarioId);
+
+    if(!conquistas) {
+      throw new ErroAplicacao({
+        codigoStatus: 401,
+        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+        mensagem: MENSAGENS.erroListarConquistas,
+      });
+    }
 
     return conquistas.map((item) => ({
       id: item.id,
@@ -215,7 +290,7 @@ export class ConquistaService {
       throw new ErroAplicacao({
         codigoStatus: 401,
         codigo: CodigoDeErro.NAO_AUTORIZADO,
-        mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+        mensagem: MENSAGENS.usuarioNaoEncontrado,
       });
     }
 
@@ -225,6 +300,14 @@ export class ConquistaService {
       usuarioId,
       paginacao,
     );
+
+    if(!data || !total) {
+      throw new ErroAplicacao({
+        codigoStatus: 401,
+        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+        mensagem: MENSAGENS.erroListarConquistas,
+      });
+    }
 
     return {
       dados: data.map((item) => ({
@@ -248,7 +331,7 @@ export class ConquistaService {
       throw new ErroAplicacao({
         codigoStatus: 401,
         codigo: CodigoDeErro.NAO_AUTORIZADO,
-        mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+        mensagem: MENSAGENS.usuarioNaoEncontrado,
       });
     }
 
@@ -257,11 +340,11 @@ export class ConquistaService {
       minhaConquistaId,
     );
 
-    if (!progresso) {
+    if(!progresso) {
       throw new ErroAplicacao({
         codigoStatus: 401,
-        codigo: CodigoDeErro.NAO_AUTORIZADO,
-        mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+        mensagem: MENSAGENS.erroListarConquistas,
       });
     }
 
@@ -283,7 +366,7 @@ export class ConquistaService {
       throw new ErroAplicacao({
         codigoStatus: 401,
         codigo: CodigoDeErro.NAO_AUTORIZADO,
-        mensagem: MENSAGENS.usuarioAutenticadoEncontrado,
+        mensagem: MENSAGENS.usuarioNaoEncontrado,
       });
     }
 
@@ -293,6 +376,14 @@ export class ConquistaService {
       usuarioId,
       paginacao,
     );
+
+    if(!data || !total) {
+      throw new ErroAplicacao({
+        codigoStatus: 401,
+        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+        mensagem: MENSAGENS.erroListarConquistas,
+      });
+    }
 
     return {
       dados: data.map((item) => ({
@@ -312,6 +403,14 @@ export class ConquistaService {
     const paginacao = resolverParametrosPaginacao(query);
 
     const { data, total } = await this.conquistaRepository.listarConquistas(paginacao);
+
+    if(!data || !total) {
+      throw new ErroAplicacao({
+        codigoStatus: 401,
+        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+        mensagem: MENSAGENS.erroListarConquistas,
+      });
+    }
 
     return {
       dados: data.map((conquista) => ({

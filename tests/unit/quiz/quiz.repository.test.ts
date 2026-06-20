@@ -127,7 +127,13 @@ describe("Testa QuizRepository", () => {
 
     expect(prisma.questao.findUnique).toHaveBeenCalledWith({
       where: { id, excluidoEm: null },
-      select: { respostaCorreta: true, saibaMais: true, dificuldade: true },
+      select: {
+        respostaCorreta: true,
+        saibaMais: true,
+        dificuldade: true,
+        temaId: true,
+        tema: true,
+      },
     });
   });
 
@@ -193,6 +199,128 @@ describe("Testa QuizRepository", () => {
       saldoMoedas: 25,
       moedasJaConcedidas: false,
     });
+  });
+
+  test("deve criar transacao e incrementar saldo ao conceder moedas ao conceder moedas por conquista", async () => {
+    const tx = {
+      carteiraMoedas: {
+        upsert: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn(),
+        update: jest.fn().mockResolvedValue({ saldo: 30 }),
+      },
+      transacaoMoeda: {
+        createMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+
+    transactionMock.mockImplementation(async (callback) => callback(tx));
+
+    const resultado = await repository.concederMoedasPorConquistas("usuario-id", [
+      { desbloqueioId: "desbloqueio-id", quantidade: 30 },
+    ]);
+
+    expect(tx.carteiraMoedas.upsert).toHaveBeenCalledWith({
+      where: { usuarioId: "usuario-id" },
+      create: { usuarioId: "usuario-id", saldo: 0 },
+      update: {},
+    });
+    expect(tx.transacaoMoeda.createMany).toHaveBeenCalledWith({
+      data: {
+        usuarioId: "usuario-id",
+        desbloqueioId: "desbloqueio-id",
+        quantidade: 30,
+        fonte: FonteMoeda.DESBLOQUEIO_CONQUISTA,
+      },
+
+      skipDuplicates: true,
+    });
+    expect(tx.carteiraMoedas.update).toHaveBeenCalledWith({
+      where: { usuarioId: "usuario-id" },
+      data: { saldo: { increment: 30 } },
+      select: { saldo: true },
+    });
+    expect(resultado).toEqual({
+      saldoMoedas: 30,
+      recompensas: [
+        {
+          desbloqueioId: "desbloqueio-id",
+          moedasConcedidas: 30,
+          moedasJaConcedidas: false,
+        },
+      ],
+    });
+  });
+
+  test("deve consultar saldo atual quando nenhuma moeda for concedida", async () => {
+    const tx = {
+      carteiraMoedas: {
+        upsert: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn().mockResolvedValue({
+          saldo: 100,
+        }),
+        update: jest.fn(),
+      },
+      transacaoMoeda: {
+        createMany: jest.fn().mockResolvedValue({
+          count: 0,
+        }),
+      },
+    };
+
+    transactionMock.mockImplementation(async (callback) => callback(tx));
+
+    const resultado = await repository.concederMoedasPorConquistas("usuario-id", [
+      {
+        desbloqueioId: "desbloqueio-id",
+        quantidade: 30,
+      },
+    ]);
+
+    expect(tx.carteiraMoedas.update).not.toHaveBeenCalled();
+
+    expect(tx.carteiraMoedas.findUnique).toHaveBeenCalledWith({
+      where: { usuarioId: "usuario-id" },
+      select: {
+        saldo: true,
+      },
+    });
+
+    expect(resultado).toEqual({
+      saldoMoedas: 100,
+      recompensas: [
+        {
+          desbloqueioId: "desbloqueio-id",
+          moedasConcedidas: 0,
+          moedasJaConcedidas: true,
+        },
+      ],
+    });
+  });
+
+  test("deve retornar saldo 0 quando carteira não existir", async () => {
+    const tx = {
+      carteiraMoedas: {
+        upsert: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn().mockResolvedValue(null),
+        update: jest.fn(),
+      },
+      transacaoMoeda: {
+        createMany: jest.fn().mockResolvedValue({
+          count: 0,
+        }),
+      },
+    };
+
+    transactionMock.mockImplementation(async (callback) => callback(tx));
+
+    const resultado = await repository.concederMoedasPorConquistas("usuario-id", [
+      {
+        desbloqueioId: "desbloqueio-id",
+        quantidade: 30,
+      },
+    ]);
+
+    expect(resultado.saldoMoedas).toBe(0);
   });
 
   test("deve manter saldo quando transacao de moeda ja existir", async () => {

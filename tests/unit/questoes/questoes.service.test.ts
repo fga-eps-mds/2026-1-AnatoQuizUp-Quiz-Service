@@ -14,6 +14,7 @@ function criarQuestao(overrides: Partial<RegistroQuestaoCompleta> = {}): Registr
     enunciado: "Qual estrutura bombeia sangue para a aorta?",
     tipoQuestao: "MULTIPLA_ESCOLHA",
     respostaCorreta: "B",
+    dificuldade: "DIFICIL",
     saibaMais: "O ventriculo esquerdo impulsiona sangue.",
     status: "ATIVO",
     feitoPorIa: false,
@@ -62,6 +63,7 @@ function criarInputValido(): CriarQuestaoDto {
       D: "D",
       E: "E",
     },
+    imagem: "",
   };
 }
 
@@ -99,7 +101,7 @@ describe("QuestionService", () => {
   describe("Leitura", () => {
     test("listar deve retornar dados paginados", async () => {
       repository.listar.mockResolvedValue({ data: [criarQuestao()], total: 1 });
-      const result = await service.listar({ page: "1", limit: "10" });
+      const result = await service.listar({ page: 1, limit: 10 });
       expect(result.dados).toHaveLength(1);
     });
 
@@ -125,7 +127,10 @@ describe("QuestionService", () => {
     test("criar deve fazer upload de imagem se enviada", async () => {
       const input = criarInputValido();
       minioService.uploadImagem.mockResolvedValue("url-minio");
-      repository.criar.mockResolvedValue(criarQuestao({ urlImagem: "url-minio" }));
+      repository.criar.mockResolvedValue({
+        questao: criarQuestao({ urlImagem: "url-minio" }),
+        temaCriado: false,
+      });
 
       const result = await service.criar(input, imagemMock, "prof-1");
       expect(minioService.uploadImagem).toHaveBeenCalled();
@@ -134,7 +139,10 @@ describe("QuestionService", () => {
 
     test("criar deve usar imagem do DTO se arquivo for nulo", async () => {
       const input = { ...criarInputValido(), imagem: "url-dto" };
-      repository.criar.mockResolvedValue(criarQuestao({ urlImagem: "url-dto" }));
+      repository.criar.mockResolvedValue({
+        questao: criarQuestao({ urlImagem: "url-dto" }),
+        temaCriado: false,
+      });
       const result = await service.criar(input, undefined, "prof-1");
       expect(result.imagem).toBe("url-dto");
     });

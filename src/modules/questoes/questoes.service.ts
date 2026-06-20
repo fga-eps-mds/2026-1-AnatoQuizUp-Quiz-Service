@@ -92,8 +92,8 @@ export class QuestionService {
 
     if (resultado.temaCriado) {
       eventEmitter.emit("tema.criado", {
-        temaId: resultado.temaId,
-        nomeTema: resultado.nomeTema,
+        temaId: resultado.questao.tema.id,
+        nomeTema: resultado.questao.tema.nome,
       });
     }
 

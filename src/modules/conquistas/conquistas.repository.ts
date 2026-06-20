@@ -34,6 +34,7 @@ export class ConquistaRepository {
       },
     });
   }
+  
   async buscarConquistaStreak() {
     return prisma.conquista.findFirst({
       where: {

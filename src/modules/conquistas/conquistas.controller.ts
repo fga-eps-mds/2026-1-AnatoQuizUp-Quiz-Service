@@ -36,7 +36,7 @@ export class ConquistaController {
     next: NextFunction,
   ) => {
     try {
-      const usuarioId = request.usuario?.id ?? "";
+      const usuarioId = request.usuario?.id;
 
       const progresso = await this.conquistaService.listarProgressoUsuario(
         request.query,
@@ -55,7 +55,7 @@ export class ConquistaController {
     next: NextFunction,
   ) => {
     try {
-      const usuarioId = request.usuario?.id ?? "";
+      const usuarioId = request.usuario?.id;
 
       const progresso = await this.conquistaService.listarMeuProgressoEmConquista(
         usuarioId,
@@ -74,7 +74,7 @@ export class ConquistaController {
     next: NextFunction,
   ) => {
     try {
-      const usuarioId = request.usuario?.id ?? "";
+      const usuarioId = request.usuario?.id;
 
       const conquistas = await this.conquistaService.listarDesbloqueadasUsuario(
         request.query,
@@ -89,7 +89,7 @@ export class ConquistaController {
 
   listarDestacadas = async (request: Request, response: Response, next: NextFunction) => {
     try {
-      const usuarioId = request.usuario?.id ?? "";
+      const usuarioId = request.usuario?.id;
 
       const conquistas = await this.conquistaService.buscarConquistasDestacadas(usuarioId);
 
@@ -108,7 +108,7 @@ export class ConquistaController {
     next: NextFunction,
   ) => {
     try {
-      const usuarioId = request.usuario?.id ?? "";
+      const usuarioId = request.usuario?.id;
 
       const resultado = await this.conquistaService.alterarDestaque(
         usuarioId,

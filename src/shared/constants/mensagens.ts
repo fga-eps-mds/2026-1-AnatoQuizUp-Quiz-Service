@@ -99,4 +99,6 @@ export const MENSAGENS = {
   temasNaoEncontrados: "Temas das questões não foram encontrados",
 
   operacaoRealizadaComSucesso: "Destaques alterados com sucesso",
+
+  erroListarConquistas: "Erro ao listar conquistas",
 } as const;

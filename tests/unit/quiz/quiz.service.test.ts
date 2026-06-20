@@ -14,6 +14,8 @@ import { MENSAGENS } from "@/shared/constants/mensagens";
 import type { ResponderQuestaoQuizDto } from "@/modules/quiz/dto/requests/responder_questao_quiz_dto";
 import { PAPEIS } from "@/shared/constants/papeis";
 import { AlternativaQuestao, Dificuldade, type ResolucaoQuestao } from "@prisma/client";
+import type { ConquistaService } from "@/modules/conquistas/conquistas.service";
+import type { ConquistaDesbloqueadaDto } from "@/modules/conquistas/conquistas.dto";
 
 function criarQuestoes(
   ids: string[] = ["id-1", "id-2", "id-3", "id-4"],
@@ -84,10 +86,21 @@ function criarFeedback(
   alternativa: AlternativaQuestao = AlternativaQuestao.E,
   dificuldade: Dificuldade = Dificuldade.MEDIA,
 ) {
+  const agora = new Date("2026-05-09T12:00:00.000Z");
   return {
     respostaCorreta: alternativa,
     saibaMais: "explicação",
     dificuldade,
+
+    conquistasDesbloqueadas: [],
+    temaId: "tema-id",
+    tema: {
+      id: "tema-id",
+      nome: "tema-nome",
+      criadoEm: agora,
+      atualizadoEm: agora,
+      excluidoEm: null,
+    },
   };
 }
 
@@ -116,6 +129,7 @@ function criarRepositoryMock() {
     buscarResposta: jest.fn<QuizRepository["buscarResposta"]>(),
     buscarSaldoMoedas: jest.fn<QuizRepository["buscarSaldoMoedas"]>(),
     concederMoedasPorAcerto: jest.fn<QuizRepository["concederMoedasPorAcerto"]>(),
+    concederMoedasPorConquistas: jest.fn<QuizRepository["concederMoedasPorConquistas"]>(),
     contarQuestoesQuiz: jest.fn<QuizRepository["contarQuestoesQuiz"]>(),
     buscarQuantidadeDeQuestoesPorTema:
       jest.fn<QuizRepository["buscarQuantidadeDeQuestoesPorTema"]>(),
@@ -123,15 +137,23 @@ function criarRepositoryMock() {
   } as unknown as jest.Mocked<QuizRepository>;
 }
 
+function criarConquistasServiceMock() {
+  return {
+    processarRespostaQuestao: jest.fn<ConquistaService["processarRespostaQuestao"]>(),
+  } as unknown as jest.Mocked<ConquistaService>;
+}
+
 jest.retryTimes(3);
 
 describe("Testa Quiz Service", () => {
   let repository: jest.Mocked<QuizRepository>;
   let quizService: QuizService;
+  let conquistaService: jest.Mocked<ConquistaService>;
 
   beforeEach(() => {
     repository = criarRepositoryMock();
-    quizService = new QuizService(repository);
+    conquistaService = criarConquistasServiceMock();
+    quizService = new QuizService(repository, conquistaService);
     repository.buscarSaldoMoedas.mockResolvedValue(0);
     jest.clearAllMocks();
   });
@@ -249,6 +271,7 @@ describe("Testa Quiz Service", () => {
   test("Testa resposta correta de questão deve retornar boolean true e a resposta correta", async () => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
     repository.buscarResposta.mockResolvedValue(criarFeedback());
+    repository.buscarSaldoMoedas.mockResolvedValue(25);
 
     repository.concederMoedasPorAcerto.mockResolvedValue({
       moedasConcedidas: 25,
@@ -292,6 +315,7 @@ describe("Testa Quiz Service", () => {
   ])("deve conceder moedas conforme a dificuldade", async (dificuldade, moedas) => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
     repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.E, dificuldade));
+    repository.buscarSaldoMoedas.mockResolvedValue(moedas);
     repository.concederMoedasPorAcerto.mockResolvedValue({
       moedasConcedidas: moedas,
       saldoMoedas: moedas,
@@ -314,6 +338,76 @@ describe("Testa Quiz Service", () => {
     expect(resultado.moedasJaConcedidas).toBe(false);
   });
 
+  test("deve conceder moedas por conquistas quando existirem desbloqueios", async () => {
+    repository.registrarTentativa.mockResolvedValue(criarTentativa());
+
+    repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.C));
+
+    const conquistasMock = [
+      {
+        desbloqueioId: "desbloqueio-1",
+        tier: "BRONZE",
+      },
+    ];
+
+    jest
+      .spyOn(conquistaService, "processarRespostaQuestao")
+      .mockResolvedValue(conquistasMock as ConquistaDesbloqueadaDto[]);
+
+    repository.buscarSaldoMoedas.mockResolvedValue(0);
+
+    repository.concederMoedasPorConquistas.mockResolvedValue(undefined);
+
+    await quizService.responderQuestaoQuiz(
+      criarResponderQuestaoQuizDto(),
+      "usuario-id",
+      PAPEIS.ALUNO,
+    );
+
+    expect(repository.concederMoedasPorConquistas).toHaveBeenCalledWith("usuario-id", [
+      {
+        desbloqueioId: "desbloqueio-1",
+        quantidade: 30, // MOEDAS_POR_TIER_DESBLOQUEIO.BRONZE
+      },
+    ]);
+  });
+
+  test("não deve conceder moedas por conquistas quando não houver desbloqueios", async () => {
+    repository.registrarTentativa.mockResolvedValue(criarTentativa());
+
+    repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.C));
+
+    jest.spyOn(conquistaService, "processarRespostaQuestao").mockResolvedValue([]);
+
+    repository.buscarSaldoMoedas.mockResolvedValue(0);
+
+    await quizService.responderQuestaoQuiz(
+      criarResponderQuestaoQuizDto(),
+      "usuario-id",
+      PAPEIS.ALUNO,
+    );
+
+    expect(repository.concederMoedasPorConquistas).not.toHaveBeenCalled();
+  });
+
+  test("deve retornar conquistasDesbloqueadas como array vazio quando não houver conquistas", async () => {
+    repository.registrarTentativa.mockResolvedValue(criarTentativa());
+
+    repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.C));
+
+    jest.spyOn(conquistaService, "processarRespostaQuestao").mockResolvedValue([]);
+
+    repository.buscarSaldoMoedas.mockResolvedValue(0);
+
+    const resultado = await quizService.responderQuestaoQuiz(
+      criarResponderQuestaoQuizDto(),
+      "usuario-id",
+      PAPEIS.ALUNO,
+    );
+
+    expect(resultado.conquistasDesbloqueadas).toEqual([]);
+  });
+
   test("deve permitir recompensa no primeiro acerto mesmo apos erro anterior", async () => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
     repository.buscarResposta
@@ -325,7 +419,11 @@ describe("Testa Quiz Service", () => {
       moedasJaConcedidas: false,
     });
 
-    await quizService.responderQuestaoQuiz(criarResponderQuestaoQuizDto(), "usuario-id", PAPEIS.ALUNO);
+    await quizService.responderQuestaoQuiz(
+      criarResponderQuestaoQuizDto(),
+      "usuario-id",
+      PAPEIS.ALUNO,
+    );
     const resultadoAcerto = await quizService.responderQuestaoQuiz(
       criarResponderQuestaoQuizDto(),
       "usuario-id",
@@ -339,7 +437,10 @@ describe("Testa Quiz Service", () => {
 
   test("nao deve conceder moedas novamente para questao ja recompensada", async () => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
-    repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.E, Dificuldade.DIFICIL));
+    repository.buscarResposta.mockResolvedValue(
+      criarFeedback(AlternativaQuestao.E, Dificuldade.DIFICIL),
+    );
+    repository.buscarSaldoMoedas.mockResolvedValue(50);
     repository.concederMoedasPorAcerto.mockResolvedValue({
       moedasConcedidas: 0,
       saldoMoedas: 50,
@@ -362,7 +463,9 @@ describe("Testa Quiz Service", () => {
     "nao deve conceder moedas para usuario com papel %s",
     async (papel) => {
       repository.registrarTentativa.mockResolvedValue(criarTentativa());
-      repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.E, Dificuldade.MEDIA));
+      repository.buscarResposta.mockResolvedValue(
+        criarFeedback(AlternativaQuestao.E, Dificuldade.MEDIA),
+      );
       repository.buscarSaldoMoedas.mockResolvedValue(0);
 
       const resultado = await quizService.responderQuestaoQuiz(

@@ -18,7 +18,7 @@ import { listaQuestaoRouter } from "@/modules/lista";
 import { dashboardRouter } from "@/modules/dashboardTurma/dashboardTurma.routes";
 import { dashboardAlunoRouter } from "@/modules/dashboardAluno";
 import { resolucaoListaRouter } from "@/modules/resolucaoLista/resolucaoLista.routes"; 
-import { conquistaRouter } from "@/modules/conquistas/conquistsas.router";
+import { conquistaRouter } from "@/modules/conquistas/conquistas.routes";
 
 const aplicacao = express();
 const roteadorApi = Router();

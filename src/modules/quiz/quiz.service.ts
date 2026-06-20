@@ -16,9 +16,8 @@ import {
 import type { QuantidadeQuestoesPorTema } from "./dto/responses/quantidade_questao_tema_dto";
 import { type ResolucaoQuestaoUsuarioDto } from "./dto/responses/resolucao_questao_usuario_dto";
 import { converterResolucaoQuestaoBancoToApi } from "./dto/mappers/historico_quiz.mapper";
-import type { Dificuldade } from "@prisma/client";
+import type { Dificuldade, TierConquista } from "@prisma/client";
 import type { ConquistaService } from "../conquistas/conquistas.service";
-import type { TierConquista } from "@prisma/client";
 
 const MOEDAS_POR_DIFICULDADE: Record<Dificuldade, number> = {
   FACIL: 10,
@@ -110,12 +109,12 @@ export class QuizService {
       correcao,
     );
 
-    const conquistasDesbloqueadas = conquistas.map((conquista) => ({
+    const conquistasDesbloqueadas = conquistas?.map((conquista) => ({
       ...conquista,
       moedasConcedidas: MOEDAS_POR_TIER_DESBLOQUEIO[conquista.tier],
     }));
 
-    if (conquistas.length > 0) {
+    if (conquistas?.length > 0) {
       await this.quizRepository.concederMoedasPorConquistas(
         id_usuario,
         conquistas.map((desbloqueio) => ({
