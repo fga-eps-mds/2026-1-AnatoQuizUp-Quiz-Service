@@ -1,0 +1,1 @@
+export { inventarioRoutes } from './inventario.routes';

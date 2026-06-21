@@ -24,7 +24,7 @@ async function main() {
   const PROFESSOR_ID   = "cmp7fx97j00034hyqazqwrk3e"; 
   const ALUNO_1_ID     = "cmp7fx99d00044hyqq4msqsyt";
   const ALUNO_2_ID     = "cmp7fx99d00044hyqq4mswgsr";
-  const MEU_USUARIO_ID = "2098cd8a-4997-4947-a056-6b8a57382b5b"; // <--- SEU USUARIO
+  const MEU_USUARIO_ID = "d56fd5df-29f0-4319-a4b1-b4c0d326226c"; // <--- SEU USUARIO
 
     // 2. Criando carteira de moedas para testar a loja
   await prisma.carteiraMoedas.create({
