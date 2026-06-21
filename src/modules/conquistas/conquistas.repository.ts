@@ -274,6 +274,9 @@ export class ConquistaRepository {
               descricao: true,
               tipoConquista: true,
               desbloqueios: {
+                where: {
+                  usuarioId,
+                },
                 select: {
                   tier: true,
                   conquistadoEm: true,
@@ -322,6 +325,9 @@ export class ConquistaRepository {
             descricao: true,
             tipoConquista: true,
             desbloqueios: {
+              where: {
+                usuarioId,
+              },
               select: {
                 tier: true,
                 conquistadoEm: true,

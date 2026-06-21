@@ -23,36 +23,42 @@ const conquistaController = new ConquistaController(conquistaService);
 
 const conquistaRouter = Router();
 
-conquistaRouter.use(middlewarePapeis(PAPEIS.ALUNO, PAPEIS.ADMINISTRADOR));
+const apenasAluno = middlewarePapeis(PAPEIS.ALUNO);
+const alunoOuAdministrador = middlewarePapeis(PAPEIS.ALUNO, PAPEIS.ADMINISTRADOR);
 
 conquistaRouter.get(
   "/",
+  alunoOuAdministrador,
   validarRequisicao(schemaPaginacaoConquistas, "query"),
   conquistaController.listarConquistas,
 );
 
 conquistaRouter.get(
   "/meu-progresso",
+  apenasAluno,
   validarRequisicao(schemaPaginacaoConquistas, "query"),
   conquistaController.listarMeuProgresso,
 );
 
 conquistaRouter.get(
   "/meu-progresso/:id",
+  apenasAluno,
   validarRequisicao(schemaDesbloqueioId, "params"),
   conquistaController.listarMeuProgressoEmConquista,
 );
 
 conquistaRouter.get(
   "/minhas",
+  apenasAluno,
   validarRequisicao(schemaPaginacaoConquistas, "query"),
   conquistaController.listarMinhasConquistas,
 );
 
-conquistaRouter.get("/destaques", conquistaController.listarDestacadas);
+conquistaRouter.get("/destaques", apenasAluno, conquistaController.listarDestacadas);
 
 conquistaRouter.patch(
   "/desbloqueios/:id/destaque",
+  apenasAluno,
   validarRequisicao(schemaDesbloqueioId, "params"),
   validarRequisicao(schemaAlterarDestaqueConquista),
   conquistaController.alterarDestaque,

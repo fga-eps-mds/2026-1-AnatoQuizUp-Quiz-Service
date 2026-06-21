@@ -1,4 +1,14 @@
-import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao, TipoItemLoja, TipoConquista } from "@prisma/client";
+import {
+  AlternativaQuestao,
+  Dificuldade,
+  PrismaClient,
+  StatusQuestao,
+  StatusTurma,
+  TierConquista,
+  TipoConquista,
+  TipoItemLoja,
+  TipoQuestao,
+} from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -8,7 +18,11 @@ async function main() {
   // 1. Limpando as tabelas na ordem correta logo no início para evitar erros de FK
   await prisma.transacaoMoeda.deleteMany({});
   await prisma.inventarioItem.deleteMany({});
+  await prisma.recompensaItemConquista.deleteMany({});
+  await prisma.desbloqueioConquista.deleteMany({});
+  await prisma.conquistaUsuario.deleteMany({});
   await prisma.itemLoja.deleteMany({});
+  await prisma.conquista.deleteMany({});
   await prisma.carteiraMoedas.deleteMany({});
 
   await prisma.listaTurma.deleteMany({});
@@ -30,11 +44,16 @@ async function main() {
     where: {
       id: "total-acertos",
     },
-    update: {},
+    update: {
+      nome: "Primeiros 5 Acertos",
+      descricao: "Acerte cinco questões para desbloquear um avatar exclusivo.",
+      tipoConquista: TipoConquista.TOTAL_ACERTOS,
+      ativo: true,
+    },
     create: {
       id: "total-acertos",
-      nome: "Primeiros Passos",
-      descricao: "Acumule acertos em quizzes.",
+      nome: "Primeiros 5 Acertos",
+      descricao: "Acerte cinco questões para desbloquear um avatar exclusivo.",
       tipoConquista: TipoConquista.TOTAL_ACERTOS,
     },
   });
@@ -256,7 +275,53 @@ async function main() {
     ],
   });
 
+  const avatarExclusivo = await prisma.itemLoja.upsert({
+    where: {
+      codigo: "avatar-explorador-anatomia",
+    },
+    update: {
+      nome: "Explorador da Anatomia",
+      descricao: "Avatar exclusivo para quem conquistou seus primeiros cinco acertos.",
+      tipo: TipoItemLoja.AVATAR,
+      precoMoedas: 0,
+      imagemUrl: avatar("ExploradorAnatomia", "edb98a"),
+      previewImagemUrl: avatar("ExploradorAnatomia", "edb98a"),
+      ativo: true,
+      disponivelNaLoja: false,
+      excluidoEm: null,
+    },
+    create: {
+      codigo: "avatar-explorador-anatomia",
+      nome: "Explorador da Anatomia",
+      descricao: "Avatar exclusivo para quem conquistou seus primeiros cinco acertos.",
+      tipo: TipoItemLoja.AVATAR,
+      precoMoedas: 0,
+      imagemUrl: avatar("ExploradorAnatomia", "edb98a"),
+      previewImagemUrl: avatar("ExploradorAnatomia", "edb98a"),
+      ativo: true,
+      disponivelNaLoja: false,
+    },
+  });
+
+  await prisma.recompensaItemConquista.upsert({
+    where: {
+      conquistaId_tier: {
+        conquistaId: "total-acertos",
+        tier: TierConquista.BRONZE,
+      },
+    },
+    update: {
+      itemLojaId: avatarExclusivo.id,
+    },
+    create: {
+      conquistaId: "total-acertos",
+      tier: TierConquista.BRONZE,
+      itemLojaId: avatarExclusivo.id,
+    },
+  });
+
   console.log("Itens da loja virtual (cosméticos) criados com sucesso.");
+  console.log("Avatar exclusivo associado a conquista Primeiros 5 Acertos.");
 
   // 2. Criando Temas
   const temas = {

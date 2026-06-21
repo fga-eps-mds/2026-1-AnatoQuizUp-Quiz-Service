@@ -6,38 +6,38 @@ export class InventarioController {
 
   equipar = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const usuarioId = req.usuario?.id || (req.headers["x-user-id"] as string); 
+      const usuarioId = req.usuario!.id;
       const { itemLojaId } = req.body;
 
       const resultado = await this.inventarioService.equiparItem(usuarioId, itemLojaId);
-      
-      res.status(200).json(resultado);
+
+      return res.status(200).json(resultado);
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
   meuPerfil = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const usuarioId = req.usuario?.id || (req.headers["x-user-id"] as string);
+      const usuarioId = req.usuario!.id;
 
       const resultado = await this.inventarioService.obterPerfilEquipado(usuarioId);
-      
-      res.status(200).json(resultado);
+
+      return res.status(200).json(resultado);
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
   meuInventario = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const usuarioId = req.usuario?.id || (req.headers["x-user-id"] as string);
+      const usuarioId = req.usuario!.id;
 
       const resultado = await this.inventarioService.obterInventarioCompleto(usuarioId);
-      
-      res.status(200).json(resultado);
+
+      return res.status(200).json(resultado);
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 }

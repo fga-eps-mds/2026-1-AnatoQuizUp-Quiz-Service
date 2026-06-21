@@ -19,8 +19,9 @@ import { dashboardRouter } from "@/modules/dashboardTurma/dashboardTurma.routes"
 import { dashboardAlunoRouter } from "@/modules/dashboardAluno";
 import { resolucaoListaRouter } from "@/modules/resolucaoLista/resolucaoLista.routes";
 import { conquistaRouter } from "@/modules/conquistas/conquistas.routes";
+import "@/modules/conquistas/listeners/tema-criado.listener";
 import { lojaRouter } from "@/modules/loja";
-import { inventarioRoutes } from "@/modules/inventario"
+import { inventarioRoutes } from "@/modules/inventario";
 
 const aplicacao = express();
 const roteadorApi = Router();

@@ -101,4 +101,8 @@ export const MENSAGENS = {
   operacaoRealizadaComSucesso: "Destaques alterados com sucesso",
 
   erroListarConquistas: "Erro ao listar conquistas",
+
+  conquistaNaoEncontrada: "Conquista nao encontrada.",
+
+  limiteConquistasDestacadas: "Apenas tres conquistas podem ser destacadas.",
 } as const;

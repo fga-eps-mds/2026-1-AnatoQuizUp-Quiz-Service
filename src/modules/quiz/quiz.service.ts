@@ -94,19 +94,21 @@ export class QuizService {
     }
 
     const correcao = gabarito.respostaCorreta === data.respostaMarcada;
-    const alunoPodeReceberMoedas = papel_usuario === PAPEIS.ALUNO;
+    const alunoPodeReceberRecompensas = papel_usuario === PAPEIS.ALUNO;
 
-    const conquistas = await this.conquistaService.processarRespostaQuestao(
-      id_usuario,
-      gabarito.temaId,
-      gabarito.tema.nome,
-      correcao,
-    );
+    const conquistas = alunoPodeReceberRecompensas
+      ? await this.conquistaService.processarRespostaQuestao(
+          id_usuario,
+          gabarito.temaId,
+          gabarito.tema.nome,
+          correcao,
+        )
+      : [];
 
     let moedasConcedidas = 0;
     let moedasJaConcedidas = false;
 
-    if (correcao && alunoPodeReceberMoedas) {
+    if (correcao && alunoPodeReceberRecompensas) {
       const resultado = await this.quizRepository.concederMoedasPorAcerto(
         id_usuario,
         data.questaoId,
