@@ -68,6 +68,11 @@ enum TipoItemLoja {
   MOLDURA
 }
 
+enum OrigemItemInventario {
+  COMPRA
+  CONQUISTA
+}
+
 enum TaxonomiaBloom {
   LEMBRAR
   COMPREENDER
@@ -200,10 +205,12 @@ model ItemLoja {
   imagemUrl        String?
   previewImagemUrl String?
 
-  ativo Boolean @default(true)
+  ativo            Boolean @default(true)
+  disponivelNaLoja Boolean @default(true)
 
-  inventarios      InventarioItem[]
-  transacoesMoedas TransacaoMoeda[]
+  inventarios          InventarioItem[]
+  transacoesMoedas     TransacaoMoeda[]
+  recompensasConquista RecompensaItemConquista[]
 
   criadoEm     DateTime  @default(now())
   atualizadoEm DateTime  @updatedAt
@@ -211,20 +218,24 @@ model ItemLoja {
 
   @@index([tipo])
   @@index([ativo])
+  @@index([disponivelNaLoja])
   @@map("itens_loja")
 }
 
 model InventarioItem {
   id String @id @default(cuid())
 
-  usuarioId  String
-  itemLojaId String
+  usuarioId              String
+  itemLojaId             String
+  desbloqueioConquistaId String?
 
-  equipado Boolean @default(false)
+  equipado Boolean              @default(false)
+  origem   OrigemItemInventario @default(COMPRA)
 
   adquiridoEm DateTime @default(now())
 
-  itemLoja ItemLoja @relation(fields: [itemLojaId], references: [id], onDelete: Restrict)
+  itemLoja             ItemLoja              @relation(fields: [itemLojaId], references: [id], onDelete: Restrict)
+  desbloqueioConquista DesbloqueioConquista? @relation(fields: [desbloqueioConquistaId], references: [id], onDelete: SetNull)
 
   criadoEm     DateTime  @default(now())
   atualizadoEm DateTime  @updatedAt
@@ -233,6 +244,7 @@ model InventarioItem {
   @@unique([usuarioId, itemLojaId])
   @@index([usuarioId])
   @@index([itemLojaId])
+  @@index([desbloqueioConquistaId])
   @@map("inventario_itens")
 }
 
@@ -241,23 +253,22 @@ model TransacaoMoeda {
 
   usuarioId String
 
-  questaoId  String?
+  questaoId     String?
   desbloqueioId String?
-  itemLojaId String?
+  itemLojaId    String?
 
   quantidade Int
   fonte      FonteMoeda @default(ACERTO_QUESTAO)
-
 
   descricao String?
 
   carteira CarteiraMoedas @relation(fields: [usuarioId], references: [usuarioId], onDelete: Restrict)
 
-  questao  Questao?  @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+  questao     Questao?              @relation(fields: [questaoId], references: [id], onDelete: Restrict)
   desbloqueio DesbloqueioConquista? @relation(fields: [desbloqueioId], references: [id], onDelete: Restrict)
-  itemLoja ItemLoja? @relation(fields: [itemLojaId], references: [id], onDelete: Restrict)
+  itemLoja    ItemLoja?             @relation(fields: [itemLojaId], references: [id], onDelete: Restrict)
 
-  criadoEm    DateTime   @default(now())
+  criadoEm DateTime @default(now())
 
   @@unique([usuarioId, questaoId, fonte])
   @@unique([usuarioId, desbloqueioId, fonte])
@@ -402,11 +413,12 @@ model Conquista {
 
   tema Tema? @relation(fields: [temaId], references: [id], onDelete: Restrict)
 
-  usuarios     ConquistaUsuario[]
-  desbloqueios DesbloqueioConquista[]
+  usuarios         ConquistaUsuario[]
+  desbloqueios     DesbloqueioConquista[]
+  recompensasItens RecompensaItemConquista[]
 
-  criadoEm        DateTime         @default(now())
-  atualizadoEm    DateTime         @updatedAt
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
 
   @@index([tipoConquista])
   @@index([temaId])
@@ -448,9 +460,28 @@ model DesbloqueioConquista {
 
   conquista       Conquista        @relation(fields: [conquistaId], references: [id], onDelete: Cascade)
   transacaoMoedas TransacaoMoeda[]
+  itensInventario InventarioItem[]
 
   @@unique([usuarioId, conquistaId, tier])
   @@index([usuarioId])
   @@index([conquistaId])
   @@map("desbloqueios_conquistas")
+}
+
+model RecompensaItemConquista {
+  id String @id @default(cuid())
+
+  conquistaId String
+  tier        TierConquista
+  itemLojaId  String
+
+  conquista Conquista @relation(fields: [conquistaId], references: [id], onDelete: Cascade)
+  itemLoja  ItemLoja  @relation(fields: [itemLojaId], references: [id], onDelete: Restrict)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@unique([conquistaId, tier])
+  @@index([itemLojaId])
+  @@map("recompensas_itens_conquistas")
 }
