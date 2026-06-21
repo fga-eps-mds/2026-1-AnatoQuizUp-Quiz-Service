@@ -162,4 +162,62 @@ export class TurmaDashboardService {
       };
     });
   }
+
+  async getDesempenhoAlunosNaLista(turmaId: string, listaTurmaId: string) {
+    const [alunosIds, listaTurma] = await Promise.all([
+      this.repository.findAlunosByTurmaId(turmaId),
+      this.repository.findListaTurmaById(turmaId, listaTurmaId),
+    ]);
+
+    if (!listaTurma || listaTurma.turmaId !== turmaId) {
+      throw new Error('Lista não encontrada ou não pertence a esta turma.');
+    }
+
+    const totalQuestoes = listaTurma.listaQuestao.itens.length;
+
+    const resolucoesMap = new Map();
+    listaTurma.resolucoes.forEach((res) => {
+      resolucoesMap.set(res.alunoId, res);
+    });
+
+    const alunos = alunosIds.map((alunoId) => {
+      const resolucao = resolucoesMap.get(alunoId);
+
+      if (!resolucao || resolucao.status !== 'SUBMETIDA') {
+        return {
+          alunoId,
+          status: resolucao?.status === 'EM_ANDAMENTO' ? 'EM_ANDAMENTO' : 'NAO_RESPONDEU',
+          totalAcertos: 0,
+          taxaAcerto: 0,
+          submissaoEm: null,
+          mensagem: resolucao?.status === 'EM_ANDAMENTO' ? 'Iniciou mas não submeteu' : 'Não respondeu',
+        };
+      }
+
+      const totalAcertos = resolucao.respostas.filter(
+        (r: { respostaMarcada: string | null; questao: { respostaCorreta: string } }) => 
+          r.respostaMarcada === r.questao.respostaCorreta
+      ).length;
+
+      const taxaAcerto = totalQuestoes > 0 ? Math.round((totalAcertos / totalQuestoes) * 100) : 0;
+
+      return {
+        alunoId,
+        status: 'SUBMETIDA',
+        totalAcertos,
+        taxaAcerto,
+        submissaoEm: resolucao.submissaoEm?.toISOString() ?? null,
+        mensagem: 'Respondida',
+      };
+    });
+
+    alunos.sort((a, b) => b.taxaAcerto - a.taxaAcerto);
+
+    return {
+      listaTurmaId,
+      nomeLista: listaTurma.listaQuestao.nome,
+      totalQuestoes,
+      desempenhoAlunos: alunos,
+    };
+  }
 }

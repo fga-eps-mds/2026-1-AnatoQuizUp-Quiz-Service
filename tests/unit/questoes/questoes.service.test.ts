@@ -17,7 +17,9 @@ function criarQuestao(overrides: Partial<RegistroQuestaoCompleta> = {}): Registr
     dificuldade: "DIFICIL",
     saibaMais: "O ventriculo esquerdo impulsiona sangue.",
     status: "ATIVO",
-    feitoPorIa: false,
+    origemQuestao: "ELABORADA_POR_PROFESSOR",
+    taxonomiaBloom: null,
+    regiaoAnatomica: null,
     urlImagem: "https://cdn.example.com/coracao.png",
     criadoPorId: "professor-1",
     temaId: "tema-1",
@@ -54,7 +56,7 @@ function criarInputValido(): CriarQuestaoDto {
     enunciado: "Enunciado teste",
     tipo: "MULTIPLA_ESCOLHA",
     alternativaCorreta: "B",
-    explicacaoPedagogica: "Explicacao",
+    saibaMais: "Explicacao",
     dificuldade: "DIFICIL",
     alternativas: {
       A: "A",
@@ -181,7 +183,7 @@ describe("QuestionService", () => {
     test("validar falta de C ou E no Verdadeiro/Falso", async () => {
       const input = {
         ...criarInputValido(),
-        tipo: "VERDADEIRO_FALSO",
+        tipo: "CERTO_ERRADO",
         alternativas: { C: "Certo" },
       } as unknown as CriarQuestaoDto;
       await expect(service.criar(input, undefined, "p-1")).rejects.toThrow(
@@ -192,7 +194,7 @@ describe("QuestionService", () => {
     test("validar gabarito incompatível com V/F", async () => {
       const input = {
         ...criarInputValido(),
-        tipo: "VERDADEIRO_FALSO",
+        tipo: "CERTO_ERRADO",
         alternativas: { C: "C", E: "E" },
         alternativaCorreta: "A",
       } as unknown as CriarQuestaoDto;
@@ -211,6 +213,50 @@ describe("QuestionService", () => {
       expect(repository.atualizar).toHaveBeenCalledWith(
         "1",
         expect.objectContaining({ enunciado: antiga.enunciado }),
+        "u-1",
+      );
+    });
+
+    test("atualizar mantem os campos de classificacao da questao antiga quando nao enviados", async () => {
+      const antiga = criarQuestao({
+        taxonomiaBloom: "AVALIAR",
+        origemQuestao: "LIVRO",
+        regiaoAnatomica: "Abdome",
+      });
+      repository.buscarPorId.mockResolvedValue(antiga);
+      repository.atualizar.mockResolvedValue(antiga);
+
+      await service.atualizar("1", { enunciado: "Novo enunciado" }, undefined, "u-1");
+
+      expect(repository.atualizar).toHaveBeenCalledWith(
+        "1",
+        expect.objectContaining({
+          taxonomiaBloom: "AVALIAR",
+          origemQuestao: "LIVRO",
+          regiaoAnatomica: "Abdome",
+        }),
+        "u-1",
+      );
+    });
+
+    test("atualizar sobrescreve os campos de classificacao quando enviados", async () => {
+      const antiga = criarQuestao({ taxonomiaBloom: "LEMBRAR", origemQuestao: "LIVRO" });
+      repository.buscarPorId.mockResolvedValue(antiga);
+      repository.atualizar.mockResolvedValue(antiga);
+
+      await service.atualizar(
+        "1",
+        { taxonomiaBloom: "CRIAR", origemQuestao: "GERADA_POR_IA" },
+        undefined,
+        "u-1",
+      );
+
+      expect(repository.atualizar).toHaveBeenCalledWith(
+        "1",
+        expect.objectContaining({
+          taxonomiaBloom: "CRIAR",
+          origemQuestao: "GERADA_POR_IA",
+        }),
         "u-1",
       );
     });

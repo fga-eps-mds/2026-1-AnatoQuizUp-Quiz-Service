@@ -5,7 +5,7 @@ import { validarRequisicao } from '@/shared/middlewares/validacao.middleware';
 import { TurmaDashboardRepository } from './dashboardTurma.repository';
 import { TurmaDashboardService } from './dashboardTurma.service';
 import { TurmaDashboardController } from './dashboardTurma.controller';
-import { schemaParamsDashboard } from './dashboardTruma.schemas'; 
+import { schemaParamsDashboard, schemaParamsListaDashboard } from './dashboardTruma.schemas'; 
 
 const dashboardRouter = Router();
 
@@ -34,6 +34,13 @@ dashboardRouter.get(
   apenasGestao,
   validarRequisicao(schemaParamsDashboard, 'params'),
   turmaDashboardController.listarPorListas
+);
+
+dashboardRouter.get(
+  '/:id/listas/:listaId',
+  apenasGestao,
+  validarRequisicao(schemaParamsListaDashboard, 'params'),
+  turmaDashboardController.listarDesempenhoListaIndividual
 );
 
 export { dashboardRouter };

@@ -50,7 +50,7 @@ describe('ResolucaoListaController', () => {
 
       await controller.listar(req as Request, res as Response, next);
 
-      expect(service.listarParaAluno).toHaveBeenCalledWith('aluno-id-123', 'PENDENTE', 'Tórax');
+      expect(service.listarParaAluno).toHaveBeenCalledWith('aluno-id-123', undefined, 'PENDENTE', 'Tórax');
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         mensagem: "Listas recuperadas com sucesso.",

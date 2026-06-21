@@ -17,8 +17,10 @@ import { quizRouter } from "@/modules/quiz/quiz.routes";
 import { listaQuestaoRouter } from "@/modules/lista";
 import { dashboardRouter } from "@/modules/dashboardTurma/dashboardTurma.routes";
 import { dashboardAlunoRouter } from "@/modules/dashboardAluno";
-import { resolucaoListaRouter } from "@/modules/resolucaoLista/resolucaoLista.routes"; 
+import { resolucaoListaRouter } from "@/modules/resolucaoLista/resolucaoLista.routes";
 import { conquistaRouter } from "@/modules/conquistas/conquistas.routes";
+import { lojaRouter } from "@/modules/loja";
+import { inventarioRoutes } from "@/modules/inventario"
 
 const aplicacao = express();
 const roteadorApi = Router();
@@ -50,7 +52,8 @@ roteadorApi.use("/turmasDashboard", dashboardRouter);
 roteadorApi.use("/dashboardAluno", dashboardAlunoRouter);
 roteadorApi.use("/listasAluno", resolucaoListaRouter);
 roteadorApi.use("/conquistas", conquistaRouter);
-
+roteadorApi.use("/loja", lojaRouter);
+roteadorApi.use("/inventario", inventarioRoutes);
 
 aplicacao.use("/api/v1", roteadorApi);
 

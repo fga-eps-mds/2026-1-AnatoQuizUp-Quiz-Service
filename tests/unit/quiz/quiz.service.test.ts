@@ -30,7 +30,9 @@ function criarQuestoes(
       respostaCorreta: "B",
       saibaMais: "O ventriculo esquerdo impulsiona sangue para a circulacao sistemica.",
       status: "ATIVO",
-      feitoPorIa: false,
+      origemQuestao: "ELABORADA_POR_PROFESSOR",
+      taxonomiaBloom: null,
+      regiaoAnatomica: null,
       urlImagem: "https://cdn.example.com/coracao.png",
       criadoPorId: "professor-1",
       temaId: "tema-1",
@@ -656,7 +658,7 @@ describe("Testa Quiz Service", () => {
             respostaCorreta: "A",
             saibaMais: null,
             status: "ATIVO",
-            feitoPorIa: false,
+            origemQuestao: "ELABORADA_POR_PROFESSOR",
             urlImagem: null,
             dificuldade: "MEDIA",
 
@@ -719,7 +721,7 @@ describe("Testa Quiz Service", () => {
             respostaCorreta: "C",
             saibaMais: null,
             status: "ATIVO",
-            feitoPorIa: false,
+            origemQuestao: "ELABORADA_POR_PROFESSOR",
             urlImagem: null,
             dificuldade: "FACIL",
             tema: {
@@ -736,7 +738,7 @@ describe("Testa Quiz Service", () => {
     const query: FiltroListarQuestoesQueryDto = {
       tema: "tema-2",
       dificuldade: DIFICULDADE_API.FACIL,
-      tipo: TIPO_QUESTAO_API.VERDADEIRO_FALSO,
+      tipo: TIPO_QUESTAO_API.CERTO_ERRADO,
     };
 
     const resultado = await quizService.buscarHistorico("usuario-1", query);
@@ -751,7 +753,7 @@ describe("Testa Quiz Service", () => {
         C: 1,
       },
       questao: expect.objectContaining({
-        tipoQuestao: "VERDADEIRO_FALSO",
+        tipoQuestao: "CERTO_ERRADO",
         enunciado: "Pergunta V/F",
       }),
     });

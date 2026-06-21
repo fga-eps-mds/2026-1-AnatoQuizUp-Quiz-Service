@@ -2,7 +2,7 @@ import type {
   FiltroListarQuestoesQueryDto,
   RegistroQuestaoCompleta,
 } from "@/modules/questoes/dto/question.types";
-import { mapearTipoApiParaBanco, montarFiltroPrisma } from "@/modules/questoes/dto/question.types";
+import { montarFiltroPrisma } from "@/modules/questoes/dto/question.types";
 import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
 import type { ResponderQuestaoQuizDto } from "./dto/requests/responder_questao_quiz_dto";
@@ -26,7 +26,7 @@ const selectListarQuestoesRespondidas = {
       respostaCorreta: true,
       saibaMais: true,
       status: true,
-      feitoPorIa: true,
+      origemQuestao: true,
       urlImagem: true,
       dificuldade: true,
       tema: { select: { id: true, nome: true } },
@@ -268,7 +268,7 @@ export class QuizRepository {
           tema: { nome: { equals: filtros.tema, mode: "insensitive" } },
         }),
         ...(filtros.dificuldade && { dificuldade: filtros.dificuldade }),
-        ...(filtros.tipo && { tipoQuestao: mapearTipoApiParaBanco(filtros.tipo) }),
+        ...(filtros.tipo && { tipoQuestao: filtros.tipo }),
       },
     };
 

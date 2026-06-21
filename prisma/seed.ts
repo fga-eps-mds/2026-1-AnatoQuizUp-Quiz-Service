@@ -1,4 +1,4 @@
-import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao, TipoConquista } from "@prisma/client";
+import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao, TipoItemLoja, TipoConquista } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -7,6 +7,10 @@ async function main() {
 
   // 1. Limpando as tabelas na ordem correta logo no início para evitar erros de FK
   await prisma.transacaoMoeda.deleteMany({});
+  await prisma.inventarioItem.deleteMany({});
+  await prisma.itemLoja.deleteMany({});
+  await prisma.carteiraMoedas.deleteMany({});
+
   await prisma.listaTurma.deleteMany({});
   await prisma.turmaAluno.deleteMany({});
   await prisma.listaQuestaoItem.deleteMany({});
@@ -17,12 +21,12 @@ async function main() {
   await prisma.tema.deleteMany({});
   await prisma.turma.deleteMany({});
 
-  const PROFESSOR_ID   = "cmp7fx97j00034hyqazqwrk3e"; 
-  const ALUNO_1_ID     = "cmp7fx99d00044hyqq4msqsyt";
-  const ALUNO_2_ID     = "cmp7fx99d00044hyqq4mswgsr";
+  const PROFESSOR_ID = "cmp7fx97j00034hyqazqwrk3e";
+  const ALUNO_1_ID = "cmp7fx99d00044hyqq4msqsyt";
+  const ALUNO_2_ID = "cmp7fx99d00044hyqq4mswgsr";
   const MEU_USUARIO_ID = "d56fd5df-29f0-4319-a4b1-b4c0d326226c"; // <--- SEU USUARIO
 
-    await prisma.conquista.upsert({
+  await prisma.conquista.upsert({
     where: {
       id: "total-acertos",
     },
@@ -48,6 +52,211 @@ async function main() {
     },
   });
 
+  // 2. Criando carteira de moedas para testar a loja
+  await prisma.carteiraMoedas.create({
+    data: {
+      usuarioId: MEU_USUARIO_ID,
+      saldo: 5000,
+    },
+  });
+
+  console.log("Carteira de moedas criada para o usuário de teste.");
+
+  // 3. Criando itens da Loja Virtual (cosméticos)
+  // Categorias: ICONE_PERFIL, MOLDURA, AVATAR, TITULO, PLANO_FUNDO.
+  // Preços diversificados (recompensa por acerto: FACIL 10 / MEDIA 25 / DIFICIL 50).
+  // `valor` guarda a cor/gradiente decorativo (círculo do ícone, anel da moldura, fundo);
+  // ícones de anatomia vêm do Iconify (silhueta branca); títulos são texto;
+  // o ícone premium (logo dourada do AnatoQuiz) é renderizado no front a partir do `codigo`.
+  const iconeAnatomia = (nome: string) =>
+    `https://api.iconify.design/game-icons/${nome}.svg?color=%23ffffff`;
+  const avatar = (seed: string, skinColor: string) =>
+    `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&skinColor=${skinColor}`;
+
+  const GRADIENTE_OURO = "linear-gradient(135deg, #FCD34D 0%, #D4AF37 100%)";
+
+  await prisma.itemLoja.createMany({
+    data: [
+      // --- Ícones de perfil (4) ---
+      {
+        codigo: "icone-coruja",
+        nome: "Coruja",
+        descricao: "Para os estudiosos de plantão.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
+        precoMoedas: 60,
+        valor: "linear-gradient(135deg, #71edc8 0%, #00A88F 100%)",
+        imagemUrl: iconeAnatomia("owl"),
+        previewImagemUrl: iconeAnatomia("owl"),
+      },
+      {
+        codigo: "icone-coracao",
+        nome: "Coração",
+        descricao: "O órgão que move tudo.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
+        precoMoedas: 120,
+        valor: "linear-gradient(135deg, #fb7185 0%, #e11d48 100%)",
+        imagemUrl: iconeAnatomia("heart-organ"),
+        previewImagemUrl: iconeAnatomia("heart-organ"),
+      },
+      {
+        codigo: "icone-cerebro",
+        nome: "Cérebro",
+        descricao: "Para as mentes brilhantes.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
+        precoMoedas: 200,
+        valor: "linear-gradient(135deg, #c4b5fd 0%, #7c3aed 100%)",
+        imagemUrl: iconeAnatomia("brain"),
+        previewImagemUrl: iconeAnatomia("brain"),
+      },
+      {
+        codigo: "icone-anatoquiz-dourado",
+        nome: "AnatoQuiz Dourado",
+        descricao: "Ícone premium com a logo do AnatoQuiz em dourado.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
+        precoMoedas: 500,
+        valor: GRADIENTE_OURO,
+        // logo renderizada no front a partir do codigo (asset local)
+      },
+
+      // --- Molduras de ícone de perfil (4) - anel em `valor` ---
+      {
+        codigo: "moldura-bronze",
+        nome: "Bronze",
+        descricao: "Moldura de bronze para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 90,
+        valor: "linear-gradient(135deg, #d97706 0%, #92400e 100%)",
+      },
+      {
+        codigo: "moldura-prateada",
+        nome: "Prateada",
+        descricao: "Moldura prateada para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 140,
+        valor: "linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%)",
+      },
+      {
+        codigo: "moldura-dourada",
+        nome: "Dourada",
+        descricao: "Moldura dourada para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 220,
+        valor: GRADIENTE_OURO,
+      },
+      {
+        codigo: "moldura-neon",
+        nome: "Neon",
+        descricao: "Moldura neon vibrante para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 380,
+        valor: "linear-gradient(135deg, #22d3ee 0%, #a855f7 100%)",
+      },
+
+      // --- Avatares (4) - modelos prontos, sem customização. Mesmo preço (100). ---
+      {
+        codigo: "avatar-estudioso",
+        nome: "O Estudioso",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("Estudioso7", "ae5d29"),
+        previewImagemUrl: avatar("Estudioso7", "ae5d29"),
+      },
+      {
+        codigo: "avatar-mundo-da-lua",
+        nome: "Mundo da Lua",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("MundoDaLua3", "d08b5b"),
+        previewImagemUrl: avatar("MundoDaLua3", "d08b5b"),
+      },
+      {
+        codigo: "avatar-nerd",
+        nome: "Nerd de Plantão",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("NerdDePlantao", "edb98a"),
+        previewImagemUrl: avatar("NerdDePlantao", "edb98a"),
+      },
+      {
+        codigo: "avatar-modo-tedio",
+        nome: "Modo Tédio",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("ModoTedio9", "ffdbb4"),
+        previewImagemUrl: avatar("ModoTedio9", "ffdbb4"),
+      },
+
+      // --- Títulos (4) - renderizados como texto ---
+      {
+        codigo: "titulo-calouro-curioso",
+        nome: "Calouro Curioso",
+        descricao: "Título de destaque para quem está começando a jornada.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 50,
+      },
+      {
+        codigo: "titulo-veterano-dos-ossos",
+        nome: "Veterano dos Ossos",
+        descricao: "Título de destaque para os experientes em osteologia.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 150,
+      },
+      {
+        codigo: "titulo-mestre-anatomia",
+        nome: "Mestre da Anatomia",
+        descricao: "Título de destaque para quem domina o corpo humano.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 250,
+      },
+      {
+        codigo: "titulo-doutor-em-formacao",
+        nome: "Doutor em Formação",
+        descricao: "Título de destaque para os futuros doutores.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 400,
+      },
+
+      // --- Planos de fundo (4) - cor/gradiente em `valor` ---
+      {
+        codigo: "fundo-azul-noturno",
+        nome: "Azul Noturno",
+        descricao: "Plano de fundo em azul escuro, padrão da plataforma.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 80,
+        valor: "#0A1128",
+      },
+      {
+        codigo: "fundo-verde-menta",
+        nome: "Verde Menta",
+        descricao: "Plano de fundo em verde menta suave.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 130,
+        valor: "linear-gradient(135deg, #71edc8 0%, #34d399 100%)",
+      },
+      {
+        codigo: "fundo-laranja-vibrante",
+        nome: "Laranja Vibrante",
+        descricao: "Plano de fundo em laranja energético.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 180,
+        valor: "linear-gradient(135deg, #fb923c 0%, #F97316 100%)",
+      },
+      {
+        codigo: "fundo-textura-anatomica",
+        nome: "Textura Anatômica",
+        descricao: "Plano de fundo com gradiente inspirado na identidade do AnatoQuizUp.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 350,
+        valor: "linear-gradient(135deg, #0A1128 0%, #00214d 100%)",
+      },
+    ],
+  });
+
+  console.log("Itens da loja virtual (cosméticos) criados com sucesso.");
 
   // 2. Criando Temas
   const temas = {
@@ -170,124 +379,178 @@ async function main() {
   console.log("Iniciando o seed massivo do Quiz-Service (27 Questões)...");
   const questoes = [
     // NEURO
-    { temaId: temas.neuro.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.B, 
-      enunciado: "Qual estrutura central é responsável pelo controle motor e equilíbrio?", 
-      saibaMais: "O cerebelo coordena os movimentos.", 
-      alts: ["Hipotálamo", "Cerebelo", "Bulbo", "Ponte", "Amígdala"] },
-    { temaId: temas.neuro.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.A, 
-      enunciado: "Qual lobo cerebral é primariamente associado à visão?", 
-      saibaMais: "O lobo occipital abriga o córtex visual primário.", 
-      alts: ["Occipital", "Frontal", "Temporal", "Parietal", "Insular"] },
-    { temaId: temas.neuro.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.C, 
-      enunciado: "O sistema nervoso central é composto por quais estruturas principais?", 
-      saibaMais: "O SNC inclui apenas o encéfalo e a medula espinhal.", 
-      alts: ["Nervos e gânglios", "Cérebro e nervos", "Encéfalo e medula espinhal", "Apenas cérebro", "Tronco encefálico e nervos espinhais"] },
-    { temaId: temas.neuro.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.C, 
-      enunciado: "Sobre o sistema nervoso autônomo, qual afirmativa é INCORRETA?", 
-      saibaMais: "Fibras parassimpáticas não passam pelos ramos dos nervos espinhais.", 
-      alts: ["Respostas simpáticas vêm do hipotálamo.", "Divisão simpática é toracolombar.", "Fibras parassimpáticas passam pelos nervos espinhais.", "Corpos pré-ganglionares parassimpáticos estão no encéfalo.", "Nenhuma das anteriores."] },
-    { temaId: temas.neuro.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.B, 
-      enunciado: "Qual nervo craniano é responsável pela inervação motora dos músculos da mímica facial?", 
-      saibaMais: "O nervo facial (VII) controla as expressões faciais.", 
-      alts: ["Trigêmeo (V)", "Facial (VII)", "Oculomotor (III)", "Vago (X)", "Acessório (XI)"] },
-    { temaId: temas.neuro.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.D, 
-      enunciado: "Qual o principal neurotransmissor liberado pelos neurônios pós-ganglionares simpáticos?", 
-      saibaMais: "A noradrenalina atua nos receptores adrenérgicos dos órgãos alvo.", 
-      alts: ["Acetilcolina", "Dopamina", "Serotonina", "Noradrenalina", "GABA"] },
-    { temaId: temas.neuro.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.A, 
-      enunciado: "Uma lesão no fascículo grácil da medula espinhal resulta na perda de qual função?", 
-      saibaMais: "O fascículo grácil conduz propriocepção e tato fino dos membros inferiores.", 
-      alts: ["Propriocepção dos membros inferiores", "Dor e temperatura contralaterais", "Motricidade dos membros superiores", "Visão periférica", "Audição ipsilateral"] },
-    { temaId: temas.neuro.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.E, 
-      enunciado: "A artéria cerebral média é ramo direto de qual grande vaso?", 
-      saibaMais: "Ela é continuação direta da artéria carótida interna.", 
-      alts: ["Artéria basilar", "Artéria vertebral", "Artéria carótida externa", "Artéria cerebral posterior", "Artéria carótida interna"] },
-    { temaId: temas.neuro.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.B, 
-      enunciado: "Qual núcleo dos gânglios da base degenera na Doença de Huntington?", 
-      saibaMais: "A perda de neurônios no núcleo caudado e putâmen gera a coreia.", 
-      alts: ["Substância negra", "Núcleo caudado e putâmen", "Globo pálido interno", "Núcleo subtalâmico", "Tálamo"] },
+    {
+      temaId: temas.neuro.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.B,
+      enunciado: "Qual estrutura central é responsável pelo controle motor e equilíbrio?",
+      saibaMais: "O cerebelo coordena os movimentos.",
+      alts: ["Hipotálamo", "Cerebelo", "Bulbo", "Ponte", "Amígdala"]
+    },
+    {
+      temaId: temas.neuro.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.A,
+      enunciado: "Qual lobo cerebral é primariamente associado à visão?",
+      saibaMais: "O lobo occipital abriga o córtex visual primário.",
+      alts: ["Occipital", "Frontal", "Temporal", "Parietal", "Insular"]
+    },
+    {
+      temaId: temas.neuro.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.C,
+      enunciado: "O sistema nervoso central é composto por quais estruturas principais?",
+      saibaMais: "O SNC inclui apenas o encéfalo e a medula espinhal.",
+      alts: ["Nervos e gânglios", "Cérebro e nervos", "Encéfalo e medula espinhal", "Apenas cérebro", "Tronco encefálico e nervos espinhais"]
+    },
+    {
+      temaId: temas.neuro.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.C,
+      enunciado: "Sobre o sistema nervoso autônomo, qual afirmativa é INCORRETA?",
+      saibaMais: "Fibras parassimpáticas não passam pelos ramos dos nervos espinhais.",
+      alts: ["Respostas simpáticas vêm do hipotálamo.", "Divisão simpática é toracolombar.", "Fibras parassimpáticas passam pelos nervos espinhais.", "Corpos pré-ganglionares parassimpáticos estão no encéfalo.", "Nenhuma das anteriores."]
+    },
+    {
+      temaId: temas.neuro.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.B,
+      enunciado: "Qual nervo craniano é responsável pela inervação motora dos músculos da mímica facial?",
+      saibaMais: "O nervo facial (VII) controla as expressões faciais.",
+      alts: ["Trigêmeo (V)", "Facial (VII)", "Oculomotor (III)", "Vago (X)", "Acessório (XI)"]
+    },
+    {
+      temaId: temas.neuro.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.D,
+      enunciado: "Qual o principal neurotransmissor liberado pelos neurônios pós-ganglionares simpáticos?",
+      saibaMais: "A noradrenalina atua nos receptores adrenérgicos dos órgãos alvo.",
+      alts: ["Acetilcolina", "Dopamina", "Serotonina", "Noradrenalina", "GABA"]
+    },
+    {
+      temaId: temas.neuro.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.A,
+      enunciado: "Uma lesão no fascículo grácil da medula espinhal resulta na perda de qual função?",
+      saibaMais: "O fascículo grácil conduz propriocepção e tato fino dos membros inferiores.",
+      alts: ["Propriocepção dos membros inferiores", "Dor e temperatura contralaterais", "Motricidade dos membros superiores", "Visão periférica", "Audição ipsilateral"]
+    },
+    {
+      temaId: temas.neuro.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.E,
+      enunciado: "A artéria cerebral média é ramo direto de qual grande vaso?",
+      saibaMais: "Ela é continuação direta da artéria carótida interna.",
+      alts: ["Artéria basilar", "Artéria vertebral", "Artéria carótida externa", "Artéria cerebral posterior", "Artéria carótida interna"]
+    },
+    {
+      temaId: temas.neuro.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.B,
+      enunciado: "Qual núcleo dos gânglios da base degenera na Doença de Huntington?",
+      saibaMais: "A perda de neurônios no núcleo caudado e putâmen gera a coreia.",
+      alts: ["Substância negra", "Núcleo caudado e putâmen", "Globo pálido interno", "Núcleo subtalâmico", "Tálamo"]
+    },
 
     // ABDOME
-    { temaId: temas.abdome.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.B, 
-      enunciado: "Qual o exame de imagem inicial mais indicado para suspeita de apendicite aguda?", 
-      saibaMais: "A ultrassonografia é rápida e sem radiação.", 
-      alts: ["Radiografia", "Ultrassonografia", "TC com contraste", "TC sem contraste", "Ressonância"] },
-    { temaId: temas.abdome.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.A, 
-      enunciado: "Dor intensa e súbita no hipocôndrio direito, irradiando para escápula, sugere inflamação em qual órgão?", 
-      saibaMais: "É o quadro clássico de colecistite aguda.", 
-      alts: ["Vesícula biliar", "Apêndice", "Baço", "Pâncreas", "Rim esquerdo"] },
-    { temaId: temas.abdome.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.C, 
-      enunciado: "Sinal de descompressão brusca dolorosa em todo o abdome é indicativo de:", 
-      saibaMais: "A dor de rebote generalizada sugere peritonite difusa.", 
-      alts: ["Gastroenterite", "Cálculo renal", "Peritonite", "Constipação", "Hérnia umbilical"] },
-    { temaId: temas.abdome.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.D, 
-      enunciado: "Palpação profunda na fossa ilíaca esquerda provocando dor na direita é qual sinal?", 
-      saibaMais: "Sinal de Rovsing, típico de apendicite.", 
-      alts: ["Blumberg", "Murphy", "McBurney", "Rovsing", "Psoas"] },
-    { temaId: temas.abdome.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.B, 
-      enunciado: "Qual é a causa mais comum de obstrução intestinal em intestino delgado em adultos?", 
-      saibaMais: "Aderências (bridas) pós-cirúrgicas são a principal causa.", 
-      alts: ["Hérnias encarceradas", "Aderências pós-operatórias", "Tumores malignos", "Vólvulo", "Doença de Crohn"] },
-    { temaId: temas.abdome.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.A, 
-      enunciado: "O Sinal de Cullen (equimose periumbilical) pode ser encontrado em casos graves de:", 
-      saibaMais: "Sinal clássico de hemorragia retroperitoneal na pancreatite.", 
-      alts: ["Pancreatite aguda necro-hemorrágica", "Apendicite supurada", "Colecistite gangrenosa", "Úlcera péptica perfurada", "Diverticulite aguda"] },
-    { temaId: temas.abdome.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.C, 
-      enunciado: "Em uma radiografia de abdome agudo obstrutivo, o sinal do 'grão de café' indica:", 
-      saibaMais: "É o achado radiológico patognomônico de vólvulo de sigmoide.", 
-      alts: ["Íleo biliar", "Intussuscepção", "Vólvulo de sigmoide", "Megacólon tóxico", "Perfuração gástrica"] },
-    { temaId: temas.abdome.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.E, 
-      enunciado: "Qual critério tomográfico é utilizado para classificar a gravidade da pancreatite aguda?", 
-      saibaMais: "O Critério de Balthazar avalia necrose e coleções peripancreáticas.", 
-      alts: ["Ranson", "Apache II", "Alvarado", "Hinchey", "Balthazar"] },
-    { temaId: temas.abdome.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.D, 
-      enunciado: "A tríade de Rigler (pneumobilia, obstrução de delgado e cálculo ectópico) sela o diagnóstico de:", 
-      saibaMais: "Íleo biliar ocorre por fístula colecistoentérica.", 
-      alts: ["Colangite aguda", "Isquemia mesentérica", "Síndrome de Mirizzi", "Íleo biliar", "Coledocolitíase"] },
+    {
+      temaId: temas.abdome.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.B,
+      enunciado: "Qual o exame de imagem inicial mais indicado para suspeita de apendicite aguda?",
+      saibaMais: "A ultrassonografia é rápida e sem radiação.",
+      alts: ["Radiografia", "Ultrassonografia", "TC com contraste", "TC sem contraste", "Ressonância"]
+    },
+    {
+      temaId: temas.abdome.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.A,
+      enunciado: "Dor intensa e súbita no hipocôndrio direito, irradiando para escápula, sugere inflamação em qual órgão?",
+      saibaMais: "É o quadro clássico de colecistite aguda.",
+      alts: ["Vesícula biliar", "Apêndice", "Baço", "Pâncreas", "Rim esquerdo"]
+    },
+    {
+      temaId: temas.abdome.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.C,
+      enunciado: "Sinal de descompressão brusca dolorosa em todo o abdome é indicativo de:",
+      saibaMais: "A dor de rebote generalizada sugere peritonite difusa.",
+      alts: ["Gastroenterite", "Cálculo renal", "Peritonite", "Constipação", "Hérnia umbilical"]
+    },
+    {
+      temaId: temas.abdome.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.D,
+      enunciado: "Palpação profunda na fossa ilíaca esquerda provocando dor na direita é qual sinal?",
+      saibaMais: "Sinal de Rovsing, típico de apendicite.",
+      alts: ["Blumberg", "Murphy", "McBurney", "Rovsing", "Psoas"]
+    },
+    {
+      temaId: temas.abdome.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.B,
+      enunciado: "Qual é a causa mais comum de obstrução intestinal em intestino delgado em adultos?",
+      saibaMais: "Aderências (bridas) pós-cirúrgicas são a principal causa.",
+      alts: ["Hérnias encarceradas", "Aderências pós-operatórias", "Tumores malignos", "Vólvulo", "Doença de Crohn"]
+    },
+    {
+      temaId: temas.abdome.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.A,
+      enunciado: "O Sinal de Cullen (equimose periumbilical) pode ser encontrado em casos graves de:",
+      saibaMais: "Sinal clássico de hemorragia retroperitoneal na pancreatite.",
+      alts: ["Pancreatite aguda necro-hemorrágica", "Apendicite supurada", "Colecistite gangrenosa", "Úlcera péptica perfurada", "Diverticulite aguda"]
+    },
+    {
+      temaId: temas.abdome.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.C,
+      enunciado: "Em uma radiografia de abdome agudo obstrutivo, o sinal do 'grão de café' indica:",
+      saibaMais: "É o achado radiológico patognomônico de vólvulo de sigmoide.",
+      alts: ["Íleo biliar", "Intussuscepção", "Vólvulo de sigmoide", "Megacólon tóxico", "Perfuração gástrica"]
+    },
+    {
+      temaId: temas.abdome.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.E,
+      enunciado: "Qual critério tomográfico é utilizado para classificar a gravidade da pancreatite aguda?",
+      saibaMais: "O Critério de Balthazar avalia necrose e coleções peripancreáticas.",
+      alts: ["Ranson", "Apache II", "Alvarado", "Hinchey", "Balthazar"]
+    },
+    {
+      temaId: temas.abdome.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.D,
+      enunciado: "A tríade de Rigler (pneumobilia, obstrução de delgado e cálculo ectópico) sela o diagnóstico de:",
+      saibaMais: "Íleo biliar ocorre por fístula colecistoentérica.",
+      alts: ["Colangite aguda", "Isquemia mesentérica", "Síndrome de Mirizzi", "Íleo biliar", "Coledocolitíase"]
+    },
 
     // ESQUELETO
-    { temaId: temas.esqueleto.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.A, 
-      enunciado: "Qual dos ossos abaixo faz parte exclusivamente do esqueleto axial?", 
-      saibaMais: "O esterno compõe a caixa torácica anterior.", 
-      alts: ["Esterno", "Clavícula", "Escápula", "Ílio", "Fêmur"] },
-    { temaId: temas.esqueleto.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.E, 
-      enunciado: "Qual é o maior e mais pesado osso do corpo humano?", 
-      saibaMais: "O fêmur é o osso da coxa.", 
-      alts: ["Tíbia", "Úmero", "Rádio", "Fíbula", "Fêmur"] },
-    { temaId: temas.esqueleto.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.C, 
-      enunciado: "Qual estrutura conecta os músculos aos ossos?", 
-      saibaMais: "Os tendões transferem a força da contração muscular para o esqueleto.", 
-      alts: ["Ligamentos", "Cartilagens", "Tendões", "Fáscias", "Bursas"] },
-    { temaId: temas.esqueleto.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.C, 
-      enunciado: "Qual a estrutura cartilaginosa por onde os ossos longos crescem em comprimento?", 
-      saibaMais: "A placa epifisária permite a ossificação endocondral.", 
-      alts: ["Periósteo", "Linha epifisária", "Placa epifisária", "Canal medular", "Endósteo"] },
-    { temaId: temas.esqueleto.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.B, 
-      enunciado: "A articulação do ombro (glenoumeral) é classicamente classificada como:", 
-      saibaMais: "Articulações sinoviais esferoides permitem ampla mobilidade em vários eixos.", 
-      alts: ["Fibrosa (sindesmose)", "Sinovial esferoide", "Cartilagínea (sínfise)", "Sinovial gínglimo", "Plana"] },
-    { temaId: temas.esqueleto.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.D, 
-      enunciado: "Qual célula óssea é primariamente responsável pela reabsorção da matriz óssea?", 
-      saibaMais: "Os osteoclastos são as células que degradam o osso para remodelamento.", 
-      alts: ["Osteoblasto", "Osteócito", "Condrócito", "Osteoclasto", "Macrófago"] },
-    { temaId: temas.esqueleto.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.A, 
-      enunciado: "A ossificação intramembranosa é o principal processo de formação de quais ossos?", 
-      saibaMais: "Forma ossos chatos do crânio, maxila, mandíbula e parte da clavícula.", 
-      alts: ["Ossos planos do crânio", "Ossos longos dos membros", "Vértebras", "Ossos do carpo", "Costelas"] },
-    { temaId: temas.esqueleto.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.E, 
-      enunciado: "O ligamento cruzado anterior (LCA) do joelho impede principalmente qual movimento?", 
-      saibaMais: "Ele impede a translação anterior da tíbia em relação ao fêmur.", 
-      alts: ["Rotação externa da tíbia", "Valgo do joelho", "Translação posterior da tíbia", "Hiperflexão do joelho", "Translação anterior da tíbia"] },
-    { temaId: temas.esqueleto.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.B, 
-      enunciado: "Em uma fratura do colo cirúrgico do úmero, qual nervo corre maior risco de lesão?", 
-      saibaMais: "O nervo axilar contorna o colo cirúrgico do úmero.", 
-      alts: ["Nervo radial", "Nervo axilar", "Nervo mediano", "Nervo ulnar", "Nervo musculocutâneo"] },
+    {
+      temaId: temas.esqueleto.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.A,
+      enunciado: "Qual dos ossos abaixo faz parte exclusivamente do esqueleto axial?",
+      saibaMais: "O esterno compõe a caixa torácica anterior.",
+      alts: ["Esterno", "Clavícula", "Escápula", "Ílio", "Fêmur"]
+    },
+    {
+      temaId: temas.esqueleto.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.E,
+      enunciado: "Qual é o maior e mais pesado osso do corpo humano?",
+      saibaMais: "O fêmur é o osso da coxa.",
+      alts: ["Tíbia", "Úmero", "Rádio", "Fíbula", "Fêmur"]
+    },
+    {
+      temaId: temas.esqueleto.id, dif: Dificuldade.FACIL, resp: AlternativaQuestao.C,
+      enunciado: "Qual estrutura conecta os músculos aos ossos?",
+      saibaMais: "Os tendões transferem a força da contração muscular para o esqueleto.",
+      alts: ["Ligamentos", "Cartilagens", "Tendões", "Fáscias", "Bursas"]
+    },
+    {
+      temaId: temas.esqueleto.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.C,
+      enunciado: "Qual a estrutura cartilaginosa por onde os ossos longos crescem em comprimento?",
+      saibaMais: "A placa epifisária permite a ossificação endocondral.",
+      alts: ["Periósteo", "Linha epifisária", "Placa epifisária", "Canal medular", "Endósteo"]
+    },
+    {
+      temaId: temas.esqueleto.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.B,
+      enunciado: "A articulação do ombro (glenoumeral) é classicamente classificada como:",
+      saibaMais: "Articulações sinoviais esferoides permitem ampla mobilidade em vários eixos.",
+      alts: ["Fibrosa (sindesmose)", "Sinovial esferoide", "Cartilagínea (sínfise)", "Sinovial gínglimo", "Plana"]
+    },
+    {
+      temaId: temas.esqueleto.id, dif: Dificuldade.MEDIA, resp: AlternativaQuestao.D,
+      enunciado: "Qual célula óssea é primariamente responsável pela reabsorção da matriz óssea?",
+      saibaMais: "Os osteoclastos são as células que degradam o osso para remodelamento.",
+      alts: ["Osteoblasto", "Osteócito", "Condrócito", "Osteoclasto", "Macrófago"]
+    },
+    {
+      temaId: temas.esqueleto.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.A,
+      enunciado: "A ossificação intramembranosa é o principal processo de formação de quais ossos?",
+      saibaMais: "Forma ossos chatos do crânio, maxila, mandíbula e parte da clavícula.",
+      alts: ["Ossos planos do crânio", "Ossos longos dos membros", "Vértebras", "Ossos do carpo", "Costelas"]
+    },
+    {
+      temaId: temas.esqueleto.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.E,
+      enunciado: "O ligamento cruzado anterior (LCA) do joelho impede principalmente qual movimento?",
+      saibaMais: "Ele impede a translação anterior da tíbia em relação ao fêmur.",
+      alts: ["Rotação externa da tíbia", "Valgo do joelho", "Translação posterior da tíbia", "Hiperflexão do joelho", "Translação anterior da tíbia"]
+    },
+    {
+      temaId: temas.esqueleto.id, dif: Dificuldade.DIFICIL, resp: AlternativaQuestao.B,
+      enunciado: "Em uma fratura do colo cirúrgico do úmero, qual nervo corre maior risco de lesão?",
+      saibaMais: "O nervo axilar contorna o colo cirúrgico do úmero.",
+      alts: ["Nervo radial", "Nervo axilar", "Nervo mediano", "Nervo ulnar", "Nervo musculocutâneo"]
+    },
   ];
 
   const questoesNeuro: string[] = [];
   const questoesAbdome: string[] = [];
   const questoesFaceis: string[] = [];
-  const todasQuestoesCriadas = []; 
+  const todasQuestoesCriadas = [];
 
   for (const q of questoes) {
     const questaoCriada = await prisma.questao.create({
@@ -334,7 +597,7 @@ async function main() {
       turmas: {
         create: [
           // Tem prazo futuro, está ativa
-          { turmaId: turma4.id, prazo: prazoFuturo } 
+          { turmaId: turma4.id, prazo: prazoFuturo }
         ]
       }
     }
@@ -353,7 +616,7 @@ async function main() {
       turmas: {
         create: [
           // Lista Expirada intencionalmente para teste (prazo passado, gabarito oculto)
-          { turmaId: turma3.id, prazo: prazoPassado, gabaritoLiberado: false } 
+          { turmaId: turma3.id, prazo: prazoPassado, gabaritoLiberado: false }
         ]
       }
     }
@@ -372,7 +635,7 @@ async function main() {
       turmas: {
         create: [
           // Uma com prazo futuro, outra Sem Prazo para testar a flexibilidade
-          { turmaId: turma3.id, prazo: prazoFuturo }, 
+          { turmaId: turma3.id, prazo: prazoFuturo },
           { turmaId: turma4.id } // Sem prazo estipulado
         ]
       }
@@ -384,7 +647,7 @@ async function main() {
 
   for (const q of todasQuestoesCriadas) {
     // Aluno 1 responde
-    const acertaAluno1 = Math.random() > 0.2; 
+    const acertaAluno1 = Math.random() > 0.2;
     await prisma.resolucaoQuestao.create({
       data: {
         usuarioId: ALUNO_1_ID,
@@ -394,7 +657,7 @@ async function main() {
     });
 
     // Aluno 2 responde
-    const acertaAluno2 = Math.random() > 0.5; 
+    const acertaAluno2 = Math.random() > 0.5;
     await prisma.resolucaoQuestao.create({
       data: {
         usuarioId: ALUNO_2_ID,
@@ -402,17 +665,17 @@ async function main() {
         respostaMarcada: acertaAluno2 ? q.respostaCorreta : (q.respostaCorreta === AlternativaQuestao.A ? AlternativaQuestao.C : AlternativaQuestao.A)
       }
     });
-    
+
   }
 
 }
 
 main()
-  .then(async () => { 
-    await prisma.$disconnect(); 
+  .then(async () => {
+    await prisma.$disconnect();
   })
-  .catch(async (e) => { 
-    console.error(e); 
-    await prisma.$disconnect(); 
-    process.exit(1); 
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
   });

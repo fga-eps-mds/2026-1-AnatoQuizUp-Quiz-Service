@@ -9,9 +9,8 @@ import { prisma } from '@/config/db';
 export class ResolucaoListaService {
   constructor(private readonly repository: ResolucaoListaRepository) {}
 
-  async listarParaAluno(alunoId: string, filtroStatus?: string, busca?: string) {
-    const listas = await this.repository.buscarListasDoAluno(alunoId, busca);
-    const agora = new Date();
+  async listarParaAluno(alunoId: string, turmaId?: string, filtroStatus?: string, busca?: string) {
+    const listas = await this.repository.buscarListasDoAluno(alunoId, turmaId, busca);const agora = new Date();
 
     const mapeadas = listas.map(lista => {
       const resolucao = lista.resolucoes[0];

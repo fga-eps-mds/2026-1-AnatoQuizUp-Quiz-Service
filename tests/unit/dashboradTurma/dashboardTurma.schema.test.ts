@@ -1,4 +1,4 @@
-import { schemaParamsDashboard } from '../../../src/modules/dashboardTurma/dashboardTruma.schemas';
+import { schemaParamsListaDashboard, schemaParamsDashboard } from '../../../src/modules/dashboardTurma/dashboardTruma.schemas';
 
 describe('schemaParamsDashboard', () => {
   it('deve validar um ID cuid valido', () => {
@@ -13,6 +13,29 @@ describe('schemaParamsDashboard', () => {
 
   it('deve falhar se o ID não for fornecido', () => {
     const result = schemaParamsDashboard.safeParse({});
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('schemaParamsListaDashboard', () => {
+  it('deve validar quando ambos os IDs cuid forem válidos', () => {
+    const result = schemaParamsListaDashboard.safeParse({
+      id: 'cmpsx9a2f00064hx26j7kukdo',
+      listaId: 'cmq101jjt002w4hitmlzi7d3g',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('deve invalidar se o ID da lista estiver incorreto', () => {
+    const result = schemaParamsListaDashboard.safeParse({
+      id: 'cmpsx9a2f00064hx26j7kukdo',
+      listaId: 'id-invalido',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('deve falhar se os parâmetros obrigatórios estiverem ausentes', () => {
+    const result = schemaParamsListaDashboard.safeParse({});
     expect(result.success).toBe(false);
   });
 });

@@ -105,7 +105,7 @@ describe("Testa QuizRepository", () => {
     const usuarioId = "usuario_id";
     const tentativa = {
       questaoId: "questao-id",
-      tipo: TIPO_QUESTAO_API.VERDADEIRO_FALSO,
+      tipo: TIPO_QUESTAO_API.CERTO_ERRADO,
       respostaMarcada: AlternativaQuestao.E,
     };
 
@@ -466,7 +466,7 @@ describe("Testa QuizRepository", () => {
           respostaCorreta: true,
           saibaMais: true,
           status: true,
-          feitoPorIa: true,
+          origemQuestao: true,
           urlImagem: true,
           dificuldade: true,
           tema: {

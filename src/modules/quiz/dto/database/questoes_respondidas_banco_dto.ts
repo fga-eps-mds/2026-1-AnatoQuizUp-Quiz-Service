@@ -14,7 +14,7 @@ export type ListarQuestoesRespondidasItem = Prisma.ResolucaoQuestaoGetPayload<{
         respostaCorreta: true;
         saibaMais: true;
         status: true;
-        feitoPorIa: true;
+        origemQuestao: true;
         urlImagem: true;
         dificuldade: true;
 

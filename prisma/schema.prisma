@@ -39,6 +39,7 @@ enum StatusTurma {
 enum FonteMoeda {
   ACERTO_QUESTAO
   DESBLOQUEIO_CONQUISTA
+  COMPRA_ITEM
 }
 
 enum StatusResolucaoLista {
@@ -57,6 +58,30 @@ enum TierConquista {
   BRONZE
   PRATA
   OURO
+}
+
+enum TipoItemLoja {
+  ICONE_PERFIL
+  AVATAR
+  TITULO
+  PLANO_FUNDO
+  MOLDURA
+}
+
+enum TaxonomiaBloom {
+  LEMBRAR
+  COMPREENDER
+  APLICAR
+  ANALISAR
+  AVALIAR
+  CRIAR
+}
+
+enum OrigemQuestao {
+  LIVRO
+  PROVA_ANTERIOR
+  GERADA_POR_IA
+  ELABORADA_POR_PROFESSOR
 }
 
 model Tema {
@@ -80,8 +105,11 @@ model Questao {
   respostaCorreta AlternativaQuestao
   saibaMais       String?
   status          StatusQuestao      @default(ATIVO)
-  feitoPorIa      Boolean            @default(false)
   urlImagem       String?
+
+  taxonomiaBloom  TaxonomiaBloom?
+  origemQuestao   OrigemQuestao   @default(ELABORADA_POR_PROFESSOR)
+  regiaoAnatomica String?
 
   criadoPorId String
   temaId      String
@@ -155,26 +183,88 @@ model CarteiraMoedas {
   @@map("carteiras_moedas")
 }
 
+model ItemLoja {
+  id String @id @default(cuid())
+
+  codigo    String  @unique
+  nome      String
+  descricao String?
+
+  tipo TipoItemLoja
+
+  precoMoedas Int
+
+  // Cor (hex) ou chave de textura para PLANO_FUNDO; null nas demais categorias.
+  valor String?
+
+  imagemUrl        String?
+  previewImagemUrl String?
+
+  ativo Boolean @default(true)
+
+  inventarios      InventarioItem[]
+  transacoesMoedas TransacaoMoeda[]
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@index([tipo])
+  @@index([ativo])
+  @@map("itens_loja")
+}
+
+model InventarioItem {
+  id String @id @default(cuid())
+
+  usuarioId  String
+  itemLojaId String
+
+  equipado Boolean @default(false)
+
+  adquiridoEm DateTime @default(now())
+
+  itemLoja ItemLoja @relation(fields: [itemLojaId], references: [id], onDelete: Restrict)
+
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  excluidoEm   DateTime?
+
+  @@unique([usuarioId, itemLojaId])
+  @@index([usuarioId])
+  @@index([itemLojaId])
+  @@map("inventario_itens")
+}
+
 model TransacaoMoeda {
-  id        String @id @default(cuid())
+  id String @id @default(cuid())
+
   usuarioId String
 
-  questaoId     String?
+  questaoId  String?
   desbloqueioId String?
+  itemLojaId String?
 
   quantidade Int
   fonte      FonteMoeda @default(ACERTO_QUESTAO)
 
-  carteira    CarteiraMoedas        @relation(fields: [usuarioId], references: [usuarioId], onDelete: Restrict)
-  questao     Questao?              @relation(fields: [questaoId], references: [id], onDelete: Restrict)
+
+  descricao String?
+
+  carteira CarteiraMoedas @relation(fields: [usuarioId], references: [usuarioId], onDelete: Restrict)
+
+  questao  Questao?  @relation(fields: [questaoId], references: [id], onDelete: Restrict)
   desbloqueio DesbloqueioConquista? @relation(fields: [desbloqueioId], references: [id], onDelete: Restrict)
+  itemLoja ItemLoja? @relation(fields: [itemLojaId], references: [id], onDelete: Restrict)
 
   criadoEm    DateTime   @default(now())
 
   @@unique([usuarioId, questaoId, fonte])
   @@unique([usuarioId, desbloqueioId, fonte])
+  @@unique([usuarioId, itemLojaId, fonte])
   @@index([usuarioId])
   @@index([questaoId])
+  @@index([itemLojaId])
   @@map("transacoes_moedas")
 }
 

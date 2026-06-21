@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { AlternativaQuestao } from '@prisma/client';
 
 export const schemaListarListas = z.object({
+  turmaId: z.string().optional(),
   status: z.enum(['PENDENTE', 'RESPONDIDA', 'EXPIRADA']).optional(),
   busca: z.string().optional(),
   page: z.coerce.number().min(1).default(1),
