@@ -31,10 +31,11 @@ describe('ResolucaoListaRepository', () => {
       const mockResult = [{ id: 'lista-1' }];
       (prisma.listaTurma.findMany as jest.Mock).mockResolvedValue(mockResult);
 
-      const result = await repository.buscarListasDoAluno('aluno-1');
+      const result = await repository.buscarListasDoAluno('aluno-1', undefined, undefined);
 
       expect(prisma.listaTurma.findMany).toHaveBeenCalledWith({
         where: {
+          turmaId: undefined,
           turma: {
             alunos: { some: { alunoId: 'aluno-1' } },
             status: 'ATIVA',
@@ -62,11 +63,13 @@ describe('ResolucaoListaRepository', () => {
       const mockResult = [{ id: 'lista-1' }];
       (prisma.listaTurma.findMany as jest.Mock).mockResolvedValue(mockResult);
 
-      const result = await repository.buscarListasDoAluno('aluno-1', 'Anatomia');
+      // A palavra 'Anatomia' precisa estar na terceira posição (busca)
+      const result = await repository.buscarListasDoAluno('aluno-1', undefined, 'Anatomia');
 
       expect(prisma.listaTurma.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
+            turmaId: undefined, // Garantindo que o turmaId fica undefined no where
             turma: {
               alunos: { some: { alunoId: 'aluno-1' } },
               status: 'ATIVA',

@@ -19,8 +19,9 @@ export class ResolucaoListaController {
 
       const status = req.query.status ? String(req.query.status) : undefined;
       const busca = req.query.busca ? String(req.query.busca) : undefined;
+      const turmaId = req.query.turmaId ? String(req.query.turmaId) : undefined;
 
-      const listas = await this.service.listarParaAluno(alunoId, status, busca);
+      const listas = await this.service.listarParaAluno(alunoId, turmaId, status, busca);
 
       res.status(200).json({
         mensagem: "Listas recuperadas com sucesso.",

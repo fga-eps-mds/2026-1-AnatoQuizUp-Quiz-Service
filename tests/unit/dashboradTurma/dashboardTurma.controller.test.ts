@@ -202,4 +202,53 @@ describe('TurmaDashboardController', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('listarDesempenhoListaIndividual', () => {
+    it('deve retornar 200 e os dados detalhados de desempenho dos alunos na lista', async () => {
+      const req = {
+        params: { id: 'cmpsx9a2f00064hx26j7kukdo', listaId: 'cmq101jjt002w4hitmlzi7d3g' },
+        usuario: { id: 'prof-123' },
+      } as unknown as Request;
+
+      const res = createMockResponse();
+
+      const mockData = {
+        listaTurmaId: 'cmq101jjt002w4hitmlzi7d3g',
+        nomeLista: 'Simulado de Neuroanatomia',
+        totalQuestoes: 10,
+        desempenhoAlunos: [],
+      };
+
+      serviceMock.getDesempenhoAlunosNaLista.mockResolvedValue(mockData);
+
+      await controller.listarDesempenhoListaIndividual(req, res);
+
+      expect(serviceMock.getDesempenhoAlunosNaLista).toHaveBeenCalledWith(
+        'cmpsx9a2f00064hx26j7kukdo',
+        'cmq101jjt002w4hitmlzi7d3g'
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockData);
+    });
+
+    it('deve retornar 404 se o service lançar um erro de lista não encontrada', async () => {
+      const req = {
+        params: { id: 'cmpsx9a2f00064hx26j7kukdo', listaId: 'cmq101jjt002w4hitmlzi7d3g' },
+        usuario: { id: 'prof-123' },
+      } as unknown as Request;
+
+      const res = createMockResponse();
+
+      serviceMock.getDesempenhoAlunosNaLista.mockRejectedValue(
+        new Error('Lista não encontrada ou não pertence a esta turma.')
+      );
+
+      await controller.listarDesempenhoListaIndividual(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Lista não encontrada ou não pertence a esta turma.',
+      });
+    });
+  });
 });

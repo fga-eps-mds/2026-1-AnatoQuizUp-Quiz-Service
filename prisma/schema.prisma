@@ -54,6 +54,22 @@ enum TipoItemLoja {
   MOLDURA
 }
 
+enum TaxonomiaBloom {
+  LEMBRAR
+  COMPREENDER
+  APLICAR
+  ANALISAR
+  AVALIAR
+  CRIAR
+}
+
+enum OrigemQuestao {
+  LIVRO
+  PROVA_ANTERIOR
+  GERADA_POR_IA
+  ELABORADA_POR_PROFESSOR
+}
+
 model Tema {
   id   String @id @default(cuid())
   nome String
@@ -74,8 +90,11 @@ model Questao {
   respostaCorreta AlternativaQuestao
   saibaMais       String?
   status          StatusQuestao      @default(ATIVO)
-  feitoPorIa      Boolean            @default(false)
   urlImagem       String?
+
+  taxonomiaBloom  TaxonomiaBloom?
+  origemQuestao   OrigemQuestao   @default(ELABORADA_POR_PROFESSOR)
+  regiaoAnatomica String?
 
   criadoPorId String
   temaId      String

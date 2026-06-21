@@ -1,5 +1,5 @@
 import type { DificuldadeApi, TipoQuestaoApi } from "@/modules/questoes/dto/question.types";
-import type { AlternativaQuestao, StatusQuestao } from "@prisma/client";
+import type { AlternativaQuestao, OrigemQuestao, StatusQuestao } from "@prisma/client";
 
 export type AlternativasDto = Partial<{
   alternativaA: string;
@@ -24,7 +24,7 @@ export type ResolucaoQuestaoUsuarioDto = {
     respostaCorreta: AlternativaQuestao;
     saibaMais: string | null;
     status: StatusQuestao;
-    feitoPorIa: boolean;
+    origemQuestao: OrigemQuestao;
     urlImagem: string | null;
     dificuldade: DificuldadeApi;
     alternativas: AlternativasDto | null;

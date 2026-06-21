@@ -3,9 +3,10 @@ import type { AlternativaQuestao} from '@prisma/client';
 import { StatusResolucaoLista } from '@prisma/client';
 
 export class ResolucaoListaRepository {
-  async buscarListasDoAluno(alunoId: string, busca?: string) {
+  async buscarListasDoAluno(alunoId: string, turmaId?: string, busca?: string) {
     return prisma.listaTurma.findMany({
       where: {
+        turmaId: turmaId ? turmaId : undefined, 
         turma: {
           alunos: { some: { alunoId } },
           status: 'ATIVA'

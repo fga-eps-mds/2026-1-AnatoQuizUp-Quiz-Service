@@ -1,4 +1,53 @@
-import { mapearTipoApiParaBanco, montarFiltroPrisma } from "@/modules/questoes/dto/question.types";
+import {
+  montarFiltroPrisma,
+  converterParaRespostaQuestao,
+} from "@/modules/questoes/dto/question.types";
+import type { RegistroQuestaoCompleta } from "@/modules/questoes/dto/question.types";
+
+function criarRegistroCompleto(
+  overrides: Partial<RegistroQuestaoCompleta> = {},
+): RegistroQuestaoCompleta {
+  const agora = new Date("2026-05-09T12:00:00.000Z");
+  return {
+    id: "questao-1",
+    enunciado: "Enunciado",
+    tipoQuestao: "MULTIPLA_ESCOLHA",
+    respostaCorreta: "A",
+    saibaMais: "Explicacao",
+    status: "ATIVO",
+    urlImagem: null,
+    taxonomiaBloom: "ANALISAR",
+    origemQuestao: "PROVA_ANTERIOR",
+    regiaoAnatomica: "Tórax",
+    criadoPorId: "professor-1",
+    temaId: "tema-1",
+    questaoOriginalId: null,
+    criadoEm: agora,
+    atualizadoEm: agora,
+    excluidoEm: null,
+    dificuldade: "MEDIA",
+    tema: {
+      id: "tema-1",
+      nome: "Anatomia",
+      criadoEm: agora,
+      atualizadoEm: agora,
+      excluidoEm: null,
+    },
+    alternativas: {
+      id: "alt-1",
+      alternativaA: "A",
+      alternativaB: "B",
+      alternativaC: "C",
+      alternativaD: "D",
+      alternativaE: "E",
+      questaoId: "questao-1",
+      criadoEm: agora,
+      atualizadoEm: agora,
+      excluidoEm: null,
+    },
+    ...overrides,
+  } as RegistroQuestaoCompleta;
+}
 
 describe("Testa Questoes Types", () => {
   test("montarFiltroPrisma retorna filtro base quando não há filtros", () => {
@@ -39,7 +88,7 @@ describe("Testa Questoes Types", () => {
     });
   });
 
-  test("montarFiltroPrisma adiciona filtro de tipo mapeado para banco", () => {
+  test("montarFiltroPrisma adiciona filtro de tipo", () => {
     const resultado = montarFiltroPrisma({
       tipo: "MULTIPLA_ESCOLHA",
     });
@@ -47,15 +96,51 @@ describe("Testa Questoes Types", () => {
     expect(resultado).toEqual({
       excluidoEm: null,
       status: "ATIVO",
-      tipoQuestao: mapearTipoApiParaBanco("MULTIPLA_ESCOLHA"),
+      tipoQuestao: "MULTIPLA_ESCOLHA",
     });
+  });
+
+  test("montarFiltroPrisma adiciona filtro de taxonomiaBloom", () => {
+    const resultado = montarFiltroPrisma({
+      taxonomiaBloom: "LEMBRAR",
+    });
+
+    expect(resultado).toEqual({
+      excluidoEm: null,
+      status: "ATIVO",
+      taxonomiaBloom: "LEMBRAR",
+    });
+  });
+
+  test("converterParaRespostaQuestao propaga os campos de classificacao", () => {
+    const resposta = converterParaRespostaQuestao(criarRegistroCompleto());
+
+    expect(resposta).toMatchObject({
+      taxonomiaBloom: "ANALISAR",
+      origemQuestao: "PROVA_ANTERIOR",
+      regiaoAnatomica: "Tórax",
+    });
+  });
+
+  test("converterParaRespostaQuestao mantem null nos campos de classificacao ausentes", () => {
+    const resposta = converterParaRespostaQuestao(
+      criarRegistroCompleto({
+        taxonomiaBloom: null,
+        regiaoAnatomica: null,
+      }),
+    );
+
+    expect(resposta.taxonomiaBloom).toBeNull();
+    expect(resposta.regiaoAnatomica).toBeNull();
+    // origemQuestao nunca é null (tem default no banco)
+    expect(resposta.origemQuestao).toBe("PROVA_ANTERIOR");
   });
 
   test("montarFiltroPrisma combina todos os filtros", () => {
     const resultado = montarFiltroPrisma({
       tema: "histologia",
       dificuldade: "FACIL",
-      tipo: "VERDADEIRO_FALSO",
+      tipo: "CERTO_ERRADO",
     });
 
     expect(resultado).toEqual({
@@ -68,7 +153,7 @@ describe("Testa Questoes Types", () => {
         },
       },
       dificuldade: "FACIL",
-      tipoQuestao: mapearTipoApiParaBanco("VERDADEIRO_FALSO"),
+      tipoQuestao: "CERTO_ERRADO",
     });
   });
 });

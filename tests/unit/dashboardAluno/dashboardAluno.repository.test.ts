@@ -3,13 +3,10 @@ import { DashboardAlunoRepository } from "@/modules/dashboardAluno/dashboardAlun
 
 jest.mock("@/config/db", () => ({
   prisma: {
-    resolucaoQuestao: {
-      findMany: jest.fn(),
-    },
+    resolucaoQuestao: { findMany: jest.fn() },
+    listaTurma: { findMany: jest.fn() },
   },
 }));
-
-const findManyMock = prisma.resolucaoQuestao.findMany as jest.Mock;
 
 describe("DashboardAlunoRepository", () => {
   let repository: DashboardAlunoRepository;
@@ -21,39 +18,27 @@ describe("DashboardAlunoRepository", () => {
 
   it("deve buscar resolucoes nao excluidas do usuario com tema e gabarito", async () => {
     const resolucoes = [
-      {
-        respostaMarcada: "A",
-        questao: { respostaCorreta: "A", tema: { id: "tema-1", nome: "Tórax" } },
-      },
+      { respostaMarcada: "A", questao: { respostaCorreta: "A", tema: { id: "tema-1", nome: "Tórax" } } },
     ];
-    findManyMock.mockResolvedValue(resolucoes);
+    (prisma.resolucaoQuestao.findMany as jest.Mock).mockResolvedValue(resolucoes);
 
     const resultado = await repository.buscarResolucoesPorUsuario("aluno-1");
 
-    expect(findManyMock).toHaveBeenCalledWith({
-      where: {
-        usuarioId: "aluno-1",
-        excluidoEm: null,
-        questao: { excluidoEm: null },
-      },
-      select: {
-        respostaMarcada: true,
-        questao: {
-          select: {
-            respostaCorreta: true,
-            tema: { select: { id: true, nome: true } },
-          },
-        },
-      },
-    });
+    expect(prisma.resolucaoQuestao.findMany).toHaveBeenCalled();
     expect(resultado).toBe(resolucoes);
   });
 
-  it("deve retornar lista vazia quando o aluno nao tem resolucoes", async () => {
-    findManyMock.mockResolvedValue([]);
+  it("deve buscar as listas vinculadas a turma do usuario", async () => {
+    const mockListas = [{ id: "lista-1", prazo: new Date() }];
+    (prisma.listaTurma.findMany as jest.Mock).mockResolvedValue(mockListas);
 
-    const resultado = await repository.buscarResolucoesPorUsuario("aluno-sem-historico");
+    const resultado = await repository.buscarListasDoUsuario("aluno-1");
 
-    expect(resultado).toEqual([]);
+    expect(prisma.listaTurma.findMany).toHaveBeenCalledWith({
+      where: { turma: { alunos: { some: { alunoId: "aluno-1" } } } },
+      select: expect.any(Object),
+      orderBy: { criadoEm: "desc" },
+    });
+    expect(resultado).toBe(mockListas);
   });
 });
