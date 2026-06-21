@@ -1,6 +1,11 @@
 import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
-import { type TierConquista, TipoConquista } from "@prisma/client";
+import {
+  FonteMoeda,
+  OrigemItemInventario,
+  type TierConquista,
+  TipoConquista,
+} from "@prisma/client";
 
 export class ConquistaRepository {
   async criarConquistaTema(temaId: string, nomeTema: string) {
@@ -100,17 +105,107 @@ export class ConquistaRepository {
     });
   }
 
-  async criarDesbloqueio(usuarioId: string, conquistaId: string, tier: TierConquista) {
-    return prisma.desbloqueioConquista.create({
-      data: {
-        usuarioId,
-        conquistaId,
-        tier,
-      },
+  async criarDesbloqueioComRecompensas(
+    usuarioId: string,
+    conquistaId: string,
+    tier: TierConquista,
+    quantidadeMoedas: number,
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const desbloqueioCriado = await tx.desbloqueioConquista.createMany({
+        data: {
+          usuarioId,
+          conquistaId,
+          tier,
+        },
+        skipDuplicates: true,
+      });
 
-      include: {
-        conquista: true,
-      },
+      if (desbloqueioCriado.count === 0) {
+        return null;
+      }
+
+      const desbloqueio = await tx.desbloqueioConquista.findUniqueOrThrow({
+        where: {
+          usuarioId_conquistaId_tier: {
+            usuarioId,
+            conquistaId,
+            tier,
+          },
+        },
+      });
+
+      await tx.carteiraMoedas.upsert({
+        where: { usuarioId },
+        create: { usuarioId, saldo: 0 },
+        update: {},
+      });
+
+      const transacaoMoedas = await tx.transacaoMoeda.createMany({
+        data: {
+          usuarioId,
+          desbloqueioId: desbloqueio.id,
+          quantidade: quantidadeMoedas,
+          fonte: FonteMoeda.DESBLOQUEIO_CONQUISTA,
+          descricao: `Recompensa por conquista no tier ${tier}`,
+        },
+        skipDuplicates: true,
+      });
+
+      const moedasConcedidas = transacaoMoedas.count === 1 ? quantidadeMoedas : 0;
+
+      if (moedasConcedidas > 0) {
+        await tx.carteiraMoedas.update({
+          where: { usuarioId },
+          data: {
+            saldo: {
+              increment: moedasConcedidas,
+            },
+          },
+        });
+      }
+
+      const recompensaItem = await tx.recompensaItemConquista.findUnique({
+        where: {
+          conquistaId_tier: {
+            conquistaId,
+            tier,
+          },
+        },
+        include: {
+          itemLoja: true,
+        },
+      });
+
+      let itemConcedido = null;
+
+      if (recompensaItem) {
+        const inventarioCriado = await tx.inventarioItem.createMany({
+          data: {
+            usuarioId,
+            itemLojaId: recompensaItem.itemLojaId,
+            desbloqueioConquistaId: desbloqueio.id,
+            origem: OrigemItemInventario.CONQUISTA,
+          },
+          skipDuplicates: true,
+        });
+
+        if (inventarioCriado.count === 1) {
+          itemConcedido = recompensaItem.itemLoja;
+        }
+      }
+
+      const carteira = await tx.carteiraMoedas.findUniqueOrThrow({
+        where: { usuarioId },
+        select: { saldo: true },
+      });
+
+      return {
+        desbloqueio,
+        moedasConcedidas,
+        saldoMoedas: carteira.saldo,
+        itemConcedido,
+      };
     });
   }
 

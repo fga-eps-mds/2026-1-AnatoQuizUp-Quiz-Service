@@ -16,19 +16,13 @@ import {
 import type { QuantidadeQuestoesPorTema } from "./dto/responses/quantidade_questao_tema_dto";
 import { type ResolucaoQuestaoUsuarioDto } from "./dto/responses/resolucao_questao_usuario_dto";
 import { converterResolucaoQuestaoBancoToApi } from "./dto/mappers/historico_quiz.mapper";
-import type { Dificuldade, TierConquista } from "@prisma/client";
+import type { Dificuldade } from "@prisma/client";
 import type { ConquistaService } from "../conquistas/conquistas.service";
 
 const MOEDAS_POR_DIFICULDADE: Record<Dificuldade, number> = {
   FACIL: 10,
   MEDIA: 25,
   DIFICIL: 50,
-};
-
-const MOEDAS_POR_TIER_DESBLOQUEIO: Record<TierConquista, number> = {
-  BRONZE: 30,
-  PRATA: 50,
-  OURO: 70,
 };
 
 export class QuizService {
@@ -109,21 +103,6 @@ export class QuizService {
       correcao,
     );
 
-    const conquistasDesbloqueadas = conquistas?.map((conquista) => ({
-      ...conquista,
-      moedasConcedidas: MOEDAS_POR_TIER_DESBLOQUEIO[conquista.tier],
-    }));
-
-    if (conquistas?.length > 0) {
-      await this.quizRepository.concederMoedasPorConquistas(
-        id_usuario,
-        conquistas.map((desbloqueio) => ({
-          desbloqueioId: desbloqueio.desbloqueioId,
-          quantidade: MOEDAS_POR_TIER_DESBLOQUEIO[desbloqueio.tier],
-        })),
-      );
-    }
-
     let moedasConcedidas = 0;
     let moedasJaConcedidas = false;
 
@@ -147,7 +126,7 @@ export class QuizService {
       saldoMoedas,
       moedasConcedidas,
       moedasJaConcedidas,
-      conquistasDesbloqueadas,
+      conquistasDesbloqueadas: conquistas,
     };
   }
 

@@ -1,4 +1,15 @@
-import type { TierConquista, TipoConquista } from "@prisma/client";
+import type { TierConquista, TipoConquista, TipoItemLoja } from "@prisma/client";
+
+export type ItemExclusivoConcedidoDto = {
+  id: string;
+  codigo: string;
+  nome: string;
+  descricao: string | null;
+  tipo: TipoItemLoja;
+  valor: string | null;
+  imagemUrl: string | null;
+  previewImagemUrl: string | null;
+};
 
 export type ConquistaDesbloqueadaDto = {
   conquistaId: string;
@@ -8,6 +19,9 @@ export type ConquistaDesbloqueadaDto = {
   tier: TierConquista;
   tipoConquista: TipoConquista;
   temaId?: string | null;
+  moedasConcedidas: number;
+  saldoMoedas: number;
+  itemConcedido: ItemExclusivoConcedidoDto | null;
 };
 
 export type ResumoConquistaDto = {

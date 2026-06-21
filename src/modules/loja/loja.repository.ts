@@ -1,4 +1,4 @@
-import { FonteMoeda, type Prisma } from "@prisma/client";
+import { FonteMoeda, OrigemItemInventario, type Prisma } from "@prisma/client";
 
 import { prisma } from "@/config/db";
 import type { ParametrosPaginacao } from "@/shared/utils/paginacao.util";
@@ -22,6 +22,7 @@ export class LojaRepository {
   ) {
     const where: Prisma.ItemLojaWhereInput = {
       ativo: true,
+      disponivelNaLoja: true,
       excluidoEm: null,
       ...(filtros.tipo && { tipo: filtros.tipo }),
     };
@@ -106,11 +107,20 @@ export class LojaRepository {
         });
       }
 
+      if (!item.disponivelNaLoja) {
+        throw new ErroAplicacao({
+          codigoStatus: 422,
+          codigo: CodigoDeErro.REQUISICAO_INVALIDA,
+          mensagem: "Este item e exclusivo de conquista e nao pode ser comprado.",
+        });
+      }
+
       const inventarioCriado = await tx.inventarioItem.createMany({
         data: [
           {
             usuarioId,
             itemLojaId,
+            origem: OrigemItemInventario.COMPRA,
           },
         ],
         skipDuplicates: true,

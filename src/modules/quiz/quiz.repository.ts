@@ -43,17 +43,6 @@ const selectListarQuestoesRespondidas = {
   },
 };
 
-type RecompensaConquista = {
-  desbloqueioId: string;
-  quantidade: number;
-};
-
-type ResultadoRecompensaConquista = {
-  desbloqueioId: string;
-  moedasConcedidas: number;
-  moedasJaConcedidas: boolean;
-};
-
 export class QuizRepository {
   async filtrarQuestoesQuiz(paginacao: ParametrosPaginacao, filtros: FiltroListarQuestoesQueryDto) {
     const where = montarFiltroPrisma(filtros);
@@ -107,75 +96,6 @@ export class QuizRepository {
     });
 
     return carteira?.saldo ?? 0;
-  }
-
-  async concederMoedasPorConquistas(usuarioId: string, desbloqueios: RecompensaConquista[]) {
-    return await prisma.$transaction(async (tx) => {
-      await tx.carteiraMoedas.upsert({
-        where: { usuarioId },
-        create: { usuarioId, saldo: 0 },
-        update: {},
-      });
-
-      const resultados: ResultadoRecompensaConquista[] = [];
-      let totalMoedas = 0;
-
-      for (const recompensa of desbloqueios) {
-        const transacao = await tx.transacaoMoeda.createMany({
-          data: {
-            usuarioId,
-            desbloqueioId: recompensa.desbloqueioId,
-            quantidade: recompensa.quantidade,
-            fonte: FonteMoeda.DESBLOQUEIO_CONQUISTA,
-          },
-          skipDuplicates: true,
-        });
-
-        const concedidas = transacao.count === 1;
-
-        resultados.push({
-          desbloqueioId: recompensa.desbloqueioId,
-          moedasConcedidas: concedidas ? recompensa.quantidade : 0,
-          moedasJaConcedidas: !concedidas,
-        });
-
-        if (concedidas) {
-          totalMoedas += recompensa.quantidade;
-        }
-      }
-
-      let saldoMoedas: number;
-
-      if (totalMoedas > 0) {
-        const carteira = await tx.carteiraMoedas.update({
-          where: { usuarioId },
-          data: {
-            saldo: {
-              increment: totalMoedas,
-            },
-          },
-          select: {
-            saldo: true,
-          },
-        });
-
-        saldoMoedas = carteira.saldo;
-      } else {
-        const carteira = await tx.carteiraMoedas.findUnique({
-          where: { usuarioId },
-          select: {
-            saldo: true,
-          },
-        });
-
-        saldoMoedas = carteira?.saldo ?? 0;
-      }
-
-      return {
-        saldoMoedas,
-        recompensas: resultados,
-      };
-    });
   }
 
   async concederMoedasPorAcerto(usuarioId: string, questaoId: string, quantidade: number) {

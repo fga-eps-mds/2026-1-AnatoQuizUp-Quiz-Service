@@ -53,6 +53,7 @@ export class InventarioService {
     const itensFormatados = itensInventario.map((inv) => ({
       inventarioId: inv.id,
       equipado: inv.equipado,
+      origem: inv.origem,
       ...inv.itemLoja,
     }));
 

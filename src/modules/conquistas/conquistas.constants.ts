@@ -19,3 +19,9 @@ export const CONFIG_TIERS: Partial<Record<TipoConquista, Record<TierConquista, n
     [TierConquista.OURO]: 100,
   },
 };
+
+export const ATP_POR_TIER_DESBLOQUEIO: Record<TierConquista, number> = {
+  [TierConquista.BRONZE]: 30,
+  [TierConquista.PRATA]: 50,
+  [TierConquista.OURO]: 70,
+};

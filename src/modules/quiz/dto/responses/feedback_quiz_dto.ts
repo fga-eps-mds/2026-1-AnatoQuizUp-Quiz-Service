@@ -1,4 +1,5 @@
 import type { AlternativaQuestao } from "@prisma/client";
+import type { ConquistaDesbloqueadaDto } from "@/modules/conquistas/conquistas.dto";
 
 export type FeedbackQuizDto = {
   correcao: boolean;
@@ -7,13 +8,7 @@ export type FeedbackQuizDto = {
   saldoMoedas: number;
   moedasConcedidas: number;
   moedasJaConcedidas: boolean;
-  conquistasDesbloqueadas: {
-    conquistaId: string;
-    nome: string;
-    descricao: string;
-    tier: string;
-    moedasConcedidas: number;
-  }[];
+  conquistasDesbloqueadas: ConquistaDesbloqueadaDto[];
 };
 
 export type SaldoMoedasDto = {

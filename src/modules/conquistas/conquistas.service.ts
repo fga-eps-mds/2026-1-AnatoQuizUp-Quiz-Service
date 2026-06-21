@@ -1,5 +1,5 @@
 import type { Conquista, TierConquista } from "@prisma/client";
-import { CONFIG_TIERS } from "./conquistas.constants";
+import { ATP_POR_TIER_DESBLOQUEIO, CONFIG_TIERS } from "./conquistas.constants";
 import type { ConquistaRepository } from "./conquistas.repository";
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
@@ -167,30 +167,39 @@ export class ConquistaService {
         continue;
       }
 
-      const possui = await this.conquistaRepository.possuiTier(usuarioId, conquista.id, tier);
+      const recompensa = await this.conquistaRepository.criarDesbloqueioComRecompensas(
+        usuarioId,
+        conquista.id,
+        tier,
+        ATP_POR_TIER_DESBLOQUEIO[tier],
+      );
 
-      if (possui) {
+      if (!recompensa) {
         continue;
-      }
-
-      const desbloqueio = await this.conquistaRepository.criarDesbloqueio(usuarioId, conquista.id, tier);
-
-      if(!desbloqueio){
-        throw new ErroAplicacao({
-            codigoStatus: 400,
-            codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-            mensagem: "Não foi possível registrar desbloqueio de conquista",
-        });
       }
 
       desbloqueadas.push({
         conquistaId: conquista.id,
-        desbloqueioId: desbloqueio.id,
+        desbloqueioId: recompensa.desbloqueio.id,
         nome: conquista.nome,
         descricao: conquista.descricao,
         tier,
         tipoConquista: conquista.tipoConquista,
-        tema: conquista.temaId,
+        temaId: conquista.temaId,
+        moedasConcedidas: recompensa.moedasConcedidas,
+        saldoMoedas: recompensa.saldoMoedas,
+        itemConcedido: recompensa.itemConcedido
+          ? {
+              id: recompensa.itemConcedido.id,
+              codigo: recompensa.itemConcedido.codigo,
+              nome: recompensa.itemConcedido.nome,
+              descricao: recompensa.itemConcedido.descricao,
+              tipo: recompensa.itemConcedido.tipo,
+              valor: recompensa.itemConcedido.valor,
+              imagemUrl: recompensa.itemConcedido.imagemUrl,
+              previewImagemUrl: recompensa.itemConcedido.previewImagemUrl,
+            }
+          : null,
       });
     }
     
