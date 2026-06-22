@@ -1,15 +1,16 @@
+import { prisma } from "@/config/db";
 import type { TipoItemLoja } from "@prisma/client";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
 
 export class InventarioRepository {
   async buscarItemNoInventario(usuarioId: string, itemLojaId: string) {
-    return prisma.inventarioItem.findUnique({
+    return prisma.inventarioItem.findFirst({
       where: {
-        usuarioId_itemLojaId: {
-          usuarioId,
-          itemLojaId,
+        usuarioId,
+        itemLojaId,
+        excluidoEm: null,
+        itemLoja: {
+          ativo: true,
+          excluidoEm: null,
         },
       },
       include: {
@@ -22,8 +23,11 @@ export class InventarioRepository {
     const itensDesseTipo = await prisma.inventarioItem.findMany({
       where: {
         usuarioId,
+        excluidoEm: null,
         itemLoja: {
           tipo: tipoItem,
+          ativo: true,
+          excluidoEm: null,
         },
       },
       select: { id: true },
@@ -56,9 +60,37 @@ export class InventarioRepository {
       where: {
         usuarioId,
         equipado: true,
+        excluidoEm: null,
+        itemLoja: {
+          ativo: true,
+          excluidoEm: null,
+        },
       },
       include: {
         itemLoja: true,
+      },
+    });
+  }
+
+  async listarItensEquipadosUsuarios(usuarioIds: string[]) {
+    return prisma.inventarioItem.findMany({
+      where: {
+        usuarioId: {
+          in: usuarioIds,
+        },
+        equipado: true,
+        excluidoEm: null,
+        itemLoja: {
+          ativo: true,
+          excluidoEm: null,
+        },
+      },
+      select: {
+        usuarioId: true,
+        itemLoja: true,
+      },
+      orderBy: {
+        adquiridoEm: "desc",
       },
     });
   }
@@ -67,6 +99,11 @@ export class InventarioRepository {
     return prisma.inventarioItem.findMany({
       where: {
         usuarioId,
+        excluidoEm: null,
+        itemLoja: {
+          ativo: true,
+          excluidoEm: null,
+        },
       },
       include: {
         itemLoja: true,

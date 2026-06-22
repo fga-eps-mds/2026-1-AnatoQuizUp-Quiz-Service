@@ -150,7 +150,7 @@ describe("QuestionRepository", () => {
         include: { tema: true, alternativas: true },
       }),
     );
-    expect(resposta).toBe(questao);
+    expect(resposta).toMatchObject({questao: questao, temaCriado: true});
   });
 
   test("criar persiste os campos de classificacao e usa default de origemQuestao quando ausente", async () => {

@@ -17,6 +17,7 @@ import type { QuantidadeQuestoesPorTema } from "./dto/responses/quantidade_quest
 import { type ResolucaoQuestaoUsuarioDto } from "./dto/responses/resolucao_questao_usuario_dto";
 import { converterResolucaoQuestaoBancoToApi } from "./dto/mappers/historico_quiz.mapper";
 import type { Dificuldade } from "@prisma/client";
+import type { ConquistaService } from "../conquistas/conquistas.service";
 
 const MOEDAS_POR_DIFICULDADE: Record<Dificuldade, number> = {
   FACIL: 10,
@@ -25,7 +26,10 @@ const MOEDAS_POR_DIFICULDADE: Record<Dificuldade, number> = {
 };
 
 export class QuizService {
-  constructor(private readonly quizRepository: QuizRepository) { }
+  constructor(
+    private readonly quizRepository: QuizRepository,
+    private readonly conquistaService: ConquistaService,
+  ) {}
 
   async buscarQuestoesQuiz(
     query: FiltroListarQuestoesQueryDto,
@@ -90,27 +94,41 @@ export class QuizService {
     }
 
     const correcao = gabarito.respostaCorreta === data.respostaMarcada;
-    const alunoPodeReceberMoedas = papel_usuario === PAPEIS.ALUNO;
+    const alunoPodeReceberRecompensas = papel_usuario === PAPEIS.ALUNO;
 
-    let recompensa = {
-      moedasConcedidas: 0,
-      saldoMoedas: await this.quizRepository.buscarSaldoMoedas(id_usuario),
-      moedasJaConcedidas: false,
-    };
+    const conquistas = alunoPodeReceberRecompensas
+      ? await this.conquistaService.processarRespostaQuestao(
+          id_usuario,
+          gabarito.temaId,
+          gabarito.tema.nome,
+          correcao,
+        )
+      : [];
 
-    if (correcao && alunoPodeReceberMoedas) {
-      recompensa = await this.quizRepository.concederMoedasPorAcerto(
+    let moedasConcedidas = 0;
+    let moedasJaConcedidas = false;
+
+    if (correcao && alunoPodeReceberRecompensas) {
+      const resultado = await this.quizRepository.concederMoedasPorAcerto(
         id_usuario,
         data.questaoId,
         MOEDAS_POR_DIFICULDADE[gabarito.dificuldade],
       );
+
+      moedasConcedidas = resultado.moedasConcedidas;
+      moedasJaConcedidas = resultado.moedasJaConcedidas;
     }
+
+    const saldoMoedas = await this.quizRepository.buscarSaldoMoedas(id_usuario);
 
     return {
       correcao,
       saibaMais: gabarito.saibaMais ?? "",
       respostaCorreta: gabarito.respostaCorreta,
-      ...recompensa,
+      saldoMoedas,
+      moedasConcedidas,
+      moedasJaConcedidas,
+      conquistasDesbloqueadas: conquistas,
     };
   }
 
@@ -150,7 +168,9 @@ export class QuizService {
 
     return temas.map((tema) => {
       const quantidadePorDificuldade = { FACIL: 0, MEDIA: 0, DIFICIL: 0 };
-      tema.questoes.forEach((questao) => { quantidadePorDificuldade[questao.dificuldade]++; });
+      tema.questoes.forEach((questao) => {
+        quantidadePorDificuldade[questao.dificuldade]++;
+      });
 
       return {
         nome: tema.nome,

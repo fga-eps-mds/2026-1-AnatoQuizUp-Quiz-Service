@@ -21,6 +21,7 @@ import {
 import type { QuestionRepository } from "./questoes.repository";
 import type { AlternativaQuestao, Dificuldade } from "@prisma/client";
 import type { MinioService } from "./minio.service";
+import { eventEmitter } from "@/shared/events/event-emitter";
 
 export class QuestionService {
   constructor(
@@ -86,9 +87,16 @@ export class QuestionService {
       imagem: urlImagemMinio ?? data.imagem ?? "",
     };
 
-    const questao = await this.questionRepository.criar(dadosParaSalvar, criadoPorId);
+    const resultado = await this.questionRepository.criar(dadosParaSalvar, criadoPorId);
 
-    return converterParaRespostaQuestao(questao);
+    if (resultado.temaCriado) {
+      eventEmitter.emit("tema.criado", {
+        temaId: resultado.questao.tema.id,
+        nomeTema: resultado.questao.tema.nome,
+      });
+    }
+
+    return converterParaRespostaQuestao(resultado.questao);
   }
 
   async atualizar(

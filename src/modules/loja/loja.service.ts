@@ -84,6 +84,7 @@ export class LojaService {
       imagemUrl: item.imagemUrl,
       previewImagemUrl: item.previewImagemUrl,
       ativo: item.ativo,
+      disponivelNaLoja: item.disponivelNaLoja,
       adquirido,
     };
   }
@@ -92,6 +93,7 @@ export class LojaService {
     return {
       id: item.id,
       equipado: item.equipado,
+      origem: item.origem,
       adquiridoEm: item.adquiridoEm,
       item: {
         id: item.itemLoja.id,
@@ -104,6 +106,7 @@ export class LojaService {
         imagemUrl: item.itemLoja.imagemUrl,
         previewImagemUrl: item.itemLoja.previewImagemUrl,
         ativo: item.itemLoja.ativo,
+        disponivelNaLoja: item.itemLoja.disponivelNaLoja,
       },
     };
   }

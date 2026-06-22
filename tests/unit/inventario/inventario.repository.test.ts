@@ -4,6 +4,7 @@ jest.mock("@prisma/client", () => {
   const mockPrismaInstance = {
     inventarioItem: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       updateMany: jest.fn(),
       update: jest.fn(),
@@ -24,6 +25,7 @@ import { InventarioRepository } from "../../../src/modules/inventario/inventario
 type PrismaMock = {
   inventarioItem: {
     findUnique: jest.Mock;
+    findFirst: jest.Mock;
     findMany: jest.Mock;
     updateMany: jest.Mock;
     update: jest.Mock;
@@ -43,14 +45,19 @@ describe("InventarioRepository", () => {
   });
 
   describe("buscarItemNoInventario", () => {
-    it("deve chamar findUnique com os parâmetros corretos", async () => {
+    it("deve chamar findFirst com os parâmetros corretos", async () => {
       const mockItem = { id: "inv-1", equipado: false, itemLoja: {} };
-      mockPrisma.inventarioItem.findUnique.mockResolvedValue(mockItem);
+      mockPrisma.inventarioItem.findFirst.mockResolvedValue(mockItem);
 
       const resultado = await repository.buscarItemNoInventario("user-1", "item-1");
 
-      expect(mockPrisma.inventarioItem.findUnique).toHaveBeenCalledWith({
-        where: { usuarioId_itemLojaId: { usuarioId: "user-1", itemLojaId: "item-1" } },
+      expect(mockPrisma.inventarioItem.findFirst).toHaveBeenCalledWith({
+        where: {
+          usuarioId: "user-1",
+          itemLojaId: "item-1",
+          excluidoEm: null,
+          itemLoja: { ativo: true, excluidoEm: null },
+        },
         include: { itemLoja: true },
       });
       expect(resultado).toEqual(mockItem);
@@ -66,7 +73,15 @@ describe("InventarioRepository", () => {
       await repository.equiparItemTransacao("user-1", "inv-novo", TipoItemLoja.ICONE_PERFIL);
 
       expect(mockPrisma.inventarioItem.findMany).toHaveBeenCalledWith({
-        where: { usuarioId: "user-1", itemLoja: { tipo: TipoItemLoja.ICONE_PERFIL } },
+        where: {
+          usuarioId: "user-1",
+          excluidoEm: null,
+          itemLoja: {
+            tipo: TipoItemLoja.ICONE_PERFIL,
+            ativo: true,
+            excluidoEm: null,
+          },
+        },
         select: { id: true },
       });
 
@@ -85,7 +100,12 @@ describe("InventarioRepository", () => {
       const resultado = await repository.listarItensEquipados("user-1");
 
       expect(mockPrisma.inventarioItem.findMany).toHaveBeenCalledWith({
-        where: { usuarioId: "user-1", equipado: true },
+        where: {
+          usuarioId: "user-1",
+          equipado: true,
+          excluidoEm: null,
+          itemLoja: { ativo: true, excluidoEm: null },
+        },
         include: { itemLoja: true },
       });
       expect(resultado).toEqual(mockLista);

@@ -25,6 +25,14 @@ module.exports = {
     "!src/shared/middlewares/tratamento-erros.middleware.ts",
   ],
   coverageReporters: ["text", "lcov", "json-summary"],
+  coverageThreshold: {
+    global: {
+      branches: 85,
+      functions: 85,
+      lines: 85,
+      statements: 85,
+    },
+  },
   moduleFileExtensions: ["ts", "js", "json"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",

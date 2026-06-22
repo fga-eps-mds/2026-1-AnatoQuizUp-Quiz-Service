@@ -1,4 +1,4 @@
-import type { TipoItemLoja } from "@prisma/client";
+import type { OrigemItemInventario, TipoItemLoja } from "@prisma/client";
 
 export type ItemLojaDto = {
   id: string;
@@ -11,12 +11,14 @@ export type ItemLojaDto = {
   imagemUrl: string | null;
   previewImagemUrl: string | null;
   ativo: boolean;
+  disponivelNaLoja: boolean;
   adquirido: boolean;
 };
 
 export type InventarioItemDto = {
   id: string;
   equipado: boolean;
+  origem: OrigemItemInventario;
   adquiridoEm: Date;
   item: Omit<ItemLojaDto, "adquirido">;
 };

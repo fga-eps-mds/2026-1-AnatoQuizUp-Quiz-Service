@@ -127,7 +127,13 @@ describe("Testa QuizRepository", () => {
 
     expect(prisma.questao.findUnique).toHaveBeenCalledWith({
       where: { id, excluidoEm: null },
-      select: { respostaCorreta: true, saibaMais: true, dificuldade: true },
+      select: {
+        respostaCorreta: true,
+        saibaMais: true,
+        dificuldade: true,
+        temaId: true,
+        tema: true,
+      },
     });
   });
 

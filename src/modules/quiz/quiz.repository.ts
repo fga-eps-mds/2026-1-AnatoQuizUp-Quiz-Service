@@ -32,7 +32,11 @@ const selectListarQuestoesRespondidas = {
       tema: { select: { id: true, nome: true } },
       alternativas: {
         select: {
-          alternativaA: true, alternativaB: true, alternativaC: true, alternativaD: true, alternativaE: true,
+          alternativaA: true,
+          alternativaB: true,
+          alternativaC: true,
+          alternativaD: true,
+          alternativaE: true,
         },
       },
     },
@@ -75,7 +79,13 @@ export class QuizRepository {
   async buscarResposta(id: string) {
     return await prisma.questao.findUnique({
       where: { id, excluidoEm: null },
-      select: { respostaCorreta: true, saibaMais: true, dificuldade: true },
+      select: {
+        respostaCorreta: true,
+        saibaMais: true,
+        dificuldade: true,
+        temaId: true,
+        tema: true,
+      },
     });
   }
 
