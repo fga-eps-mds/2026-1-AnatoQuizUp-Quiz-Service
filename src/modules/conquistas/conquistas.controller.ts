@@ -14,6 +14,10 @@ import type {
 
 import type { ConquistaService } from "./conquistas.service";
 
+type UsuariosIdsQuery = {
+  usuarioIds: string[];
+};
+
 export class ConquistaController {
   constructor(private readonly conquistaService: ConquistaService) {}
 
@@ -98,6 +102,42 @@ export class ConquistaController {
         mensagem: "Conquistas destacadas encontradas.",
         dados: conquistas,
       });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  listarDestaquesUsuarios = async (
+    request: Request<unknown, unknown, unknown, UsuariosIdsQuery>,
+    response: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const destaques = await this.conquistaService.listarDestaquesUsuarios(
+        request.query.usuarioIds,
+      );
+
+      return response.status(200).json({
+        mensagem: "Conquistas destacadas encontradas.",
+        dados: destaques,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  buscarDetalhe = async (
+    request: Request<{ id: string }>,
+    response: Response<ProgressoConquistaConsolidadoDto>,
+    next: NextFunction,
+  ) => {
+    try {
+      const detalhe = await this.conquistaService.buscarDetalheConquista(
+        request.usuario?.id,
+        request.params.id,
+      );
+
+      return response.status(200).json(detalhe);
     } catch (error) {
       return next(error);
     }

@@ -5,7 +5,7 @@ import { InventarioRepository } from "./inventario.repository";
 import { PAPEIS } from "@/shared/constants/papeis";
 import { middlewarePapeis } from "@/shared/middlewares/papeis.middleware";
 import { validarRequisicao } from "@/shared/middlewares/validacao.middleware";
-import { schemaEquiparItem } from "./inventario.schema";
+import { schemaEquiparItem, schemaUsuariosInventario } from "./inventario.schema";
 
 const repository = new InventarioRepository();
 const service = new InventarioService(repository);
@@ -16,6 +16,12 @@ const inventarioRoutes = Router();
 inventarioRoutes.use(middlewarePapeis(PAPEIS.ALUNO));
 
 inventarioRoutes.get("/meuPerfil", controller.meuPerfil);
+
+inventarioRoutes.get(
+  "/usuarios/equipados",
+  validarRequisicao(schemaUsuariosInventario, "query"),
+  controller.perfisEquipados,
+);
 
 inventarioRoutes.patch(
   "/equipar",

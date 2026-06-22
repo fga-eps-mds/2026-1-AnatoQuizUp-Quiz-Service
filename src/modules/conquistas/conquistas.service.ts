@@ -10,6 +10,7 @@ import {
 } from "@/shared/utils/paginacao.util";
 import type { RespostaPaginada } from "@/shared/types/api.types";
 import type {
+  ConquistaDestaqueSocialDto,
   ConquistaDesbloqueadaDto,
   PaginacaoQueryDto,
   ProgressoConquistaConsolidadoDto,
@@ -19,6 +20,9 @@ import type {
 } from "./conquistas.dto";
 
 const ORDEM_TIERS: TierConquista[] = ["BRONZE", "PRATA", "OURO"];
+type ConquistaConsolidadaBanco = NonNullable<
+  Awaited<ReturnType<ConquistaRepository["buscarProgressoConquistaUsuario"]>>
+>;
 
 export class ConquistaService {
   constructor(private readonly conquistaRepository: ConquistaRepository) {}
@@ -308,53 +312,62 @@ export class ConquistaService {
     );
 
     return {
-      dados: data.map((conquista) => {
-        const valorProgresso = conquista.usuarios[0]?.valorProgresso ?? 0;
-        const objetivos = CONFIG_TIERS[conquista.tipoConquista];
-
-        const tiers = objetivos
-          ? ORDEM_TIERS.map((tier) => {
-              const desbloqueio = conquista.desbloqueios.find((registro) => registro.tier === tier);
-              const recompensa = conquista.recompensasItens.find(
-                (registro) => registro.tier === tier,
-              );
-
-              return {
-                tier,
-                objetivo: objetivos[tier],
-                desbloqueado: Boolean(desbloqueio),
-                desbloqueioId: desbloqueio?.id ?? null,
-                destaque: desbloqueio?.destaque ?? false,
-                conquistadoEm: desbloqueio?.conquistadoEm ?? null,
-                moedas: ATP_POR_TIER_DESBLOQUEIO[tier],
-                item: recompensa?.itemLoja ?? null,
-              };
-            })
-          : [];
-
-        const proximo = tiers.find((tier) => !tier.desbloqueado);
-        const percentual = proximo
-          ? Math.min(100, Math.round((valorProgresso / proximo.objetivo) * 100))
-          : tiers.length > 0
-            ? 100
-            : 0;
-
-        return {
-          id: conquista.id,
-          nome: conquista.nome,
-          descricao: conquista.descricao,
-          tipoConquista: conquista.tipoConquista,
-          tema: conquista.tema,
-          valorProgresso,
-          proximoTier: proximo?.tier ?? null,
-          proximoObjetivo: proximo?.objetivo ?? null,
-          percentual,
-          tiers,
-        };
-      }),
+      dados: data.map((conquista) => this.converterProgressoConsolidado(conquista)),
 
       metadados: montarMetadadosPaginacao(paginacao, total),
     };
+  }
+
+  async buscarDetalheConquista(
+    usuarioId: string | undefined,
+    conquistaId: string,
+  ): Promise<ProgressoConquistaConsolidadoDto> {
+    if (!usuarioId) {
+      throw new ErroAplicacao({
+        codigoStatus: 401,
+        codigo: CodigoDeErro.NAO_AUTORIZADO,
+        mensagem: MENSAGENS.usuarioNaoEncontrado,
+      });
+    }
+
+    const conquista = await this.conquistaRepository.buscarProgressoConquistaUsuario(
+      usuarioId,
+      conquistaId,
+    );
+
+    if (!conquista) {
+      throw new ErroAplicacao({
+        codigoStatus: 404,
+        codigo: CodigoDeErro.NAO_ENCONTRADO,
+        mensagem: MENSAGENS.conquistaNaoEncontrada,
+      });
+    }
+
+    return this.converterProgressoConsolidado(conquista);
+  }
+
+  async listarDestaquesUsuarios(
+    usuarioIds: string[],
+  ): Promise<Record<string, ConquistaDestaqueSocialDto[]>> {
+    const destaques = await this.conquistaRepository.listarDestaquesUsuarios(usuarioIds);
+    const dados = Object.fromEntries(
+      usuarioIds.map((usuarioId) => [usuarioId, [] as ConquistaDestaqueSocialDto[]]),
+    );
+
+    for (const destaque of destaques) {
+      dados[destaque.usuarioId].push({
+        desbloqueioId: destaque.id,
+        conquistaId: destaque.conquista.id,
+        nome: destaque.conquista.nome,
+        descricao: destaque.conquista.descricao,
+        tier: destaque.tier,
+        tipoConquista: destaque.conquista.tipoConquista,
+        tema: destaque.conquista.tema,
+        conquistadoEm: destaque.conquistadoEm,
+      });
+    }
+
+    return dados;
   }
 
   async listarMeuProgressoEmConquista(
@@ -440,6 +453,51 @@ export class ConquistaService {
       })),
 
       metadados: montarMetadadosPaginacao(paginacao, total),
+    };
+  }
+
+  private converterProgressoConsolidado(
+    conquista: ConquistaConsolidadaBanco,
+  ): ProgressoConquistaConsolidadoDto {
+    const valorProgresso = conquista.usuarios[0]?.valorProgresso ?? 0;
+    const objetivos = CONFIG_TIERS[conquista.tipoConquista];
+
+    const tiers = objetivos
+      ? ORDEM_TIERS.map((tier) => {
+          const desbloqueio = conquista.desbloqueios.find((registro) => registro.tier === tier);
+          const recompensa = conquista.recompensasItens.find((registro) => registro.tier === tier);
+
+          return {
+            tier,
+            objetivo: objetivos[tier],
+            desbloqueado: Boolean(desbloqueio),
+            desbloqueioId: desbloqueio?.id ?? null,
+            destaque: desbloqueio?.destaque ?? false,
+            conquistadoEm: desbloqueio?.conquistadoEm ?? null,
+            moedas: ATP_POR_TIER_DESBLOQUEIO[tier],
+            item: recompensa?.itemLoja ?? null,
+          };
+        })
+      : [];
+
+    const proximo = tiers.find((tier) => !tier.desbloqueado);
+    const percentual = proximo
+      ? Math.min(100, Math.round((valorProgresso / proximo.objetivo) * 100))
+      : tiers.length > 0
+        ? 100
+        : 0;
+
+    return {
+      id: conquista.id,
+      nome: conquista.nome,
+      descricao: conquista.descricao,
+      tipoConquista: conquista.tipoConquista,
+      tema: conquista.tema,
+      valorProgresso,
+      proximoTier: proximo?.tier ?? null,
+      proximoObjetivo: proximo?.objetivo ?? null,
+      percentual,
+      tiers,
     };
   }
 }

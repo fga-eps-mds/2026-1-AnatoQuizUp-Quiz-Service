@@ -72,6 +72,29 @@ export class InventarioRepository {
     });
   }
 
+  async listarItensEquipadosUsuarios(usuarioIds: string[]) {
+    return prisma.inventarioItem.findMany({
+      where: {
+        usuarioId: {
+          in: usuarioIds,
+        },
+        equipado: true,
+        excluidoEm: null,
+        itemLoja: {
+          ativo: true,
+          excluidoEm: null,
+        },
+      },
+      select: {
+        usuarioId: true,
+        itemLoja: true,
+      },
+      orderBy: {
+        adquiridoEm: "desc",
+      },
+    });
+  }
+
   async listarInventarioCompleto(usuarioId: string) {
     return prisma.inventarioItem.findMany({
       where: {

@@ -13,6 +13,7 @@ import {
   schemaAlterarDestaqueConquista,
   schemaDesbloqueioId,
   schemaPaginacaoConquistas,
+  schemaUsuariosIds,
 } from "./conquistas.schemas";
 
 const conquistaRepository = new ConquistaRepository();
@@ -56,12 +57,26 @@ conquistaRouter.get(
 
 conquistaRouter.get("/destaques", apenasAluno, conquistaController.listarDestacadas);
 
+conquistaRouter.get(
+  "/usuarios/destaques",
+  apenasAluno,
+  validarRequisicao(schemaUsuariosIds, "query"),
+  conquistaController.listarDestaquesUsuarios,
+);
+
 conquistaRouter.patch(
   "/desbloqueios/:id/destaque",
   apenasAluno,
   validarRequisicao(schemaDesbloqueioId, "params"),
   validarRequisicao(schemaAlterarDestaqueConquista),
   conquistaController.alterarDestaque,
+);
+
+conquistaRouter.get(
+  "/:id",
+  apenasAluno,
+  validarRequisicao(schemaDesbloqueioId, "params"),
+  conquistaController.buscarDetalhe,
 );
 
 export { conquistaRouter };

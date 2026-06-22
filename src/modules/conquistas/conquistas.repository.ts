@@ -335,6 +335,101 @@ export class ConquistaRepository {
     };
   }
 
+  async buscarProgressoConquistaUsuario(usuarioId: string, conquistaId: string) {
+    return prisma.conquista.findFirst({
+      where: {
+        id: conquistaId,
+        ativo: true,
+      },
+      select: {
+        id: true,
+        nome: true,
+        descricao: true,
+        tipoConquista: true,
+        tema: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
+        usuarios: {
+          where: {
+            usuarioId,
+          },
+          select: {
+            valorProgresso: true,
+          },
+          take: 1,
+        },
+        desbloqueios: {
+          where: {
+            usuarioId,
+          },
+          select: {
+            id: true,
+            tier: true,
+            destaque: true,
+            conquistadoEm: true,
+          },
+        },
+        recompensasItens: {
+          select: {
+            tier: true,
+            itemLoja: {
+              select: {
+                id: true,
+                codigo: true,
+                nome: true,
+                descricao: true,
+                tipo: true,
+                valor: true,
+                imagemUrl: true,
+                previewImagemUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async listarDestaquesUsuarios(usuarioIds: string[]) {
+    return prisma.desbloqueioConquista.findMany({
+      where: {
+        usuarioId: {
+          in: usuarioIds,
+        },
+        destaque: true,
+        conquista: {
+          ativo: true,
+        },
+      },
+      select: {
+        id: true,
+        usuarioId: true,
+        tier: true,
+        conquistadoEm: true,
+        conquista: {
+          select: {
+            id: true,
+            nome: true,
+            descricao: true,
+            tipoConquista: true,
+            tema: {
+              select: {
+                id: true,
+                nome: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        conquistadoEm: "desc",
+      },
+    });
+  }
+
   async listarMeuProgressoEmConquista(usuarioId: string, minhaConquistaId: string) {
     return await prisma.conquistaUsuario.findUnique({
       where: {

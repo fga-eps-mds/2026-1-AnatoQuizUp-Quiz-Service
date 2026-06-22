@@ -80,6 +80,20 @@ export type ProgressoConquistaConsolidadoDto = {
   tiers: TierProgressoConquistaDto[];
 };
 
+export type ConquistaDestaqueSocialDto = {
+  desbloqueioId: string;
+  conquistaId: string;
+  nome: string;
+  descricao: string;
+  tier: TierConquista;
+  tipoConquista: TipoConquista;
+  tema: {
+    id: string;
+    nome: string;
+  } | null;
+  conquistadoEm: Date;
+};
+
 export type PaginacaoQueryDto = {
   page?: number;
   limit?: number;
