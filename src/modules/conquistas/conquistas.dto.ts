@@ -53,6 +53,33 @@ export type ProgressoConquistaDto = {
   }[];
 };
 
+export type TierProgressoConquistaDto = {
+  tier: TierConquista;
+  objetivo: number;
+  desbloqueado: boolean;
+  desbloqueioId: string | null;
+  destaque: boolean;
+  conquistadoEm: Date | null;
+  moedas: number;
+  item: ItemExclusivoConcedidoDto | null;
+};
+
+export type ProgressoConquistaConsolidadoDto = {
+  id: string;
+  nome: string;
+  descricao: string;
+  tipoConquista: TipoConquista;
+  tema: {
+    id: string;
+    nome: string;
+  } | null;
+  valorProgresso: number;
+  proximoTier: TierConquista | null;
+  proximoObjetivo: number | null;
+  percentual: number;
+  tiers: TierProgressoConquistaDto[];
+};
+
 export type PaginacaoQueryDto = {
   page?: number;
   limit?: number;

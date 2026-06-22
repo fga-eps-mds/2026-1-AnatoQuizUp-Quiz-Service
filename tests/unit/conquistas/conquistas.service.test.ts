@@ -95,6 +95,26 @@ function criarProgressoEmConquista() {
   };
 }
 
+function criarConquistaComProgresso() {
+  return {
+    id: "conquista-id",
+    nome: "conquista-nome",
+    descricao: "conquista-descricao",
+    tipoConquista: "TOTAL_ACERTOS",
+    tema: null,
+    usuarios: [{ valorProgresso: 10 }],
+    desbloqueios: [
+      {
+        id: "desbloqueio-id",
+        tier: "BRONZE",
+        destaque: false,
+        conquistadoEm: new Date(),
+      },
+    ],
+    recompensasItens: [],
+  };
+}
+
 describe("ConquistaService", () => {
   let repository: jest.Mocked<ConquistaRepository>;
   let service: ConquistaService;
@@ -333,23 +353,29 @@ describe("ConquistaService", () => {
       });
     });
 
-    test("deve lançar erro caso busca do progresso falhe", async () => {
-      repository.listarProgressoUsuario.mockResolvedValue([null, null]);
-      await expect(service.listarProgressoUsuario({}, "usuario-id")).rejects.toMatchObject({
-        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-        message: MENSAGENS.erroListarConquistas,
-      });
+    test("deve propagar erro caso busca do progresso falhe", async () => {
+      const erro = new Error("falha ao consultar progresso");
+      repository.listarProgressoUsuario.mockRejectedValue(erro);
+
+      await expect(service.listarProgressoUsuario({}, "usuario-id")).rejects.toBe(erro);
     });
 
     test("deve listar progresso de usuario paginado", async () => {
       repository.listarProgressoUsuario.mockResolvedValue({
-        data: [criarProgressoEmConquista()],
+        data: [criarConquistaComProgresso()],
         total: 1,
       });
 
       const resultado = await service.listarProgressoUsuario({}, "usuario-id");
 
       expect(resultado.dados).toHaveLength(1);
+      expect(resultado.dados[0]).toMatchObject({
+        id: "conquista-id",
+        valorProgresso: 10,
+        proximoTier: "PRATA",
+        proximoObjetivo: 50,
+        percentual: 20,
+      });
 
       expect(resultado.metadados).toMatchObject({
         total: 1,
@@ -361,15 +387,11 @@ describe("ConquistaService", () => {
 
   describe("processarRespostaQuestao", () => {
     test("deve processar total de acertos quando a resposta for correta", async () => {
-      const spyTotalAcertos = jest
-        .spyOn(service, "processarTotalAcertos")
-        .mockResolvedValue([]);
+      const spyTotalAcertos = jest.spyOn(service, "processarTotalAcertos").mockResolvedValue([]);
       const spyTotalAcertosTema = jest
         .spyOn(service, "processarTotalAcertosTema")
         .mockResolvedValue([]);
-      const spyProcessarStreak = jest
-        .spyOn(service, "processarStreak")
-        .mockResolvedValue([]);
+      const spyProcessarStreak = jest.spyOn(service, "processarStreak").mockResolvedValue([]);
 
       const usuarioId = "usuario-id";
       const temaId = "tema-id";
@@ -384,15 +406,11 @@ describe("ConquistaService", () => {
     });
 
     test("nao deve processar total de acertos quando a resposta for correta", async () => {
-      const spyTotalAcertos = jest
-        .spyOn(service, "processarTotalAcertos")
-        .mockResolvedValue([]);
+      const spyTotalAcertos = jest.spyOn(service, "processarTotalAcertos").mockResolvedValue([]);
       const spyTotalAcertosTema = jest
         .spyOn(service, "processarTotalAcertosTema")
         .mockResolvedValue([]);
-      const spyProcessarStreak = jest
-        .spyOn(service, "processarStreak")
-        .mockResolvedValue([]);
+      const spyProcessarStreak = jest.spyOn(service, "processarStreak").mockResolvedValue([]);
 
       const usuarioId = "usuario-id";
       const temaId = "tema-id";
@@ -447,7 +465,7 @@ describe("ConquistaService", () => {
 
       const spy = jest.spyOn(service, "atualizarConquista").mockResolvedValue([]);
 
-      await (service).processarTotalAcertos("user-1");
+      await service.processarTotalAcertos("user-1");
 
       expect(spy).toHaveBeenCalledWith("user-1", conquista, 11);
     });
@@ -455,7 +473,7 @@ describe("ConquistaService", () => {
     test("deve retornar lista vazia quando conquista de total de acertos não existir", async () => {
       repository.buscarConquistaTotalAcertos.mockResolvedValue(null);
 
-      const resultado = await (service).processarTotalAcertos("usuario-1");
+      const resultado = await service.processarTotalAcertos("usuario-1");
 
       expect(resultado).toEqual([]);
 
@@ -467,7 +485,7 @@ describe("ConquistaService", () => {
 
       repository.buscarConquistaTema.mockResolvedValue(null);
 
-      const resultado = await (service).processarTotalAcertosTema(
+      const resultado = await service.processarTotalAcertosTema(
         "usuario-1",
         "tema-1",
         "Matemática",
@@ -486,7 +504,7 @@ describe("ConquistaService", () => {
       repository.buscarOuCriarProgresso.mockResolvedValue(null);
 
       await expect(
-        (service).processarTotalAcertosTema("usuario-1", "tema-1", "Matemática"),
+        service.processarTotalAcertosTema("usuario-1", "tema-1", "Matemática"),
       ).rejects.toMatchObject({
         codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
         message: "Não foi possível registrar progresso em conquista",
@@ -502,7 +520,7 @@ describe("ConquistaService", () => {
 
       const spy = jest.spyOn(service, "atualizarConquista").mockResolvedValue([]);
 
-      await (service).processarStreak("user-1", true);
+      await service.processarStreak("user-1", true);
 
       expect(spy).toHaveBeenCalledWith("user-1", conquista, 6);
     });
@@ -516,7 +534,7 @@ describe("ConquistaService", () => {
 
       const spy = jest.spyOn(service, "atualizarConquista").mockResolvedValue([]);
 
-      await (service).processarStreak("user-1", false);
+      await service.processarStreak("user-1", false);
 
       expect(spy).toHaveBeenCalledWith("user-1", conquista, 0);
     });
@@ -534,9 +552,7 @@ describe("ConquistaService", () => {
       test("deve lançar erro quando não conseguir atualizar progresso", async () => {
         repository.atualizarProgresso.mockResolvedValue(null);
 
-        await expect(
-          (service).atualizarConquista(usuarioId, conquista, 10),
-        ).rejects.toMatchObject({
+        await expect(service.atualizarConquista(usuarioId, conquista, 10)).rejects.toMatchObject({
           codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
           message: "Não foi possível atualizar progresso em conquista",
         });
@@ -552,11 +568,7 @@ describe("ConquistaService", () => {
           tipoConquista: "TIPO_INEXISTENTE",
         } as Conquista;
 
-        const resultado = await (service).atualizarConquista(
-          usuarioId,
-          conquistaSemTier,
-          10,
-        );
+        const resultado = await service.atualizarConquista(usuarioId, conquistaSemTier, 10);
 
         expect(resultado).toEqual([]);
       });
@@ -566,7 +578,7 @@ describe("ConquistaService", () => {
           valorProgresso: 0,
         });
 
-        const resultado = await (service).atualizarConquista(usuarioId, conquista, 0);
+        const resultado = await service.atualizarConquista(usuarioId, conquista, 0);
 
         expect(resultado).toEqual([]);
         expect(repository.possuiTier).not.toHaveBeenCalled();
@@ -580,7 +592,7 @@ describe("ConquistaService", () => {
 
         repository.possuiTier.mockResolvedValue(true);
 
-        const resultado = await (service).atualizarConquista(usuarioId, conquista, 100);
+        const resultado = await service.atualizarConquista(usuarioId, conquista, 100);
 
         expect(resultado).toEqual([]);
         expect(repository.criarDesbloqueio).not.toHaveBeenCalled();
@@ -595,9 +607,7 @@ describe("ConquistaService", () => {
 
         repository.criarDesbloqueio.mockResolvedValue(null);
 
-        await expect(
-          (service).atualizarConquista(usuarioId, conquista, 100),
-        ).rejects.toMatchObject({
+        await expect(service.atualizarConquista(usuarioId, conquista, 100)).rejects.toMatchObject({
           codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
           message: "Não foi possível registrar desbloqueio de conquista",
         });
@@ -614,7 +624,7 @@ describe("ConquistaService", () => {
           id: "desbloqueio-1",
         });
 
-        const resultado = await (service).atualizarConquista(usuarioId, conquista, 100);
+        const resultado = await service.atualizarConquista(usuarioId, conquista, 100);
 
         expect(resultado).toHaveLength(1);
 
@@ -641,7 +651,7 @@ describe("ConquistaService", () => {
           id: `desbloqueio-${++contador}`,
         }));
 
-        const resultado = await (service).atualizarConquista(usuarioId, conquista, 1000);
+        const resultado = await service.atualizarConquista(usuarioId, conquista, 1000);
 
         expect(resultado.length).toBeGreaterThan(1);
 

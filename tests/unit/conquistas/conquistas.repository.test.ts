@@ -299,25 +299,56 @@ describe("Testa Conquista Repository", () => {
 
     await repository.listarProgressoUsuario(usuarioId, paginacao);
 
-    expect(prisma.conquistaUsuario.findMany).toHaveBeenCalledWith(
+    expect(prisma.conquista.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          usuarioId,
+          ativo: true,
         },
 
         select: {
           id: true,
-          valorProgresso: true,
-          conquista: {
+          nome: true,
+          descricao: true,
+          tipoConquista: true,
+          tema: {
             select: {
               id: true,
               nome: true,
-              descricao: true,
-              tipoConquista: true,
-              desbloqueios: {
+            },
+          },
+          usuarios: {
+            where: {
+              usuarioId,
+            },
+            select: {
+              valorProgresso: true,
+            },
+            take: 1,
+          },
+          desbloqueios: {
+            where: {
+              usuarioId,
+            },
+            select: {
+              id: true,
+              tier: true,
+              destaque: true,
+              conquistadoEm: true,
+            },
+          },
+          recompensasItens: {
+            select: {
+              tier: true,
+              itemLoja: {
                 select: {
-                  tier: true,
-                  conquistadoEm: true,
+                  id: true,
+                  codigo: true,
+                  nome: true,
+                  descricao: true,
+                  tipo: true,
+                  valor: true,
+                  imagemUrl: true,
+                  previewImagemUrl: true,
                 },
               },
             },
@@ -328,15 +359,15 @@ describe("Testa Conquista Repository", () => {
         take: paginacao.limit,
 
         orderBy: {
-          atualizadoEm: "desc",
+          nome: "asc",
         },
       }),
     );
 
-    expect(prisma.conquistaUsuario.count).toHaveBeenCalledWith(
+    expect(prisma.conquista.count).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          usuarioId,
+          ativo: true,
         },
       }),
     );

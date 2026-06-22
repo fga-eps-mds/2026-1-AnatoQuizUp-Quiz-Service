@@ -8,6 +8,7 @@ import type {
   ResumoConquistaDto,
   ResumoConquistaDesbloqueadaDto,
   PaginacaoQueryDto,
+  ProgressoConquistaConsolidadoDto,
   ProgressoConquistaDto,
 } from "./conquistas.dto.ts";
 
@@ -32,7 +33,7 @@ export class ConquistaController {
 
   listarMeuProgresso = async (
     request: Request<unknown, unknown, unknown, PaginacaoQueryDto>,
-    response: Response<RespostaPaginada<ProgressoConquistaDto>>,
+    response: Response<RespostaPaginada<ProgressoConquistaConsolidadoDto>>,
     next: NextFunction,
   ) => {
     try {

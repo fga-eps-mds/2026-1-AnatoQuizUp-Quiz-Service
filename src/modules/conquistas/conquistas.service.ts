@@ -12,10 +12,13 @@ import type { RespostaPaginada } from "@/shared/types/api.types";
 import type {
   ConquistaDesbloqueadaDto,
   PaginacaoQueryDto,
+  ProgressoConquistaConsolidadoDto,
   ProgressoConquistaDto,
   ResumoConquistaDesbloqueadaDto,
   ResumoConquistaDto,
 } from "./conquistas.dto";
+
+const ORDEM_TIERS: TierConquista[] = ["BRONZE", "PRATA", "OURO"];
 
 export class ConquistaService {
   constructor(private readonly conquistaRepository: ConquistaRepository) {}
@@ -29,15 +32,15 @@ export class ConquistaService {
 
     const conquista_criada = await this.conquistaRepository.criarConquistaTema(temaId, nomeTema);
 
-    if(!conquista_criada){
+    if (!conquista_criada) {
       throw new ErroAplicacao({
-          codigoStatus: 400,
-          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-          mensagem: "Não foi possível criar conquista",
+        codigoStatus: 400,
+        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+        mensagem: "Não foi possível criar conquista",
       });
     }
-    
-    return conquista_criada
+
+    return conquista_criada;
   }
 
   async processarRespostaQuestao(
@@ -72,11 +75,11 @@ export class ConquistaService {
       conquista.id,
     );
 
-    if(!progresso){
+    if (!progresso) {
       throw new ErroAplicacao({
-          codigoStatus: 400,
-          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-          mensagem: "Não foi possível registrar progresso em conquista",
+        codigoStatus: 400,
+        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+        mensagem: "Não foi possível registrar progresso em conquista",
       });
     }
 
@@ -97,11 +100,11 @@ export class ConquistaService {
       conquista.id,
     );
 
-    if(!progresso){
+    if (!progresso) {
       throw new ErroAplicacao({
-          codigoStatus: 400,
-          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-          mensagem: "Não foi possível registrar progresso em conquista",
+        codigoStatus: 400,
+        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+        mensagem: "Não foi possível registrar progresso em conquista",
       });
     }
 
@@ -120,11 +123,11 @@ export class ConquistaService {
       conquista.id,
     );
 
-    if(!progresso){
+    if (!progresso) {
       throw new ErroAplicacao({
-          codigoStatus: 400,
-          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-          mensagem: "Não foi possível registrar progresso em conquista",
+        codigoStatus: 400,
+        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+        mensagem: "Não foi possível registrar progresso em conquista",
       });
     }
 
@@ -146,11 +149,11 @@ export class ConquistaService {
       novoValor,
     );
 
-    if(!atualizado){
+    if (!atualizado) {
       throw new ErroAplicacao({
-          codigoStatus: 400,
-          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-          mensagem: "Não foi possível atualizar progresso em conquista",
+        codigoStatus: 400,
+        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
+        mensagem: "Não foi possível atualizar progresso em conquista",
       });
     }
 
@@ -202,7 +205,7 @@ export class ConquistaService {
           : null,
       });
     }
-    
+
     return desbloqueadas;
   }
 
@@ -288,7 +291,7 @@ export class ConquistaService {
   async listarProgressoUsuario(
     query: PaginacaoQueryDto,
     usuarioId: string | undefined,
-  ): Promise<RespostaPaginada<ProgressoConquistaDto>> {
+  ): Promise<RespostaPaginada<ProgressoConquistaConsolidadoDto>> {
     if (!usuarioId) {
       throw new ErroAplicacao({
         codigoStatus: 401,
@@ -305,14 +308,50 @@ export class ConquistaService {
     );
 
     return {
-      dados: data.map((item) => ({
-        id: item.id,
-        valor_progresso: item.valorProgresso,
-        nome: item.conquista.nome,
-        descricao: item.conquista.descricao,
-        tipoConquista: item.conquista.tipoConquista,
-        desbloqueios: item.conquista.desbloqueios,
-      })),
+      dados: data.map((conquista) => {
+        const valorProgresso = conquista.usuarios[0]?.valorProgresso ?? 0;
+        const objetivos = CONFIG_TIERS[conquista.tipoConquista];
+
+        const tiers = objetivos
+          ? ORDEM_TIERS.map((tier) => {
+              const desbloqueio = conquista.desbloqueios.find((registro) => registro.tier === tier);
+              const recompensa = conquista.recompensasItens.find(
+                (registro) => registro.tier === tier,
+              );
+
+              return {
+                tier,
+                objetivo: objetivos[tier],
+                desbloqueado: Boolean(desbloqueio),
+                desbloqueioId: desbloqueio?.id ?? null,
+                destaque: desbloqueio?.destaque ?? false,
+                conquistadoEm: desbloqueio?.conquistadoEm ?? null,
+                moedas: ATP_POR_TIER_DESBLOQUEIO[tier],
+                item: recompensa?.itemLoja ?? null,
+              };
+            })
+          : [];
+
+        const proximo = tiers.find((tier) => !tier.desbloqueado);
+        const percentual = proximo
+          ? Math.min(100, Math.round((valorProgresso / proximo.objetivo) * 100))
+          : tiers.length > 0
+            ? 100
+            : 0;
+
+        return {
+          id: conquista.id,
+          nome: conquista.nome,
+          descricao: conquista.descricao,
+          tipoConquista: conquista.tipoConquista,
+          tema: conquista.tema,
+          valorProgresso,
+          proximoTier: proximo?.tier ?? null,
+          proximoObjetivo: proximo?.objetivo ?? null,
+          percentual,
+          tiers,
+        };
+      }),
 
       metadados: montarMetadadosPaginacao(paginacao, total),
     };

@@ -39,7 +39,7 @@ export class ConquistaRepository {
       },
     });
   }
-  
+
   async buscarConquistaStreak() {
     return prisma.conquista.findFirst({
       where: {
@@ -259,27 +259,55 @@ export class ConquistaRepository {
 
   async listarProgressoUsuario(usuarioId: string, paginacao: ParametrosPaginacao) {
     const [data, total] = await prisma.$transaction([
-      prisma.conquistaUsuario.findMany({
+      prisma.conquista.findMany({
         where: {
-          usuarioId,
+          ativo: true,
         },
 
         select: {
           id: true,
-          valorProgresso: true,
-          conquista: {
+          nome: true,
+          descricao: true,
+          tipoConquista: true,
+          tema: {
             select: {
               id: true,
               nome: true,
-              descricao: true,
-              tipoConquista: true,
-              desbloqueios: {
-                where: {
-                  usuarioId,
-                },
+            },
+          },
+          usuarios: {
+            where: {
+              usuarioId,
+            },
+            select: {
+              valorProgresso: true,
+            },
+            take: 1,
+          },
+          desbloqueios: {
+            where: {
+              usuarioId,
+            },
+            select: {
+              id: true,
+              tier: true,
+              destaque: true,
+              conquistadoEm: true,
+            },
+          },
+          recompensasItens: {
+            select: {
+              tier: true,
+              itemLoja: {
                 select: {
-                  tier: true,
-                  conquistadoEm: true,
+                  id: true,
+                  codigo: true,
+                  nome: true,
+                  descricao: true,
+                  tipo: true,
+                  valor: true,
+                  imagemUrl: true,
+                  previewImagemUrl: true,
                 },
               },
             },
@@ -290,13 +318,13 @@ export class ConquistaRepository {
         take: paginacao.limit,
 
         orderBy: {
-          atualizadoEm: "desc",
+          nome: "asc",
         },
       }),
 
-      prisma.conquistaUsuario.count({
+      prisma.conquista.count({
         where: {
-          usuarioId,
+          ativo: true,
         },
       }),
     ]);
