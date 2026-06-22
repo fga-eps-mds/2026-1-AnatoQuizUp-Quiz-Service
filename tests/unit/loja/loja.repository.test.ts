@@ -47,6 +47,7 @@ function criarItemLoja(overrides = {}) {
     valor: null,
     imagemUrl: null,
     previewImagemUrl: null,
+    disponivelNaLoja: true,
     ativo: true,
     criadoEm: agora,
     atualizadoEm: agora,
@@ -222,6 +223,7 @@ describe("Testa Loja Repository", () => {
         {
           usuarioId: "usuario-id",
           itemLojaId: item.id,
+          origem: "COMPRA",
         },
       ],
       skipDuplicates: true,

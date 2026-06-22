@@ -131,7 +131,6 @@ function criarRepositoryMock() {
     buscarResposta: jest.fn<QuizRepository["buscarResposta"]>(),
     buscarSaldoMoedas: jest.fn<QuizRepository["buscarSaldoMoedas"]>(),
     concederMoedasPorAcerto: jest.fn<QuizRepository["concederMoedasPorAcerto"]>(),
-    concederMoedasPorConquistas: jest.fn<QuizRepository["concederMoedasPorConquistas"]>(),
     contarQuestoesQuiz: jest.fn<QuizRepository["contarQuestoesQuiz"]>(),
     buscarQuantidadeDeQuestoesPorTema:
       jest.fn<QuizRepository["buscarQuantidadeDeQuestoesPorTema"]>(),
@@ -340,38 +339,35 @@ describe("Testa Quiz Service", () => {
     expect(resultado.moedasJaConcedidas).toBe(false);
   });
 
-  test("deve conceder moedas por conquistas quando existirem desbloqueios", async () => {
+  test("deve retornar as recompensas atomicas concedidas pelas conquistas", async () => {
     repository.registrarTentativa.mockResolvedValue(criarTentativa());
 
     repository.buscarResposta.mockResolvedValue(criarFeedback(AlternativaQuestao.C));
 
-    const conquistasMock = [
-      {
-        desbloqueioId: "desbloqueio-1",
-        tier: "BRONZE",
-      },
-    ];
+    const conquistasMock = [{
+      conquistaId: "conquista-1",
+      desbloqueioId: "desbloqueio-1",
+      nome: "Primeiros passos",
+      descricao: "Acerte questões",
+      tier: "BRONZE",
+      tipoConquista: "TOTAL_ACERTOS",
+      temaId: null,
+      moedasConcedidas: 30,
+      saldoMoedas: 30,
+      itemConcedido: null,
+    }];
 
     jest
       .spyOn(conquistaService, "processarRespostaQuestao")
       .mockResolvedValue(conquistasMock as ConquistaDesbloqueadaDto[]);
 
-    repository.buscarSaldoMoedas.mockResolvedValue(0);
-
-    repository.concederMoedasPorConquistas.mockResolvedValue(undefined);
-
-    await quizService.responderQuestaoQuiz(
+    const resultado = await quizService.responderQuestaoQuiz(
       criarResponderQuestaoQuizDto(),
       "usuario-id",
       PAPEIS.ALUNO,
     );
 
-    expect(repository.concederMoedasPorConquistas).toHaveBeenCalledWith("usuario-id", [
-      {
-        desbloqueioId: "desbloqueio-1",
-        quantidade: 30, // MOEDAS_POR_TIER_DESBLOQUEIO.BRONZE
-      },
-    ]);
+    expect(resultado.conquistasDesbloqueadas).toEqual(conquistasMock);
   });
 
   test("não deve conceder moedas por conquistas quando não houver desbloqueios", async () => {
@@ -383,13 +379,13 @@ describe("Testa Quiz Service", () => {
 
     repository.buscarSaldoMoedas.mockResolvedValue(0);
 
-    await quizService.responderQuestaoQuiz(
+    const resultado = await quizService.responderQuestaoQuiz(
       criarResponderQuestaoQuizDto(),
       "usuario-id",
       PAPEIS.ALUNO,
     );
 
-    expect(repository.concederMoedasPorConquistas).not.toHaveBeenCalled();
+    expect(resultado.conquistasDesbloqueadas).toEqual([]);
   });
 
   test("deve retornar conquistasDesbloqueadas como array vazio quando não houver conquistas", async () => {

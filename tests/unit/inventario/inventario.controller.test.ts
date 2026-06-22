@@ -77,17 +77,14 @@ describe("InventarioController", () => {
       expect(res.json).toHaveBeenCalledWith(mockRespostaService);
     });
 
-    it("deve usar o id do header caso nao venha no req.usuario", async () => {
+    it("deve encaminhar erro quando a autenticacao nao preencher req.usuario", async () => {
       req.usuario = undefined;
       req.headers = { "x-user-id": "user-header" };
-      
-      const mockRespostaService = { mensagem: "Sucesso", dados: [] };
-      serviceMock.obterPerfilEquipado.mockResolvedValue(mockRespostaService);
 
       await controller.meuPerfil(req as unknown as Request, res as Response, next);
 
-      expect(serviceMock.obterPerfilEquipado).toHaveBeenCalledWith("user-header");
-      expect(res.status).toHaveBeenCalledWith(200);
+      expect(serviceMock.obterPerfilEquipado).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith(expect.any(TypeError));
     });
   });
 });

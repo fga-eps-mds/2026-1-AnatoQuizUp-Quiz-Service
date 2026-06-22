@@ -12,8 +12,7 @@ function criarRepositoryMock() {
     buscarConquistaStreak: jest.fn(),
     buscarOuCriarProgresso: jest.fn(),
     atualizarProgresso: jest.fn(),
-    possuiTier: jest.fn(),
-    criarDesbloqueio: jest.fn(),
+    criarDesbloqueioComRecompensas: jest.fn(),
 
     buscarDesbloqueioPorId: jest.fn(),
     contarConquistasDestacadas: jest.fn(),
@@ -21,6 +20,8 @@ function criarRepositoryMock() {
     buscarConquistasDestacadas: jest.fn(),
 
     listarProgressoUsuario: jest.fn(),
+    buscarProgressoConquistaUsuario: jest.fn(),
+    listarDestaquesUsuarios: jest.fn(),
     listarMeuProgressoEmConquista: jest.fn(),
     listarDesbloqueadasUsuario: jest.fn(),
     listarConquistas: jest.fn(),
@@ -169,8 +170,8 @@ describe("ConquistaService", () => {
       repository.buscarDesbloqueioPorId.mockResolvedValue(null);
 
       await expect(service.alterarDestaque("usuario-id", "id", true)).rejects.toMatchObject({
-        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-        message: "Conquista não encontrada.",
+        codigo: CodigoDeErro.NAO_ENCONTRADO,
+        message: MENSAGENS.conquistaNaoEncontrada,
       });
     });
 
@@ -179,25 +180,15 @@ describe("ConquistaService", () => {
       repository.contarConquistasDestacadas.mockResolvedValue(3);
 
       await expect(service.alterarDestaque("usuario-id", "id", true)).rejects.toMatchObject({
-        codigo: CodigoDeErro.REQUISICAO_INVALIDA,
-        message: "Apenas três conquistas podem ser destacadas.",
-      });
-    });
-
-    test("deve lançar erro quando consulta a quantidade de destaques de usuário", async () => {
-      repository.buscarDesbloqueioPorId.mockResolvedValue(criarDesbloqueio());
-      repository.contarConquistasDestacadas.mockResolvedValue(null);
-
-      await expect(service.alterarDestaque("usuario-id", "id", true)).rejects.toMatchObject({
-        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-        message: "Quantidade de destaques não encontrado",
+        codigo: CodigoDeErro.CONFLITO,
+        message: MENSAGENS.limiteConquistasDestacadas,
       });
     });
 
     test("deve alterar destaque com sucesso", async () => {
       repository.buscarDesbloqueioPorId.mockResolvedValue(criarDesbloqueio());
       repository.contarConquistasDestacadas.mockResolvedValue(1);
-      repository.alterarDestaque.mockResolvedValue(true);
+      repository.alterarDestaque.mockResolvedValue({ count: 1 });
 
       const resultado = await service.alterarDestaque("usuario-id", "id", true);
 
@@ -211,11 +202,11 @@ describe("ConquistaService", () => {
     test("deve lançar erro ao falhar alterar destaques", async () => {
       repository.buscarDesbloqueioPorId.mockResolvedValue(criarDesbloqueio());
       repository.contarConquistasDestacadas.mockResolvedValue(1);
-      repository.alterarDestaque.mockResolvedValue(null);
+      repository.alterarDestaque.mockResolvedValue({ count: 0 });
 
       await expect(service.alterarDestaque("usuario-id", "id", true)).rejects.toMatchObject({
-        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-        message: "Não foi possível alterar destaques",
+        codigo: CodigoDeErro.NAO_ENCONTRADO,
+        message: MENSAGENS.conquistaNaoEncontrada,
       });
     });
   });
@@ -224,14 +215,6 @@ describe("ConquistaService", () => {
     test("deve lançar erro quando usuário não informado", async () => {
       await expect(service.buscarConquistasDestacadas(undefined)).rejects.toMatchObject({
         codigo: CodigoDeErro.NAO_AUTORIZADO,
-      });
-    });
-
-    test("deve lançar erro quando falhar a buscar conquistas", async () => {
-      repository.buscarConquistasDestacadas.mockResolvedValue(null);
-      await expect(service.buscarConquistasDestacadas("usuario-id")).rejects.toMatchObject({
-        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-        message: MENSAGENS.erroListarConquistas,
       });
     });
 
@@ -250,14 +233,6 @@ describe("ConquistaService", () => {
   });
 
   describe("listarConquistas", () => {
-    test("deve lançar erro se repository não der retorno válido", async () => {
-      repository.listarConquistas.mockReturnValue([null, null]);
-      await expect(service.listarConquistas({})).rejects.toMatchObject({
-        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-        message: MENSAGENS.erroListarConquistas,
-      });
-    });
-
     test("deve listar conquistas paginadas", async () => {
       repository.listarConquistas.mockResolvedValue({
         data: [criarConquista()],
@@ -281,15 +256,6 @@ describe("ConquistaService", () => {
       await expect(service.listarDesbloqueadasUsuario({}, undefined)).rejects.toMatchObject({
         codigo: CodigoDeErro.NAO_AUTORIZADO,
         message: MENSAGENS.usuarioNaoEncontrado,
-      });
-    });
-
-    test("deve lançar erro caso buscar conquistas desbloqueadas falhe", async () => {
-      repository.listarDesbloqueadasUsuario.mockReturnValue([null, null]);
-
-      await expect(service.listarDesbloqueadasUsuario({}, "usuario-id")).rejects.toMatchObject({
-        codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-        message: MENSAGENS.erroListarConquistas,
       });
     });
 
@@ -323,8 +289,8 @@ describe("ConquistaService", () => {
       repository.listarMeuProgressoEmConquista.mockResolvedValue(null);
       await expect(service.listarMeuProgressoEmConquista("usuario-id", "id")).rejects.toMatchObject(
         {
-          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-          message: MENSAGENS.erroListarConquistas,
+          codigo: CodigoDeErro.NAO_ENCONTRADO,
+          message: MENSAGENS.conquistaNaoEncontrada,
         },
       );
     });
@@ -581,36 +547,19 @@ describe("ConquistaService", () => {
         const resultado = await service.atualizarConquista(usuarioId, conquista, 0);
 
         expect(resultado).toEqual([]);
-        expect(repository.possuiTier).not.toHaveBeenCalled();
-        expect(repository.criarDesbloqueio).not.toHaveBeenCalled();
+        expect(repository.criarDesbloqueioComRecompensas).not.toHaveBeenCalled();
       });
 
-      test("não deve criar desbloqueio quando usuário já possuir o tier", async () => {
+      test("não deve duplicar desbloqueio quando a transacao atomica retornar null", async () => {
         repository.atualizarProgresso.mockResolvedValue({
           valorProgresso: 100,
         });
 
-        repository.possuiTier.mockResolvedValue(true);
+        repository.criarDesbloqueioComRecompensas.mockResolvedValue(null);
 
         const resultado = await service.atualizarConquista(usuarioId, conquista, 100);
 
         expect(resultado).toEqual([]);
-        expect(repository.criarDesbloqueio).not.toHaveBeenCalled();
-      });
-
-      test("deve lançar erro quando não conseguir criar desbloqueio", async () => {
-        repository.atualizarProgresso.mockResolvedValue({
-          valorProgresso: 100,
-        });
-
-        repository.possuiTier.mockResolvedValue(false);
-
-        repository.criarDesbloqueio.mockResolvedValue(null);
-
-        await expect(service.atualizarConquista(usuarioId, conquista, 100)).rejects.toMatchObject({
-          codigo: CodigoDeErro.RECURSO_NAO_ENCONTRADO,
-          message: "Não foi possível registrar desbloqueio de conquista",
-        });
       });
 
       test("deve desbloquear um tier", async () => {
@@ -618,10 +567,11 @@ describe("ConquistaService", () => {
           valorProgresso: 10,
         });
 
-        repository.possuiTier.mockResolvedValue(false);
-
-        repository.criarDesbloqueio.mockResolvedValue({
-          id: "desbloqueio-1",
+        repository.criarDesbloqueioComRecompensas.mockResolvedValue({
+          desbloqueio: { id: "desbloqueio-1" },
+          moedasConcedidas: 30,
+          saldoMoedas: 30,
+          itemConcedido: null,
         });
 
         const resultado = await service.atualizarConquista(usuarioId, conquista, 100);
@@ -634,7 +584,10 @@ describe("ConquistaService", () => {
           nome: conquista.nome,
           descricao: conquista.descricao,
           tipoConquista: conquista.tipoConquista,
-          tema: conquista.temaId,
+          temaId: conquista.temaId,
+          moedasConcedidas: 30,
+          saldoMoedas: 30,
+          itemConcedido: null,
         });
       });
 
@@ -643,19 +596,22 @@ describe("ConquistaService", () => {
           valorProgresso: 1000,
         });
 
-        repository.possuiTier.mockResolvedValue(false);
-
         let contador = 0;
 
-        repository.criarDesbloqueio.mockImplementation(async () => ({
-          id: `desbloqueio-${++contador}`,
+        repository.criarDesbloqueioComRecompensas.mockImplementation(async () => ({
+          desbloqueio: { id: `desbloqueio-${++contador}` },
+          moedasConcedidas: 30,
+          saldoMoedas: contador * 30,
+          itemConcedido: null,
         }));
 
         const resultado = await service.atualizarConquista(usuarioId, conquista, 1000);
 
         expect(resultado.length).toBeGreaterThan(1);
 
-        expect(repository.criarDesbloqueio).toHaveBeenCalledTimes(resultado.length);
+        expect(repository.criarDesbloqueioComRecompensas).toHaveBeenCalledTimes(
+          resultado.length,
+        );
       });
     });
   });
