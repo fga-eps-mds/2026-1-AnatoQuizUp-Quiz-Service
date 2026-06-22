@@ -287,10 +287,13 @@ describe("Testa Conquistas Controller", () => {
   test("deve retornar conquistas desbloqueadas destacadas pelo usuário", async () => {
     const mockResposta = [
       {
-        id: "destaque-id",
+        desbloqueioId: "destaque-id",
+        conquistaId: "conquista-id",
         nome: "destaque-nome",
         descricao: "destaque-descricao",
         tier: "BRONZE" as TierConquista,
+        tipoConquista: "TOTAL_ACERTOS" as const,
+        tema: null,
         conquistadoEm: new Date(),
       },
     ];

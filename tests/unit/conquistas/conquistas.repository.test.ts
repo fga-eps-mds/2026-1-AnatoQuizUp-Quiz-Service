@@ -341,7 +341,11 @@ describe("Testa Conquista Repository", () => {
         },
 
         include: {
-          conquista: true,
+          conquista: {
+            include: {
+              tema: true,
+            },
+          },
         },
 
         orderBy: {
