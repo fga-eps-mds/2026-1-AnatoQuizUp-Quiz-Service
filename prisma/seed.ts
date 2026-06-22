@@ -1,4 +1,4 @@
-import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao } from "@prisma/client";
+import { PrismaClient, TipoQuestao, AlternativaQuestao, Dificuldade, StatusTurma, StatusQuestao, TipoItemLoja, } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -7,6 +7,10 @@ async function main() {
 
   // 1. Limpando as tabelas na ordem correta logo no início para evitar erros de FK
   await prisma.transacaoMoeda.deleteMany({});
+  await prisma.inventarioItem.deleteMany({});
+  await prisma.itemLoja.deleteMany({});
+  await prisma.carteiraMoedas.deleteMany({});
+
   await prisma.listaTurma.deleteMany({});
   await prisma.turmaAluno.deleteMany({});
   await prisma.listaQuestaoItem.deleteMany({});
@@ -21,6 +25,212 @@ async function main() {
   const ALUNO_1_ID     = "cmp7fx99d00044hyqq4msqsyt";
   const ALUNO_2_ID     = "cmp7fx99d00044hyqq4mswgsr";
   const MEU_USUARIO_ID = "d56fd5df-29f0-4319-a4b1-b4c0d326226c"; // <--- SEU USUARIO
+
+    // 2. Criando carteira de moedas para testar a loja
+  await prisma.carteiraMoedas.create({
+    data: {
+      usuarioId: MEU_USUARIO_ID,
+      saldo: 5000,
+    },
+  });
+
+  console.log("Carteira de moedas criada para o usuário de teste.");
+
+  // 3. Criando itens da Loja Virtual (cosméticos)
+  // Categorias: ICONE_PERFIL, MOLDURA, AVATAR, TITULO, PLANO_FUNDO.
+  // Preços diversificados (recompensa por acerto: FACIL 10 / MEDIA 25 / DIFICIL 50).
+  // `valor` guarda a cor/gradiente decorativo (círculo do ícone, anel da moldura, fundo);
+  // ícones de anatomia vêm do Iconify (silhueta branca); títulos são texto;
+  // o ícone premium (logo dourada do AnatoQuiz) é renderizado no front a partir do `codigo`.
+  const iconeAnatomia = (nome: string) =>
+    `https://api.iconify.design/game-icons/${nome}.svg?color=%23ffffff`;
+  const avatar = (seed: string, skinColor: string) =>
+    `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&skinColor=${skinColor}`;
+
+  const GRADIENTE_OURO = "linear-gradient(135deg, #FCD34D 0%, #D4AF37 100%)";
+
+  await prisma.itemLoja.createMany({
+    data: [
+      // --- Ícones de perfil (4) ---
+      {
+        codigo: "icone-coruja",
+        nome: "Coruja",
+        descricao: "Para os estudiosos de plantão.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
+        precoMoedas: 60,
+        valor: "linear-gradient(135deg, #71edc8 0%, #00A88F 100%)",
+        imagemUrl: iconeAnatomia("owl"),
+        previewImagemUrl: iconeAnatomia("owl"),
+      },
+      {
+        codigo: "icone-coracao",
+        nome: "Coração",
+        descricao: "O órgão que move tudo.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
+        precoMoedas: 120,
+        valor: "linear-gradient(135deg, #fb7185 0%, #e11d48 100%)",
+        imagemUrl: iconeAnatomia("heart-organ"),
+        previewImagemUrl: iconeAnatomia("heart-organ"),
+      },
+      {
+        codigo: "icone-cerebro",
+        nome: "Cérebro",
+        descricao: "Para as mentes brilhantes.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
+        precoMoedas: 200,
+        valor: "linear-gradient(135deg, #c4b5fd 0%, #7c3aed 100%)",
+        imagemUrl: iconeAnatomia("brain"),
+        previewImagemUrl: iconeAnatomia("brain"),
+      },
+      {
+        codigo: "icone-anatoquiz-dourado",
+        nome: "AnatoQuiz Dourado",
+        descricao: "Ícone premium com a logo do AnatoQuiz em dourado.",
+        tipo: TipoItemLoja.ICONE_PERFIL,
+        precoMoedas: 500,
+        valor: GRADIENTE_OURO,
+        // logo renderizada no front a partir do codigo (asset local)
+      },
+
+      // --- Molduras de ícone de perfil (4) - anel em `valor` ---
+      {
+        codigo: "moldura-bronze",
+        nome: "Bronze",
+        descricao: "Moldura de bronze para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 90,
+        valor: "linear-gradient(135deg, #d97706 0%, #92400e 100%)",
+      },
+      {
+        codigo: "moldura-prateada",
+        nome: "Prateada",
+        descricao: "Moldura prateada para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 140,
+        valor: "linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%)",
+      },
+      {
+        codigo: "moldura-dourada",
+        nome: "Dourada",
+        descricao: "Moldura dourada para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 220,
+        valor: GRADIENTE_OURO,
+      },
+      {
+        codigo: "moldura-neon",
+        nome: "Neon",
+        descricao: "Moldura neon vibrante para o ícone de perfil.",
+        tipo: TipoItemLoja.MOLDURA,
+        precoMoedas: 380,
+        valor: "linear-gradient(135deg, #22d3ee 0%, #a855f7 100%)",
+      },
+
+      // --- Avatares (4) - modelos prontos, sem customização. Mesmo preço (100). ---
+      {
+        codigo: "avatar-estudioso",
+        nome: "O Estudioso",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("Estudioso7", "ae5d29"),
+        previewImagemUrl: avatar("Estudioso7", "ae5d29"),
+      },
+      {
+        codigo: "avatar-mundo-da-lua",
+        nome: "Mundo da Lua",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("MundoDaLua3", "d08b5b"),
+        previewImagemUrl: avatar("MundoDaLua3", "d08b5b"),
+      },
+      {
+        codigo: "avatar-nerd",
+        nome: "Nerd de Plantão",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("NerdDePlantao", "edb98a"),
+        previewImagemUrl: avatar("NerdDePlantao", "edb98a"),
+      },
+      {
+        codigo: "avatar-modo-tedio",
+        nome: "Modo Tédio",
+        descricao: "Avatar pronto de estudante.",
+        tipo: TipoItemLoja.AVATAR,
+        precoMoedas: 100,
+        imagemUrl: avatar("ModoTedio9", "ffdbb4"),
+        previewImagemUrl: avatar("ModoTedio9", "ffdbb4"),
+      },
+
+      // --- Títulos (4) - renderizados como texto ---
+      {
+        codigo: "titulo-calouro-curioso",
+        nome: "Calouro Curioso",
+        descricao: "Título de destaque para quem está começando a jornada.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 50,
+      },
+      {
+        codigo: "titulo-veterano-dos-ossos",
+        nome: "Veterano dos Ossos",
+        descricao: "Título de destaque para os experientes em osteologia.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 150,
+      },
+      {
+        codigo: "titulo-mestre-anatomia",
+        nome: "Mestre da Anatomia",
+        descricao: "Título de destaque para quem domina o corpo humano.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 250,
+      },
+      {
+        codigo: "titulo-doutor-em-formacao",
+        nome: "Doutor em Formação",
+        descricao: "Título de destaque para os futuros doutores.",
+        tipo: TipoItemLoja.TITULO,
+        precoMoedas: 400,
+      },
+
+      // --- Planos de fundo (4) - cor/gradiente em `valor` ---
+      {
+        codigo: "fundo-azul-noturno",
+        nome: "Azul Noturno",
+        descricao: "Plano de fundo em azul escuro, padrão da plataforma.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 80,
+        valor: "#0A1128",
+      },
+      {
+        codigo: "fundo-verde-menta",
+        nome: "Verde Menta",
+        descricao: "Plano de fundo em verde menta suave.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 130,
+        valor: "linear-gradient(135deg, #71edc8 0%, #34d399 100%)",
+      },
+      {
+        codigo: "fundo-laranja-vibrante",
+        nome: "Laranja Vibrante",
+        descricao: "Plano de fundo em laranja energético.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 180,
+        valor: "linear-gradient(135deg, #fb923c 0%, #F97316 100%)",
+      },
+      {
+        codigo: "fundo-textura-anatomica",
+        nome: "Textura Anatômica",
+        descricao: "Plano de fundo com gradiente inspirado na identidade do AnatoQuizUp.",
+        tipo: TipoItemLoja.PLANO_FUNDO,
+        precoMoedas: 350,
+        valor: "linear-gradient(135deg, #0A1128 0%, #00214d 100%)",
+      },
+    ],
+  });
+
+  console.log("Itens da loja virtual (cosméticos) criados com sucesso.");
 
   // 2. Criando Temas
   const temas = {

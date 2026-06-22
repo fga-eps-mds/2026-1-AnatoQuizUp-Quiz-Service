@@ -37,7 +37,7 @@ O Backend/Auth nao acessa o banco do Quiz-Service, e o Quiz-Service nao acessa a
 Copy-Item .env.example .env
 npm ci
 npm run prisma:generate
-npm run db:up
+docker compose up -d
 npm run prisma:migrate
 npm run dev
 ```
