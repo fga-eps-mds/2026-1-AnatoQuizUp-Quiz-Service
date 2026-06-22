@@ -92,6 +92,21 @@ describe("InventarioRepository", () => {
     });
   });
 
+  describe("desequiparItem", () => {
+    it("deve chamar update marcando o item como não equipado", async () => {
+      const atualizado = { id: "inv-1", equipado: false };
+      mockPrisma.inventarioItem.update.mockResolvedValue(atualizado);
+
+      const resultado = await repository.desequiparItem("inv-1");
+
+      expect(mockPrisma.inventarioItem.update).toHaveBeenCalledWith({
+        where: { id: "inv-1" },
+        data: { equipado: false },
+      });
+      expect(resultado).toEqual(atualizado);
+    });
+  });
+
   describe("listarItensEquipados", () => {
     it("deve chamar findMany buscando apenas itens equipados do usuário", async () => {
       const mockLista = [{ id: "inv-1" }, { id: "inv-2" }];

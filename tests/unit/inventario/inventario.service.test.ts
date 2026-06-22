@@ -79,6 +79,57 @@ describe("InventarioService", () => {
     });
   });
 
+  describe("desequiparItem", () => {
+    const itemEquipado = {
+      id: "inv-1",
+      usuarioId: "user-1",
+      itemLojaId: "item-1",
+      equipado: true,
+      adquiridoEm: new Date(),
+      criadoEm: new Date(),
+      atualizadoEm: new Date(),
+      excluidoEm: null,
+      itemLoja: { nome: "Coruja", tipo: TipoItemLoja.ICONE_PERFIL } as ItemLoja,
+    };
+
+    it("deve lançar ErroAplicacao 404 se o item não estiver no inventário", async () => {
+      repositoryMock.buscarItemNoInventario.mockResolvedValue(null);
+
+      await expect(service.desequiparItem("user-1", "item-x")).rejects.toThrow(ErroAplicacao);
+      await expect(service.desequiparItem("user-1", "item-x")).rejects.toMatchObject({
+        codigoStatus: 404,
+      });
+    });
+
+    it("deve desequipar o item equipado com sucesso", async () => {
+      repositoryMock.buscarItemNoInventario.mockResolvedValue(itemEquipado);
+      repositoryMock.desequiparItem.mockResolvedValue({ ...itemEquipado, equipado: false });
+
+      const resultado = await service.desequiparItem("user-1", "item-1");
+
+      expect(repositoryMock.desequiparItem).toHaveBeenCalledWith("inv-1");
+      expect(resultado).toEqual({
+        mensagem: "Item desequipado com sucesso.",
+        dados: {
+          itemNome: "Coruja",
+          categoria: TipoItemLoja.ICONE_PERFIL,
+        },
+      });
+    });
+
+    it("deve ser idempotente: não chama o repositório se o item já estiver desequipado", async () => {
+      repositoryMock.buscarItemNoInventario.mockResolvedValue({
+        ...itemEquipado,
+        equipado: false,
+      });
+
+      const resultado = await service.desequiparItem("user-1", "item-1");
+
+      expect(repositoryMock.desequiparItem).not.toHaveBeenCalled();
+      expect(resultado.mensagem).toBe("Item desequipado com sucesso.");
+    });
+  });
+
   describe("obterPerfilEquipado", () => {
     it("deve retornar apenas os itens da loja que estão equipados", async () => {
       const mockItensLoja = [
