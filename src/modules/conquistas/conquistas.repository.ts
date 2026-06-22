@@ -248,7 +248,11 @@ export class ConquistaRepository {
       },
 
       include: {
-        conquista: true,
+        conquista: {
+          include: {
+            tema: true,
+          },
+        },
       },
 
       orderBy: {

@@ -272,7 +272,9 @@ export class ConquistaService {
     };
   }
 
-  async buscarConquistasDestacadas(usuarioId: string | undefined) {
+  async buscarConquistasDestacadas(
+    usuarioId: string | undefined,
+  ): Promise<ConquistaDestaqueSocialDto[]> {
     if (!usuarioId) {
       throw new ErroAplicacao({
         codigoStatus: 401,
@@ -284,10 +286,13 @@ export class ConquistaService {
     const conquistas = await this.conquistaRepository.buscarConquistasDestacadas(usuarioId);
 
     return conquistas.map((item) => ({
-      id: item.id,
+      desbloqueioId: item.id,
+      conquistaId: item.conquista.id,
       nome: item.conquista.nome,
       descricao: item.conquista.descricao,
       tier: item.tier,
+      tipoConquista: item.conquista.tipoConquista,
+      tema: item.conquista.tema,
       conquistadoEm: item.conquistadoEm,
     }));
   }

@@ -50,8 +50,11 @@ function criarDesbloqueio() {
     destaque: false,
     conquistadoEm: new Date(),
     conquista: {
+      id: "conquista-id",
       nome: "Conquista",
       descricao: "Descricao",
+      tipoConquista: "TOTAL_ACERTOS",
+      tema: null,
     },
   };
 }
@@ -226,8 +229,11 @@ describe("ConquistaService", () => {
       expect(resultado).toHaveLength(1);
 
       expect(resultado[0]).toMatchObject({
-        id: "desbloqueio-id",
+        desbloqueioId: "desbloqueio-id",
+        conquistaId: "conquista-id",
         nome: "Conquista",
+        tipoConquista: "TOTAL_ACERTOS",
+        tema: null,
       });
     });
   });
