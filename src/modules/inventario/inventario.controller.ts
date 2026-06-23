@@ -21,6 +21,19 @@ export class InventarioController {
     }
   };
 
+  desequipar = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const usuarioId = req.usuario!.id;
+      const { itemLojaId } = req.body;
+
+      const resultado = await this.inventarioService.desequiparItem(usuarioId, itemLojaId);
+
+      return res.status(200).json(resultado);
+    } catch (error) {
+      return next(error);
+    }
+  };
+
   meuPerfil = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const usuarioId = req.usuario!.id;

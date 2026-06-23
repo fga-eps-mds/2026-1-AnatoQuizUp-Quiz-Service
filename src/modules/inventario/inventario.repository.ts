@@ -55,6 +55,13 @@ export class InventarioRepository {
     ]);
   }
 
+  async desequiparItem(inventarioItemId: string) {
+    return prisma.inventarioItem.update({
+      where: { id: inventarioItemId },
+      data: { equipado: false },
+    });
+  }
+
   async listarItensEquipados(usuarioId: string) {
     return prisma.inventarioItem.findMany({
       where: {

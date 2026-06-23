@@ -29,6 +29,12 @@ inventarioRoutes.patch(
   controller.equipar,
 );
 
+inventarioRoutes.patch(
+  "/desequipar",
+  validarRequisicao(schemaEquiparItem, "body"),
+  controller.desequipar,
+);
+
 inventarioRoutes.get("/meuInventario", controller.meuInventario);
 
 export { inventarioRoutes };

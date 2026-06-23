@@ -39,6 +39,36 @@ export class InventarioService {
     };
   }
 
+  async desequiparItem(usuarioId: string, itemLojaId: string) {
+    const itemInventario = await this.inventarioRepository.buscarItemNoInventario(
+      usuarioId,
+      itemLojaId,
+    );
+
+    if (!itemInventario) {
+      throw new ErroAplicacao({
+        codigo: "NAO_ENCONTRADO",
+        codigoStatus: 404,
+        mensagem: "Item não encontrado no seu inventário.",
+      });
+    }
+
+    const tipoItem = itemInventario.itemLoja.tipo;
+
+    // Idempotente: se já não estiver equipado, apenas confirma (sem erro).
+    if (itemInventario.equipado) {
+      await this.inventarioRepository.desequiparItem(itemInventario.id);
+    }
+
+    return {
+      mensagem: "Item desequipado com sucesso.",
+      dados: {
+        itemNome: itemInventario.itemLoja.nome,
+        categoria: tipoItem,
+      },
+    };
+  }
+
   async obterPerfilEquipado(usuarioId: string) {
     const itensEquipados = await this.inventarioRepository.listarItensEquipados(usuarioId);
 

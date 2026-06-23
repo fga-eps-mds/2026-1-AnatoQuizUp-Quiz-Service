@@ -65,6 +65,37 @@ describe("InventarioController", () => {
     });
   });
 
+  describe("desequipar", () => {
+    it("deve chamar o service corretamente e retornar 200", async () => {
+      req.body = { itemLojaId: "item-1" };
+      const mockRespostaService = {
+        mensagem: "Item desequipado com sucesso.",
+        dados: { itemNome: "Coruja", categoria: "ICONE_PERFIL" as const },
+      };
+
+      serviceMock.desequiparItem.mockResolvedValue(mockRespostaService);
+
+      await controller.desequipar(req as unknown as Request, res as Response, next);
+
+      expect(serviceMock.desequiparItem).toHaveBeenCalledWith("user-1", "item-1");
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockRespostaService);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("deve capturar erros do service e repassar para o next", async () => {
+      req.body = { itemLojaId: "item-1" };
+      const erroSimulado = new Error("Erro de teste");
+
+      serviceMock.desequiparItem.mockRejectedValue(erroSimulado);
+
+      await controller.desequipar(req as unknown as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalledWith(erroSimulado);
+      expect(res.status).not.toHaveBeenCalled();
+    });
+  });
+
   describe("meuPerfil", () => {
     it("deve buscar o perfil equipado e retornar 200", async () => {
       const mockRespostaService = { mensagem: "Sucesso", dados: [] };
