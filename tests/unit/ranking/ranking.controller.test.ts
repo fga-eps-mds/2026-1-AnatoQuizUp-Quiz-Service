@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 
 import { RankingController } from "../../../src/modules/ranking/ranking.controller";
 import { RankingService } from "../../../src/modules/ranking/ranking.service";
-import { RankingRepository } from "../../../src/modules/ranking/ranking.repository";
+import type { RankingRepository } from "../../../src/modules/ranking/ranking.repository";
 
 jest.mock("../../../src/modules/ranking/ranking.service");
 
