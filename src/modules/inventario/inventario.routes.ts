@@ -13,28 +13,34 @@ const controller = new InventarioController(service);
 
 const inventarioRoutes = Router();
 
-inventarioRoutes.use(middlewarePapeis(PAPEIS.ALUNO));
+const apenasAluno = middlewarePapeis(PAPEIS.ALUNO);
 
-inventarioRoutes.get("/meuPerfil", controller.meuPerfil);
+inventarioRoutes.get("/meuPerfil", apenasAluno, controller.meuPerfil);
 
+// Consulta batch de cosmeticos equipados usada pela orquestracao (perfil social
+// e ranking). E read-only, interna (nao exposta publicamente pelo BFF) e tambem
+// precisa atender o professor/admin que visualiza rankings.
 inventarioRoutes.get(
   "/usuarios/equipados",
+  middlewarePapeis(PAPEIS.ALUNO, PAPEIS.PROFESSOR, PAPEIS.ADMINISTRADOR),
   validarRequisicao(schemaUsuariosInventario, "query"),
   controller.perfisEquipados,
 );
 
 inventarioRoutes.patch(
   "/equipar",
+  apenasAluno,
   validarRequisicao(schemaEquiparItem, "body"),
   controller.equipar,
 );
 
 inventarioRoutes.patch(
   "/desequipar",
+  apenasAluno,
   validarRequisicao(schemaEquiparItem, "body"),
   controller.desequipar,
 );
 
-inventarioRoutes.get("/meuInventario", controller.meuInventario);
+inventarioRoutes.get("/meuInventario", apenasAluno, controller.meuInventario);
 
 export { inventarioRoutes };
