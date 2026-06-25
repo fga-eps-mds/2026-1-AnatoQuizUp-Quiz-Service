@@ -22,6 +22,7 @@ import { conquistaRouter } from "@/modules/conquistas/conquistas.routes";
 import "@/modules/conquistas/listeners/tema-criado.listener";
 import { lojaRouter } from "@/modules/loja";
 import { inventarioRoutes } from "@/modules/inventario";
+import { rankingRouter } from "@/modules/ranking/ranking.routes";
 
 const aplicacao = express();
 const roteadorApi = Router();
@@ -55,6 +56,7 @@ roteadorApi.use("/listasAluno", resolucaoListaRouter);
 roteadorApi.use("/conquistas", conquistaRouter);
 roteadorApi.use("/loja", lojaRouter);
 roteadorApi.use("/inventario", inventarioRoutes);
+roteadorApi.use("/ranking", rankingRouter);
 
 aplicacao.use("/api/v1", roteadorApi);
 
