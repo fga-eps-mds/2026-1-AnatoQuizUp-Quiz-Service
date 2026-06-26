@@ -115,6 +115,7 @@ model Questao {
   taxonomiaBloom  TaxonomiaBloom?
   origemQuestao   OrigemQuestao   @default(ELABORADA_POR_PROFESSOR)
   regiaoAnatomica String?
+  palavrasChave   String[]        @default([])
 
   criadoPorId String
   temaId      String

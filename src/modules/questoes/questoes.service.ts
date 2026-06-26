@@ -126,6 +126,7 @@ export class QuestionService {
       taxonomiaBloom: data.taxonomiaBloom ?? questaoAntiga.taxonomiaBloom ?? undefined,
       origemQuestao: data.origemQuestao ?? questaoAntiga.origemQuestao,
       regiaoAnatomica: data.regiaoAnatomica ?? questaoAntiga.regiaoAnatomica ?? undefined,
+      palavrasChave: data.palavrasChave ?? questaoAntiga.palavrasChave,
       alternativas: (data.alternativas ??
         this.extrairAlternativasAtuais(questaoAntiga)) as AlternativasQuestaoDto,
     };
