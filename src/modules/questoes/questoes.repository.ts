@@ -83,6 +83,7 @@ export class QuestionRepository {
           taxonomiaBloom: data.taxonomiaBloom ?? null,
           origemQuestao: data.origemQuestao ?? undefined,
           regiaoAnatomica: data.regiaoAnatomica?.trim() || null,
+          palavrasChave: this.normalizarPalavrasChave(data.palavrasChave),
           criadoPorId,
           temaId: tema.id,
           alternativas: {
@@ -125,6 +126,7 @@ export class QuestionRepository {
           taxonomiaBloom: data.taxonomiaBloom ?? null,
           origemQuestao: data.origemQuestao ?? undefined,
           regiaoAnatomica: data.regiaoAnatomica?.trim() || null,
+          palavrasChave: this.normalizarPalavrasChave(data.palavrasChave),
           questaoOriginalId: id,
           criadoPorId,
           temaId: tema.id,
@@ -146,6 +148,12 @@ export class QuestionRepository {
       },
       include: includeQuestaoCompleta,
     }) as Promise<RegistroQuestaoCompleta>;
+  }
+
+  private normalizarPalavrasChave(valor?: string | string[]): string[] {
+    const lista = Array.isArray(valor) ? valor : valor ? valor.split(",") : [];
+
+    return [...new Set(lista.map((palavra) => palavra.trim()).filter(Boolean))];
   }
 
   private mapearAlternativas(data: Pick<CriarQuestaoDto, "tipo" | "alternativas">) {

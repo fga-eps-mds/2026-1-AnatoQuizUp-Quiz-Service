@@ -12,6 +12,7 @@ const camposClassificacao = {
   taxonomiaBloom: z.enum(TaxonomiaBloom).optional(),
   origemQuestao: z.enum(OrigemQuestao).optional(),
   regiaoAnatomica: z.string().trim().max(255).optional(),
+  palavrasChave: z.union([z.string(), z.array(z.string())]).optional(),
 };
 
 export const VALORES_DIFICULDADE = [

@@ -136,6 +136,16 @@ describe("Testa Questoes Types", () => {
     expect(resposta.origemQuestao).toBe("PROVA_ANTERIOR");
   });
 
+  test("converterParaRespostaQuestao propaga palavras-chave e usa lista vazia quando ausentes", () => {
+    const comPalavras = converterParaRespostaQuestao(
+      criarRegistroCompleto({ palavrasChave: ["coração", "aorta"] }),
+    );
+    expect(comPalavras.palavrasChave).toEqual(["coração", "aorta"]);
+
+    const semPalavras = converterParaRespostaQuestao(criarRegistroCompleto());
+    expect(semPalavras.palavrasChave).toEqual([]);
+  });
+
   test("montarFiltroPrisma combina todos os filtros", () => {
     const resultado = montarFiltroPrisma({
       tema: "histologia",

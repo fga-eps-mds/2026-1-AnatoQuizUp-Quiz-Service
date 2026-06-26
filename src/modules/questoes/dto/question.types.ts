@@ -53,6 +53,7 @@ export type CriarQuestaoDto = {
   taxonomiaBloom?: TaxonomiaBloom;
   origemQuestao?: OrigemQuestao;
   regiaoAnatomica?: string;
+  palavrasChave?: string | string[];
   alternativas: AlternativasQuestaoDto;
 };
 
@@ -92,6 +93,7 @@ export type RespostaQuestaoDto = {
   taxonomiaBloom: TaxonomiaBloom | null;
   origemQuestao: OrigemQuestao;
   regiaoAnatomica: string | null;
+  palavrasChave: string[];
   alternativas: Partial<AlternativasMultiplaEscolhaDto>;
   status: StatusQuestao;
   criadoPorId: string;
@@ -136,6 +138,7 @@ export function converterParaRespostaQuestao(questao: RegistroQuestaoCompleta): 
     taxonomiaBloom: questao.taxonomiaBloom,
     origemQuestao: questao.origemQuestao,
     regiaoAnatomica: questao.regiaoAnatomica,
+    palavrasChave: questao.palavrasChave ?? [],
     alternativas,
     status: questao.status,
     criadoPorId: questao.criadoPorId,
