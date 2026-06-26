@@ -193,6 +193,66 @@ describe("QuestionRepository", () => {
     );
   });
 
+  test("criar normaliza palavras-chave em string (split, trim e dedupe)", async () => {
+    const tema = { id: "tema-1", nome: "Anatomia" };
+    const transacao = {
+      tema: { findFirst: jest.fn().mockResolvedValue(tema), create: jest.fn() },
+      questao: { create: jest.fn().mockResolvedValue({ id: "questao-1" }) },
+    };
+    transactionMock.mockImplementation((callback) => callback(transacao));
+
+    await repository.criar(
+      {
+        tema: "Anatomia",
+        enunciado: "Enunciado",
+        tipo: "MULTIPLA_ESCOLHA",
+        dificuldade: "FACIL",
+        imagem: "",
+        alternativaCorreta: "A",
+        saibaMais: "Explicacao",
+        palavrasChave: "coração, aorta ,, coração",
+        alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
+      },
+      "professor-1",
+    );
+
+    expect(transacao.questao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ palavrasChave: ["coração", "aorta"] }),
+      }),
+    );
+  });
+
+  test("criar aceita palavras-chave em array, removendo vazios e espacos", async () => {
+    const tema = { id: "tema-1", nome: "Anatomia" };
+    const transacao = {
+      tema: { findFirst: jest.fn().mockResolvedValue(tema), create: jest.fn() },
+      questao: { create: jest.fn().mockResolvedValue({ id: "questao-1" }) },
+    };
+    transactionMock.mockImplementation((callback) => callback(transacao));
+
+    await repository.criar(
+      {
+        tema: "Anatomia",
+        enunciado: "Enunciado",
+        tipo: "MULTIPLA_ESCOLHA",
+        dificuldade: "FACIL",
+        imagem: "",
+        alternativaCorreta: "A",
+        saibaMais: "Explicacao",
+        palavrasChave: [" veia ", "valva", ""],
+        alternativas: { A: "A", B: "B", C: "C", D: "D", E: "E" },
+      },
+      "professor-1",
+    );
+
+    expect(transacao.questao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ palavrasChave: ["veia", "valva"] }),
+      }),
+    );
+  });
+
   test("desativa questao usando soft delete", async () => {
     updateMock.mockResolvedValue({ id: "questao-1", status: "INATIVO" });
 
