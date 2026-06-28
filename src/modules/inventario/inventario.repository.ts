@@ -1,7 +1,10 @@
 import { prisma } from "@/config/db";
 import type { TipoItemLoja } from "@prisma/client";
 
+// Repository de inventario (Prisma): equipar/desequipar e listar itens, sempre
+// considerando apenas itens ativos e nao excluidos.
 export class InventarioRepository {
+  // Busca um item especifico no inventario do usuario (ativo e nao excluido).
   async buscarItemNoInventario(usuarioId: string, itemLojaId: string) {
     return prisma.inventarioItem.findFirst({
       where: {
@@ -19,7 +22,17 @@ export class InventarioRepository {
     });
   }
 
+  /**
+   * Equipa um item garantindo exclusividade por tipo (so um equipado por categoria).
+   *
+   * Numa transacao: desequipa todos os itens do mesmo tipo do usuario e equipa o alvo.
+   *
+   * @param usuarioId Dono do inventario.
+   * @param inventarioItemId Item a equipar.
+   * @param tipoItem Tipo/categoria do item (avatar, moldura etc.).
+   */
   async equiparItemTransacao(usuarioId: string, inventarioItemId: string, tipoItem: TipoItemLoja) {
+    // Coleta os itens do mesmo tipo para desequipa-los antes de equipar o novo.
     const itensDesseTipo = await prisma.inventarioItem.findMany({
       where: {
         usuarioId,
@@ -55,6 +68,7 @@ export class InventarioRepository {
     ]);
   }
 
+  // Desequipa um item especifico.
   async desequiparItem(inventarioItemId: string) {
     return prisma.inventarioItem.update({
       where: { id: inventarioItemId },
@@ -62,6 +76,7 @@ export class InventarioRepository {
     });
   }
 
+  // Lista os itens atualmente equipados do usuario (perfil personalizado).
   async listarItensEquipados(usuarioId: string) {
     return prisma.inventarioItem.findMany({
       where: {
@@ -79,6 +94,7 @@ export class InventarioRepository {
     });
   }
 
+  // Itens equipados de varios usuarios de uma vez (usado pelo ranking/perfil social).
   async listarItensEquipadosUsuarios(usuarioIds: string[]) {
     return prisma.inventarioItem.findMany({
       where: {
@@ -102,6 +118,7 @@ export class InventarioRepository {
     });
   }
 
+  // Lista o inventario inteiro do usuario (equipados e nao equipados).
   async listarInventarioCompleto(usuarioId: string) {
     return prisma.inventarioItem.findMany({
       where: {
