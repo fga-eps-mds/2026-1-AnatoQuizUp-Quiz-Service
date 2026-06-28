@@ -12,12 +12,23 @@ import type {
 } from "./dto/question.types";
 import { montarFiltroPrisma } from "./dto/question.types";
 
+// Repository de questoes (Prisma). Edicao usa versionamento: a questao antiga e
+// inativada e uma nova e criada apontando para a original (questaoOriginalId),
+// preservando o historico de resolucoes ja vinculado a versao anterior.
+
+// Projecao padrao da questao com tema e alternativas.
 const includeQuestaoCompleta = {
   tema: true,
   alternativas: true,
 } as const;
 
 export class QuestionRepository {
+  /**
+   * Lista paginada de questoes nao excluidas (mais recentes primeiro).
+   *
+   * @param paginacao Parametros de paginacao (skip/take).
+   * @returns Pagina de questoes completas e o total.
+   */
   async listar(paginacao: ParametrosPaginacao) {
     const where = { excluidoEm: null };
 
@@ -40,6 +51,12 @@ export class QuestionRepository {
     };
   }
 
+  /**
+   * Busca uma questao nao excluida por id, com tema e alternativas.
+   *
+   * @param id Id da questao.
+   * @returns A questao completa ou null.
+   */
   async buscarPorId(id: string) {
     return prisma.questao.findFirst({
       where: { id, excluidoEm: null },
@@ -47,6 +64,13 @@ export class QuestionRepository {
     }) as Promise<RegistroQuestaoCompleta | null>;
   }
 
+  /**
+   * Lista paginada aplicando os filtros (tema, dificuldade, tipo...) no Prisma.
+   *
+   * @param paginacao Parametros de paginacao (skip/take).
+   * @param filtros Filtros a aplicar na consulta.
+   * @returns Pagina de questoes filtradas e o total.
+   */
   async filtrar(paginacao: ParametrosPaginacao, filtros: FiltroListarQuestoesQueryDto) {
     const where = montarFiltroPrisma(filtros);
 
@@ -64,8 +88,19 @@ export class QuestionRepository {
     return { data: data as RegistroQuestaoCompleta[], total };
   }
 
+  /**
+   * Cria uma questao (e o tema, se ainda nao existir) numa transacao.
+   *
+   * Retorna tambem temaCriado, sinal usado pelo service para emitir o evento que
+   * cria a conquista do tema novo.
+   *
+   * @param data Dados da questao.
+   * @param criadoPorId Professor autor.
+   * @returns A questao criada e se o tema foi criado agora.
+   */
   async criar(data: CriarQuestaoDto, criadoPorId: string) {
     return prisma.$transaction(async (transacao) => {
+      // Reusa o tema existente ou cria um novo; temaCriado sinaliza tema inedito.
       const temaExistente = await transacao.tema.findFirst({
         where: { nome: data.tema, excluidoEm: null },
       });
@@ -100,8 +135,20 @@ export class QuestionRepository {
     });
   }
 
+  /**
+   * Atualiza uma questao por versionamento: inativa a antiga e cria uma nova versao.
+   *
+   * A nova questao referencia a original via questaoOriginalId, preservando o
+   * historico de resolucoes ligado a versao anterior. Tudo numa transacao.
+   *
+   * @param id Id da questao a versionar.
+   * @param data Dados completos da nova versao.
+   * @param criadoPorId Autor da edicao.
+   * @returns A nova versao criada.
+   */
   async atualizar(id: string, data: CriarQuestaoDto, criadoPorId: string) {
     return prisma.$transaction(async (transacao) => {
+      // Inativa (soft delete) a versao atual antes de criar a nova.
       await transacao.questao.update({
         where: { id },
         data: {
@@ -139,6 +186,12 @@ export class QuestionRepository {
     });
   }
 
+  /**
+   * Desativa a questao (soft delete: status INATIVO + excluidoEm).
+   *
+   * @param id Id da questao.
+   * @returns A questao desativada.
+   */
   async desativar(id: string) {
     return prisma.questao.update({
       where: { id },
@@ -150,12 +203,24 @@ export class QuestionRepository {
     }) as Promise<RegistroQuestaoCompleta>;
   }
 
+  /**
+   * Normaliza palavras-chave: aceita string CSV ou array, faz trim, remove vazios e duplicatas.
+   *
+   * @param valor Palavras-chave como CSV ou array (opcional).
+   * @returns Lista normalizada e sem repeticoes.
+   */
   private normalizarPalavrasChave(valor?: string | string[]): string[] {
     const lista = Array.isArray(valor) ? valor : valor ? valor.split(",") : [];
 
     return [...new Set(lista.map((palavra) => palavra.trim()).filter(Boolean))];
   }
 
+  /**
+   * Mapeia as alternativas para as colunas A-E; certo/errado usa so C (verdadeiro) e E (falso).
+   *
+   * @param data Tipo da questao e suas alternativas.
+   * @returns Objeto com as cinco colunas de alternativa preenchidas.
+   */
   private mapearAlternativas(data: Pick<CriarQuestaoDto, "tipo" | "alternativas">) {
     if (data.tipo === "CERTO_ERRADO") {
       const alternativas = data.alternativas as AlternativasCertoErradoDto;
@@ -180,6 +245,13 @@ export class QuestionRepository {
     };
   }
 
+  /**
+   * Helper: retorna o tema pelo nome ou o cria, dentro de uma transacao.
+   *
+   * @param transacao Cliente de transacao do Prisma.
+   * @param nome Nome do tema.
+   * @returns O tema existente ou recem-criado.
+   */
   private async buscarOuCriarTema(transacao: Prisma.TransactionClient, nome: string) {
     const temaExistente = await transacao.tema.findFirst({
       where: { nome, excluidoEm: null },
