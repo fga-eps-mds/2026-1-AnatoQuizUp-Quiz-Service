@@ -16,6 +16,7 @@ import {
   schemaUsuariosIds,
 } from "./conquistas.schemas";
 
+// Montagem das dependencias do modulo de conquistas.
 const conquistaRepository = new ConquistaRepository();
 
 const conquistaService = new ConquistaService(conquistaRepository);
@@ -24,9 +25,11 @@ const conquistaController = new ConquistaController(conquistaService);
 
 const conquistaRouter = Router();
 
+// Atalhos de autorizacao reutilizados pelas rotas abaixo.
 const apenasAluno = middlewarePapeis(PAPEIS.ALUNO);
 const alunoOuAdministrador = middlewarePapeis(PAPEIS.ALUNO, PAPEIS.ADMINISTRADOR);
 
+// GET catalogo de conquistas (aluno ou administrador).
 conquistaRouter.get(
   "/",
   alunoOuAdministrador,
@@ -34,6 +37,7 @@ conquistaRouter.get(
   conquistaController.listarConquistas,
 );
 
+// GET progresso do aluno em cada conquista.
 conquistaRouter.get(
   "/meu-progresso",
   apenasAluno,
@@ -41,6 +45,7 @@ conquistaRouter.get(
   conquistaController.listarMeuProgresso,
 );
 
+// GET progresso do aluno em uma conquista especifica.
 conquistaRouter.get(
   "/meu-progresso/:id",
   apenasAluno,
@@ -48,6 +53,7 @@ conquistaRouter.get(
   conquistaController.listarMeuProgressoEmConquista,
 );
 
+// GET conquistas ja desbloqueadas pelo aluno.
 conquistaRouter.get(
   "/minhas",
   apenasAluno,
@@ -55,8 +61,10 @@ conquistaRouter.get(
   conquistaController.listarMinhasConquistas,
 );
 
+// GET conquistas que o aluno escolheu destacar no perfil.
 conquistaRouter.get("/destaques", apenasAluno, conquistaController.listarDestacadas);
 
+// GET destaques de varios usuarios (para exibir em perfis/ranking).
 conquistaRouter.get(
   "/usuarios/destaques",
   apenasAluno,
@@ -64,6 +72,7 @@ conquistaRouter.get(
   conquistaController.listarDestaquesUsuarios,
 );
 
+// PATCH liga/desliga o destaque de uma conquista desbloqueada.
 conquistaRouter.patch(
   "/desbloqueios/:id/destaque",
   apenasAluno,
@@ -72,6 +81,7 @@ conquistaRouter.patch(
   conquistaController.alterarDestaque,
 );
 
+// GET detalhe de uma conquista (rota generica por ultimo).
 conquistaRouter.get(
   "/:id",
   apenasAluno,

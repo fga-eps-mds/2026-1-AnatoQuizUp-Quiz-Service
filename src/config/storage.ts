@@ -1,22 +1,28 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import * as Minio from "minio";
 
+// Configuracao de storage (MinIO/S3) para imagens das questoes.
+
+// Clientes guardados no global para reuso entre hot-reloads (mesma logica do Prisma).
 declare global {
   var __minio_native__: Minio.Client | undefined;
   var __s3_client__: S3Client | undefined;
 }
 
+// Credenciais e endpoint do MinIO vindos do ambiente.
 const rawEndpoint = process.env.MINIO_ENDPOINT;
 const accessKey = process.env.MINIO_ROOT_USER;
 const secretKey = process.env.MINIO_ROOT_PASSWORD;
 const apiPort = process.env.MINIO_API_PORT;
 
+// Sem configuracao de storage o servico nao sobe (falha cedo).
 if (!rawEndpoint || !accessKey || !secretKey || !apiPort) {
   throw new Error("Erro: Variáveis do MinIO não configuradas.");
 }
 
 const isProduction = process.env.NODE_ENV === "production";
 
+// Normaliza endpoint+porta em hostname/porta/SSL e a URL S3 sem barra final.
 export function montarEndpointStorage(endpoint: string, portaApi: string) {
   const porta = Number(portaApi);
 
@@ -24,9 +30,11 @@ export function montarEndpointStorage(endpoint: string, portaApi: string) {
     throw new Error("Erro: MINIO_API_PORT invalida.");
   }
 
+  // Garante um protocolo para o URL parser (assume http se nao houver).
   const endpointComProtocolo = /^https?:\/\//i.test(endpoint) ? endpoint : `http://${endpoint}`;
   const url = new URL(endpointComProtocolo);
 
+  // Sobrescreve a porta e limpa partes irrelevantes do URL.
   url.port = String(porta);
   url.pathname = "";
   url.search = "";
@@ -42,6 +50,7 @@ export function montarEndpointStorage(endpoint: string, portaApi: string) {
 
 export const minioEndpointConfig = montarEndpointStorage(rawEndpoint, apiPort);
 
+// Cliente nativo do MinIO, usado para administracao (buckets, policies).
 export const minioAdmin =
   global.__minio_native__ ??
   new Minio.Client({
@@ -52,6 +61,7 @@ export const minioAdmin =
     secretKey,
   });
 
+// Cliente S3 (AWS SDK) apontando para o MinIO, usado para upload/download de objetos.
 export const s3Client =
   global.__s3_client__ ??
   new S3Client({
@@ -64,11 +74,13 @@ export const s3Client =
     forcePathStyle: true,
   });
 
+// Guarda os clientes no global fora de producao para reuso no hot-reload.
 if (!isProduction) {
   global.__minio_native__ = minioAdmin;
   global.__s3_client__ = s3Client;
 }
 
+// Garante a infraestrutura de storage no boot: cria o bucket publico se faltar.
 export async function configurarStorage() {
   const bucketName = "anatoquizup-imagens";
 
@@ -79,6 +91,7 @@ export async function configurarStorage() {
       console.log(`[Storage] Criando bucket "${bucketName}"...`);
       await minioAdmin.makeBucket(bucketName);
 
+      // Politica que torna os objetos do bucket publicos para leitura (GET).
       const policy = {
         Version: "2012-10-17",
         Statement: [

@@ -25,37 +25,44 @@ import {
 
 const listaQuestaoRouter = Router();
 
+// Montagem manual das dependencias do modulo (repository -> service -> controller).
 const listaQuestaoRepository = new ListaQuestaoRepository();
 const listaQuestaoService = new ListaQuestaoService(listaQuestaoRepository);
 const listaQuestaoController = new ListaQuestaoController(listaQuestaoService);
 
+// Todas as rotas de gestao de listas exigem autenticacao e papel de professor.
 listaQuestaoRouter.use(middlewareAutenticacao);
 listaQuestaoRouter.use(middlewarePapeis(PAPEIS.PROFESSOR));
 
+// POST cria uma nova lista de questoes.
 listaQuestaoRouter.post(
   '/',
   validarRequisicao(schemaCriarLista),
   listaQuestaoController.criar,
 );
 
+// GET lista as listas do professor logado (com filtros na query).
 listaQuestaoRouter.get(
   '/',
   validarRequisicao(schemaListarListas, 'query'),
   listaQuestaoController.listarDoUsuario,
 );
 
+// GET vinculos lista<->turma de uma turma especifica.
 listaQuestaoRouter.get(
   '/turma/:turmaId/vinculos',
   validarRequisicao(schemaParametroTurmaId, 'params'),
   listaQuestaoController.listarVinculosDaTurma,
 );
 
+// GET listas vinculadas a uma turma.
 listaQuestaoRouter.get(
   '/turma/:turmaId',
   validarRequisicao(schemaParametroTurmaId, 'params'),
   listaQuestaoController.listarPorTurma,
 );
 
+// PATCH atualiza dados basicos da lista (valida params e corpo).
 listaQuestaoRouter.patch(
   '/:id',
   validarRequisicao(schemaParametroId, 'params'),
@@ -63,6 +70,7 @@ listaQuestaoRouter.patch(
   listaQuestaoController.atualizar,
 );
 
+// POST vincula questoes a uma lista.
 listaQuestaoRouter.post(
   '/:id/questoes',
   validarRequisicao(schemaParametroId, 'params'),
@@ -70,6 +78,7 @@ listaQuestaoRouter.post(
   listaQuestaoController.vincularQuestoes,
 );
 
+// PATCH reordena as questoes dentro da lista.
 listaQuestaoRouter.patch(
   '/:id/questoes/ordem',
   validarRequisicao(schemaParametroId, 'params'),
@@ -77,12 +86,14 @@ listaQuestaoRouter.patch(
   listaQuestaoController.reordenarQuestoes,
 );
 
+// DELETE remove o vinculo de uma questao com a lista.
 listaQuestaoRouter.delete(
   '/:id/questoes/:questaoId',
   validarRequisicao(schemaParametroListaQuestao, 'params'),
   listaQuestaoController.desvincularQuestao,
 );
 
+// POST vincula a lista a uma ou mais turmas (atribuicao).
 listaQuestaoRouter.post(
   '/:id/turmas',
   validarRequisicao(schemaParametroId, 'params'),
@@ -90,6 +101,7 @@ listaQuestaoRouter.post(
   listaQuestaoController.vincularTurmas,
 );
 
+// PATCH atualiza um vinculo lista<->turma (ex.: prazo).
 listaQuestaoRouter.patch(
   '/:id/turmas/:turmaId',
   validarRequisicao(schemaParametroListaTurma, 'params'),
@@ -97,33 +109,38 @@ listaQuestaoRouter.patch(
   listaQuestaoController.atualizarVinculo,
 );
 
+// DELETE desvincula a lista de uma turma.
 listaQuestaoRouter.delete(
   '/:id/turmas/:turmaId',
   validarRequisicao(schemaParametroListaTurma, 'params'),
   listaQuestaoController.desvincularTurma,
 );
 
+// GET estatisticas da lista em uma turma especifica.
 listaQuestaoRouter.get(
   '/:id/estatisticas/turma/:turmaId',
   validarRequisicao(schemaEstatisticasParams, 'params'),
   listaQuestaoController.estatisticas,
 );
 
+// GET detalhe de uma lista pelo id (rota generica fica apos as especificas).
 listaQuestaoRouter.get(
   '/:id',
   validarRequisicao(schemaParametroId, 'params'),
   listaQuestaoController.buscar,
 );
 
+// DELETE remove a lista.
 listaQuestaoRouter.delete(
   '/:id',
   validarRequisicao(schemaParametroId, 'params'),
   listaQuestaoController.deletar,
 );
 
+// GET exporta a lista em PDF (reaplica autenticacao por seguranca).
 listaQuestaoRouter.get(
-  '/:id/pdf', 
-  middlewareAutenticacao, 
+  '/:id/pdf',
+  middlewareAutenticacao,
   listaQuestaoController.downloadPdf
 );
 

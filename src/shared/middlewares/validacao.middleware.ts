@@ -10,8 +10,10 @@ import { CodigoDeErro } from "@/shared/errors/codigos-de-erro";
 
 import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 
+// Parte da request que sera validada.
 type AlvoValidacao = "body" | "query" | "params";
 
+// Fabrica de middleware: valida body/query/params contra um schema Zod.
 export function validarRequisicao<T>(
   schema: ZodType<T>,
 
@@ -20,6 +22,7 @@ export function validarRequisicao<T>(
   return (request, _response, next) => {
     const validacao = schema.safeParse(request[alvo]);
 
+    // Falha de validacao vira erro 400 com a arvore de erros do Zod.
     if (!validacao.success) {
       return next(
         new ErroAplicacao({
@@ -34,6 +37,7 @@ export function validarRequisicao<T>(
       );
     }
 
+    // Substitui o alvo pelos dados ja validados/coeridos pelo schema.
     Object.defineProperty(request, alvo, {
       value: validacao.data,
 

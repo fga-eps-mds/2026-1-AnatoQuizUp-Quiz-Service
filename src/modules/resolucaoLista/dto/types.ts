@@ -1,3 +1,5 @@
+// DTO de uma questao formatada para o aluno resolver/revisar a lista.
+// respostaCorreta/saibaMais so vem quando o gabarito esta liberado.
 export interface QuestaoFormatadaDTO {
   id: string;
   enunciado: string;

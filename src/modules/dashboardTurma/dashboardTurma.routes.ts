@@ -9,12 +9,15 @@ import { schemaParamsDashboard, schemaParamsListaDashboard } from './dashboardTr
 
 const dashboardRouter = Router();
 
+// Montagem das dependencias do dashboard da turma.
 const turmaDashboardRepository = new TurmaDashboardRepository();
 const turmaDashboardService = new TurmaDashboardService(turmaDashboardRepository);
 const turmaDashboardController = new TurmaDashboardController(turmaDashboardService);
 
+// Dashboards da turma sao de gestao: somente professor e administrador.
 const apenasGestao = middlewarePapeis(PAPEIS.PROFESSOR, PAPEIS.ADMINISTRADOR);
 
+// GET visao macro (indicadores gerais) da turma.
 dashboardRouter.get(
   '/:id/macro',
   apenasGestao,
@@ -22,6 +25,7 @@ dashboardRouter.get(
   turmaDashboardController.listarMacro
 );
 
+// GET desempenho individual de cada aluno.
 dashboardRouter.get(
   '/:id/individual',
   apenasGestao,
@@ -29,6 +33,7 @@ dashboardRouter.get(
   turmaDashboardController.listarIndividual
 );
 
+// GET desempenho agregado por lista.
 dashboardRouter.get(
   '/:id/listas',
   apenasGestao,
@@ -36,6 +41,7 @@ dashboardRouter.get(
   turmaDashboardController.listarPorListas
 );
 
+// GET desempenho dos alunos em uma lista especifica.
 dashboardRouter.get(
   '/:id/listas/:listaId',
   apenasGestao,

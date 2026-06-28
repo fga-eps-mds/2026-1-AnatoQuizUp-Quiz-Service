@@ -1,5 +1,8 @@
 import type { TierConquista, TipoConquista, TipoItemLoja } from "@prisma/client";
 
+// DTOs (contratos de dados) do modulo de conquistas, trocados entre service e API.
+
+// Item exclusivo concedido ao desbloquear uma conquista (cosmetico de recompensa).
 export type ItemExclusivoConcedidoDto = {
   id: string;
   codigo: string;
@@ -11,6 +14,7 @@ export type ItemExclusivoConcedidoDto = {
   previewImagemUrl: string | null;
 };
 
+// Retorno ao desbloquear: conquista, moedas creditadas, saldo e item ganho.
 export type ConquistaDesbloqueadaDto = {
   conquistaId: string;
   desbloqueioId: string;
@@ -24,6 +28,7 @@ export type ConquistaDesbloqueadaDto = {
   itemConcedido: ItemExclusivoConcedidoDto | null;
 };
 
+// Resumo de catalogo: dados minimos para listar uma conquista.
 export type ResumoConquistaDto = {
   id: string;
   nome: string;
@@ -32,6 +37,7 @@ export type ResumoConquistaDto = {
   temaId?: string | null;
 };
 
+// Resumo de uma conquista ja desbloqueada pelo aluno (com tier e destaque).
 export type ResumoConquistaDesbloqueadaDto = {
   id: string;
   nome: string;
@@ -41,6 +47,7 @@ export type ResumoConquistaDesbloqueadaDto = {
   conquistadoEm: Date;
 };
 
+// Progresso bruto em uma conquista, com a lista de tiers ja desbloqueados.
 export type ProgressoConquistaDto = {
   id: string;
   valor_progresso: number;
@@ -53,6 +60,7 @@ export type ProgressoConquistaDto = {
   }[];
 };
 
+// Estado de um tier especifico (objetivo, se desbloqueado, recompensas).
 export type TierProgressoConquistaDto = {
   tier: TierConquista;
   objetivo: number;
@@ -64,6 +72,7 @@ export type TierProgressoConquistaDto = {
   item: ItemExclusivoConcedidoDto | null;
 };
 
+// Visao consolidada para a UI: progresso atual, proximo objetivo e todos os tiers.
 export type ProgressoConquistaConsolidadoDto = {
   id: string;
   nome: string;
@@ -80,6 +89,7 @@ export type ProgressoConquistaConsolidadoDto = {
   tiers: TierProgressoConquistaDto[];
 };
 
+// Conquista destacada exibida no perfil social do aluno.
 export type ConquistaDestaqueSocialDto = {
   desbloqueioId: string;
   conquistaId: string;
@@ -94,11 +104,13 @@ export type ConquistaDestaqueSocialDto = {
   conquistadoEm: Date;
 };
 
+// Query de paginacao reutilizada nas listagens.
 export type PaginacaoQueryDto = {
   page?: number;
   limit?: number;
 };
 
+// Body para alterar o destaque de uma conquista.
 export type AlterarDestaqueConquistaDto = {
   destaque: boolean;
 };

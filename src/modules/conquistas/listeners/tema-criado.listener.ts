@@ -5,6 +5,7 @@ import { ConquistaService } from "../conquistas.service";
 
 const conquistaService = new ConquistaService(new ConquistaRepository());
 
+// Ao criar um tema, gera automaticamente a conquista padrao associada a ele.
 eventEmitter.on(
   "tema.criado",
   async ({ temaId, nomeTema }: { temaId: string; nomeTema: string }) => {

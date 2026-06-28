@@ -11,9 +11,18 @@ import type { InventarioBanco, ItemLojaBanco, LojaRepository } from "./loja.repo
 import type { CompraItemDto, InventarioItemDto, ItemLojaDto } from "./dto/loja.dto";
 import type { ListarCatalogoQueryDto, ListarInventarioQueryDto } from "./loja.schemas";
 
+// Service da loja: orquestra catalogo, inventario e compra, convertendo os registros
+// do banco para os DTOs de resposta. Exige usuario autenticado em todas as operacoes.
 export class LojaService {
   constructor(private readonly lojaRepository: LojaRepository) {}
 
+  /**
+   * Lista paginada do catalogo, marcando cada item como adquirido ou nao pelo usuario.
+   *
+   * @param usuarioId Usuario autenticado (necessario para o flag "adquirido").
+   * @param query Filtros e paginacao do catalogo.
+   * @returns Pagina de itens do catalogo com metadados de paginacao.
+   */
   async listarCatalogo(
     usuarioId: string | undefined,
     query: ListarCatalogoQueryDto,
@@ -22,6 +31,7 @@ export class LojaService {
 
     const paginacao = resolverParametrosPaginacao(query);
 
+    // itensAdquiridos e um Set com os ids que o usuario ja possui.
     const { data, total, itensAdquiridos } = await this.lojaRepository.listarCatalogo(
       usuarioId,
       paginacao,
@@ -34,6 +44,13 @@ export class LojaService {
     };
   }
 
+  /**
+   * Lista paginada do inventario (itens que o usuario ja possui).
+   *
+   * @param usuarioId Usuario autenticado dono do inventario.
+   * @param query Paginacao da listagem.
+   * @returns Pagina de itens do inventario com metadados de paginacao.
+   */
   async listarInventario(
     usuarioId: string | undefined,
     query: ListarInventarioQueryDto,
@@ -50,6 +67,13 @@ export class LojaService {
     };
   }
 
+  /**
+   * Compra um item (a logica atomica de saldo/duplicidade fica no repository).
+   *
+   * @param usuarioId Usuario autenticado que esta comprando.
+   * @param itemLojaId Item desejado.
+   * @returns Mensagem, saldo atualizado e o item ja no inventario.
+   */
   async comprar(usuarioId: string | undefined, itemLojaId: string): Promise<CompraItemDto> {
     this.validarUsuarioAutenticado(usuarioId);
 
@@ -62,6 +86,7 @@ export class LojaService {
     };
   }
 
+  // Assercao de tipo: garante usuario autenticado (e estreita o tipo para string).
   private validarUsuarioAutenticado(usuarioId: string | undefined): asserts usuarioId is string {
     if (!usuarioId) {
       throw new ErroAplicacao({
@@ -72,6 +97,7 @@ export class LojaService {
     }
   }
 
+  // Converte o item do banco no DTO do catalogo, acrescentando o flag "adquirido".
   private converterItemLoja(item: ItemLojaBanco, adquirido: boolean): ItemLojaDto {
     return {
       id: item.id,
@@ -89,6 +115,7 @@ export class LojaService {
     };
   }
 
+  // Converte o item de inventario do banco no DTO de resposta (com o item aninhado).
   private converterInventario(item: InventarioBanco): InventarioItemDto {
     return {
       id: item.id,

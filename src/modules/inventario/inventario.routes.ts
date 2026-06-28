@@ -7,14 +7,17 @@ import { middlewarePapeis } from "@/shared/middlewares/papeis.middleware";
 import { validarRequisicao } from "@/shared/middlewares/validacao.middleware";
 import { schemaEquiparItem, schemaUsuariosInventario } from "./inventario.schema";
 
+// Montagem das dependencias do modulo de inventario.
 const repository = new InventarioRepository();
 const service = new InventarioService(repository);
 const controller = new InventarioController(service);
 
 const inventarioRoutes = Router();
 
+// Atalho de autorizacao reutilizado pelas rotas exclusivas do aluno.
 const apenasAluno = middlewarePapeis(PAPEIS.ALUNO);
 
+// GET perfil resumido do aluno (cosmeticos equipados do proprio usuario).
 inventarioRoutes.get("/meuPerfil", apenasAluno, controller.meuPerfil);
 
 // Consulta batch de cosmeticos equipados usada pela orquestracao (perfil social
@@ -27,6 +30,7 @@ inventarioRoutes.get(
   controller.perfisEquipados,
 );
 
+// PATCH equipa um item cosmetico no inventario do aluno.
 inventarioRoutes.patch(
   "/equipar",
   apenasAluno,
@@ -34,6 +38,7 @@ inventarioRoutes.patch(
   controller.equipar,
 );
 
+// PATCH desequipa um item cosmetico do inventario do aluno.
 inventarioRoutes.patch(
   "/desequipar",
   apenasAluno,
@@ -41,6 +46,7 @@ inventarioRoutes.patch(
   controller.desequipar,
 );
 
+// GET inventario completo do aluno autenticado.
 inventarioRoutes.get("/meuInventario", apenasAluno, controller.meuInventario);
 
 export { inventarioRoutes };

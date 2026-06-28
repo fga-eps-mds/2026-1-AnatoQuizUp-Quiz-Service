@@ -1,9 +1,22 @@
 import type { InventarioRepository } from "./inventario.repository";
 import { ErroAplicacao } from "../../shared/errors/erro-aplicacao";
 
+// Service de inventario: equipar/desequipar cosmeticos e consultar o perfil
+// personalizado (itens equipados) do usuario ou de varios usuarios.
 export class InventarioService {
   constructor(private inventarioRepository: InventarioRepository) {}
 
+  /**
+   * Equipa um item do inventario do usuario.
+   *
+   * Recusa se o item nao esta no inventario (404) ou ja esta equipado (400). Ao
+   * equipar, o repository desequipa outros do mesmo tipo (so um por categoria).
+   *
+   * @param usuarioId Dono do inventario.
+   * @param itemLojaId Item a equipar.
+   * @returns Mensagem + item/categoria equipados.
+   * @throws ErroAplicacao 404/400 conforme o caso.
+   */
   async equiparItem(usuarioId: string, itemLojaId: string) {
     const itemInventario = await this.inventarioRepository.buscarItemNoInventario(
       usuarioId,
@@ -28,6 +41,7 @@ export class InventarioService {
 
     const tipoItem = itemInventario.itemLoja.tipo;
 
+    // O repository troca de forma atomica: desequipa o atual do tipo e equipa este.
     await this.inventarioRepository.equiparItemTransacao(usuarioId, itemInventario.id, tipoItem);
 
     return {
@@ -39,6 +53,14 @@ export class InventarioService {
     };
   }
 
+  /**
+   * Desequipa um item do inventario do usuario (operacao idempotente).
+   *
+   * @param usuarioId Dono do inventario.
+   * @param itemLojaId Item a desequipar.
+   * @returns Mensagem + item/categoria.
+   * @throws ErroAplicacao 404 se o item nao esta no inventario.
+   */
   async desequiparItem(usuarioId: string, itemLojaId: string) {
     const itemInventario = await this.inventarioRepository.buscarItemNoInventario(
       usuarioId,
@@ -69,6 +91,7 @@ export class InventarioService {
     };
   }
 
+  // Retorna os itens atualmente equipados pelo usuario (seu "perfil personalizado").
   async obterPerfilEquipado(usuarioId: string) {
     const itensEquipados = await this.inventarioRepository.listarItensEquipados(usuarioId);
 
@@ -80,9 +103,11 @@ export class InventarioService {
     };
   }
 
+  // Itens equipados de varios usuarios de uma vez (usado pelo ranking/perfil social).
   async obterPerfisEquipados(usuarioIds: string[]) {
     const itensEquipados = await this.inventarioRepository.listarItensEquipadosUsuarios(usuarioIds);
 
+    // Garante uma entrada (vazia) por usuario pedido, mesmo sem itens equipados.
     const dados = Object.fromEntries(usuarioIds.map((usuarioId) => [usuarioId, [] as unknown[]]));
 
     for (const item of itensEquipados) {
@@ -95,6 +120,7 @@ export class InventarioService {
     };
   }
 
+  // Retorna o inventario completo do usuario (equipados e nao equipados), achatado.
   async obterInventarioCompleto(usuarioId: string) {
     const itensInventario = await this.inventarioRepository.listarInventarioCompleto(usuarioId);
 

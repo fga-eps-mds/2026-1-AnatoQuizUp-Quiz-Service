@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Schemas Zod do inventario.
+
+// Body para equipar/desequipar: exige o id do item da loja.
 export const schemaEquiparItem = z.object({
   itemLojaId: z
     .string({
@@ -8,6 +11,8 @@ export const schemaEquiparItem = z.object({
     .min(1, "O ID do item da loja é obrigatório."),
 });
 
+// Query de varios usuarios: recebe ids separados por virgula e normaliza
+// (split, trim, remove vazios e duplicados) em um array de 1 a 100 ids.
 export const schemaUsuariosInventario = z.object({
   usuarioIds: z
     .string()

@@ -1,12 +1,29 @@
 import type { TurmaDashboardRepository } from './dashboardTurma.repository';
 import type { DesempenhoListaDTO } from './dto/dashboardTurma.types';
 
+/**
+ * Service do dashboard da turma (visao do professor).
+ *
+ * Agrega as resolucoes dos alunos em metricas: desempenho individual, panorama macro
+ * da turma, desempenho por lista e por aluno em uma lista. Faz a agregacao em memoria
+ * a partir dos dados crus do repository.
+ */
 export class TurmaDashboardService {
   constructor(private readonly repository: TurmaDashboardRepository) {}
 
+  /**
+   * Desempenho individual de cada aluno da turma (geral e por tema).
+   *
+   * Acumula, por aluno, total respondido/acertos, ultima atividade e estatisticas por
+   * tema; deriva taxa de acerto e um status (Tranquilo/Atencao/Critico) por tema.
+   *
+   * @param turmaId Turma analisada.
+   * @returns Lista de alunos com suas metricas, ordenada por taxa de acerto.
+   */
   async getDesempenhoIndividual(turmaId: string) {
     const alunosIds = await this.repository.findAlunosByTurmaId(turmaId);
 
+    // Turma sem alunos: nada a agregar.
     if (alunosIds.length === 0) {
       return { alunos: [] };
     }
@@ -20,11 +37,13 @@ export class TurmaDashboardService {
       temas: Map<string, { acertos: number; total: number }>;
     };
 
+    // Inicializa o acumulador de cada aluno (zera contadores e mapa de temas).
     const alunosMap = new Map<string, StatsAluno>();
     alunosIds.forEach((id) =>
       alunosMap.set(id, { totalRespondidas: 0, totalAcertos: 0, ultimaAtividade: null, temas: new Map() }),
     );
 
+    // Percorre as resolucoes acumulando totais por aluno e por tema.
     resolucoes.forEach((resolucao) => {
       const acertou = resolucao.respostaMarcada === resolucao.questao.respostaCorreta;
       const nomeTema = resolucao.questao.tema.nome;
@@ -49,6 +68,7 @@ export class TurmaDashboardService {
           ? Math.round((stats.totalAcertos / stats.totalRespondidas) * 100)
           : 0;
 
+      // Por tema: taxa de acerto + status por faixa (>=70 ok, >=40 atencao, senao critico).
       const desempenhoPorTema = Array.from(stats.temas.entries()).map(([nome, t]) => {
         const taxa = Math.round((t.acertos / t.total) * 100);
         let status = 'Crítico';
@@ -74,6 +94,13 @@ export class TurmaDashboardService {
     return { alunos };
   }
 
+  /**
+   * Panorama macro da turma: totais e desempenho medio por tema.
+   *
+   * @param turmaId Turma analisada.
+   * @param professorId Professor (nao usado no calculo; reservado p/ futura autorizacao).
+   * @returns Total de alunos, total respondido, taxa media e desempenho por tema.
+   */
   async getMacroDashboard(turmaId: string, professorId: string) {
     void professorId;
     const alunosIds = await this.repository.findAlunosByTurmaId(turmaId);
@@ -88,6 +115,7 @@ export class TurmaDashboardService {
       return { totalAlunos: alunosIds.length, totalQuestoesRespondidas: 0, taxaMediaAcertos: 0, desempenhoPorTema: [] };
     }
 
+    // Acumula acertos gerais e estatisticas por tema sobre todas as resolucoes.
     let totalAcertosGerais = 0;
     const temasMap = new Map<string, { acertos: number; total: number }>();
 
@@ -127,6 +155,15 @@ export class TurmaDashboardService {
     };
   }
 
+  /**
+   * Desempenho da turma agregado por lista publicada.
+   *
+   * Para cada lista: quantos submeteram, quantos pendentes e a taxa media de acerto.
+   *
+   * @param turmaId Turma analisada.
+   * @param professorId Professor (reservado p/ futura autorizacao).
+   * @returns Uma entrada de desempenho por lista da turma.
+   */
   async getDesempenhoPorListas(
     turmaId: string,
     professorId: string,
@@ -141,6 +178,7 @@ export class TurmaDashboardService {
     const totalAlunos = alunosIds.length;
 
     return listasTurma.map((listaTurma) => {
+      // Submeteram = quem tem resolucao; pendentes = restante da turma (nunca negativo).
       const totalSubmeteram = listaTurma.resolucoes.length;
       const totalPendentes = Math.max(totalAlunos - totalSubmeteram, 0);
       const respostas = listaTurma.resolucoes.flatMap((resolucao) => resolucao.respostas);
@@ -163,6 +201,17 @@ export class TurmaDashboardService {
     });
   }
 
+  /**
+   * Desempenho de cada aluno da turma em uma lista especifica.
+   *
+   * Indexa as resolucoes por aluno e classifica cada um como SUBMETIDA, EM_ANDAMENTO
+   * ou NAO_RESPONDEU, calculando acertos/taxa apenas para quem submeteu.
+   *
+   * @param turmaId Turma analisada.
+   * @param listaTurmaId Vinculo lista-turma avaliado.
+   * @returns Cabecalho da lista + desempenho por aluno, ordenado por taxa de acerto.
+   * @throws Error se a lista nao existir ou nao pertencer a turma.
+   */
   async getDesempenhoAlunosNaLista(turmaId: string, listaTurmaId: string) {
     const [alunosIds, listaTurma] = await Promise.all([
       this.repository.findAlunosByTurmaId(turmaId),
@@ -175,6 +224,7 @@ export class TurmaDashboardService {
 
     const totalQuestoes = listaTurma.listaQuestao.itens.length;
 
+    // Indexa as resolucoes por aluno para consulta rapida no map abaixo.
     const resolucoesMap = new Map();
     listaTurma.resolucoes.forEach((res) => {
       resolucoesMap.set(res.alunoId, res);
@@ -183,6 +233,7 @@ export class TurmaDashboardService {
     const alunos = alunosIds.map((alunoId) => {
       const resolucao = resolucoesMap.get(alunoId);
 
+      // Sem resolucao submetida: marca como EM_ANDAMENTO (iniciou) ou NAO_RESPONDEU.
       if (!resolucao || resolucao.status !== 'SUBMETIDA') {
         return {
           alunoId,

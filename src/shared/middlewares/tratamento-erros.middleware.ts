@@ -12,6 +12,7 @@ import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 
 import type { RespostaApiErro } from "@/shared/types/api.types";
 
+// Middleware central de erros: traduz excecoes em respostas HTTP padronizadas.
 export function middlewareTratamentoErros(
   erro: unknown,
 
@@ -23,6 +24,7 @@ export function middlewareTratamentoErros(
 ) {
   void next;
 
+  // Erros de aplicacao ja carregam status e codigo proprios.
   if (erro instanceof ErroAplicacao) {
     return response.status(erro.codigoStatus).json({
       erro: {
@@ -35,6 +37,7 @@ export function middlewareTratamentoErros(
     });
   }
 
+  // Erros conhecidos do Prisma viram 400 (requisicao invalida).
   if (erro instanceof Prisma.PrismaClientKnownRequestError) {
     return response.status(400).json({
       erro: {
@@ -45,6 +48,7 @@ export function middlewareTratamentoErros(
     });
   }
 
+  // Qualquer outro erro e inesperado: registra e responde 500 generico.
   logger.error({ erro }, "Erro nao tratado na aplicacao.");
 
   return response.status(500).json({

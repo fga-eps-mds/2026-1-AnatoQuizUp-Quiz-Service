@@ -6,9 +6,11 @@ import { ErroAplicacao } from "@/shared/errors/erro-aplicacao";
 import type { PayloadAutenticacao } from "@/shared/types/autenticacao.types";
 import { verificarTokenJwt } from "@/shared/utils/jwt";
 
+// Extrai o token Bearer do cabecalho Authorization, validando o formato.
 function obterTokenDoCabecalho(request: Request): string {
   const campoAuthorization = request.headers.authorization;
 
+  // Sem cabecalho Authorization nao ha como autenticar.
   if (!campoAuthorization) {
     throw new ErroAplicacao({
       mensagem: "Token nao fornecido",
@@ -17,6 +19,7 @@ function obterTokenDoCabecalho(request: Request): string {
     });
   }
 
+  // Aceita apenas o esquema Bearer.
   if (!campoAuthorization.startsWith("Bearer ")) {
     throw new ErroAplicacao({
       mensagem: "Token invalido",
@@ -28,6 +31,7 @@ function obterTokenDoCabecalho(request: Request): string {
   return campoAuthorization.replace("Bearer ", "");
 }
 
+// Bloqueia usuarios que nao estejam com status ATIVO.
 function validarStatusUsuario(status: string): void {
   if (status === STATUS.ATIVO) return;
 
@@ -38,12 +42,14 @@ function validarStatusUsuario(status: string): void {
   });
 }
 
+// Middleware de autenticacao: valida o JWT e anexa o usuario a request.
 export function middlewareAutenticacao(request: Request, _response: Response, next: NextFunction) {
   const token = obterTokenDoCabecalho(request);
   const payload: PayloadAutenticacao = verificarTokenJwt(token);
 
   validarStatusUsuario(payload.status);
 
+  // Disponibiliza os dados do usuario para os controllers seguintes.
   request.usuario = {
     id: payload.id,
     email: payload.email,

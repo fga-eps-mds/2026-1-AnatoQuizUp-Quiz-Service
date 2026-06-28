@@ -2,10 +2,12 @@ import type { RegistroQuestaoCompleta } from "@/modules/questoes/dto/question.ty
 import type { RespostaQuestaoQuizDto } from "../responses/resposta_questao_quiz_dto";
 import { montarAlternativas } from "@/modules/questoes/dto/question.types";
 
+// Converte a questao completa do banco no DTO enviado ao quiz, sem expor o gabarito.
 export function converterParaRespostaQuestaoQuiz(
   questao: RegistroQuestaoCompleta,
 ): RespostaQuestaoQuizDto {
   const tipo = questao.tipoQuestao;
+  // Monta as alternativas conforme o tipo (multipla escolha x certo/errado).
   const alternativas = montarAlternativas(tipo, questao.alternativas);
 
   return {

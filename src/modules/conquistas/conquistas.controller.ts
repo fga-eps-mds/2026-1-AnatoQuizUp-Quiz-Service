@@ -14,13 +14,23 @@ import type {
 
 import type { ConquistaService } from "./conquistas.service";
 
+// Query com a lista de ids de usuarios (consumida pelas rotas sociais).
 type UsuariosIdsQuery = {
   usuarioIds: string[];
 };
 
+// Controller HTTP de conquistas: catalogo, progresso, desbloqueadas e destaques.
+// Delega ao service e padroniza respostas; erros via next ao middleware central.
 export class ConquistaController {
   constructor(private readonly conquistaService: ConquistaService) {}
 
+  /**
+   * GET catalogo paginado de todas as conquistas.
+   *
+   * @param request Requisicao com a paginacao na query.
+   * @param response Resposta paginada com o resumo das conquistas.
+   * @param next Repasse de erro ao middleware central.
+   */
   listarConquistas = async (
     request: Request<unknown, unknown, unknown, PaginacaoQueryDto>,
     response: Response<RespostaPaginada<ResumoConquistaDto>>,
@@ -35,6 +45,13 @@ export class ConquistaController {
     }
   };
 
+  /**
+   * GET progresso consolidado do usuario em cada conquista (paginado).
+   *
+   * @param request Requisicao com a paginacao na query (usuario vem do token).
+   * @param response Resposta paginada com o progresso consolidado.
+   * @param next Repasse de erro ao middleware central.
+   */
   listarMeuProgresso = async (
     request: Request<unknown, unknown, unknown, PaginacaoQueryDto>,
     response: Response<RespostaPaginada<ProgressoConquistaConsolidadoDto>>,
@@ -54,6 +71,13 @@ export class ConquistaController {
     }
   };
 
+  /**
+   * GET progresso do usuario em uma conquista especifica.
+   *
+   * @param request Requisicao com o id da conquista na rota.
+   * @param response Resposta com o progresso na conquista.
+   * @param next Repasse de erro ao middleware central.
+   */
   listarMeuProgressoEmConquista = async (
     request: Request<{ id: string }, unknown, unknown, unknown>,
     response: Response<ProgressoConquistaDto>,
@@ -73,6 +97,13 @@ export class ConquistaController {
     }
   };
 
+  /**
+   * GET conquistas ja desbloqueadas pelo usuario (paginado).
+   *
+   * @param request Requisicao com a paginacao na query.
+   * @param response Resposta paginada com as conquistas desbloqueadas.
+   * @param next Repasse de erro ao middleware central.
+   */
   listarMinhasConquistas = async (
     request: Request<unknown, unknown, unknown, PaginacaoQueryDto>,
     response: Response<RespostaPaginada<ResumoConquistaDesbloqueadaDto>>,
@@ -92,6 +123,13 @@ export class ConquistaController {
     }
   };
 
+  /**
+   * GET conquistas que o proprio usuario marcou como destaque no perfil.
+   *
+   * @param request Requisicao autenticada (usuario vem do token).
+   * @param response Resposta com a lista de conquistas destacadas.
+   * @param next Repasse de erro ao middleware central.
+   */
   listarDestacadas = async (request: Request, response: Response, next: NextFunction) => {
     try {
       const usuarioId = request.usuario?.id;
@@ -107,6 +145,13 @@ export class ConquistaController {
     }
   };
 
+  /**
+   * GET destaques de varios usuarios de uma vez (uso social/ranking pelo BFF).
+   *
+   * @param request Requisicao com a lista de usuarioIds na query.
+   * @param response Resposta com os destaques de cada usuario.
+   * @param next Repasse de erro ao middleware central.
+   */
   listarDestaquesUsuarios = async (
     request: Request<unknown, unknown, unknown, UsuariosIdsQuery>,
     response: Response,
@@ -126,6 +171,13 @@ export class ConquistaController {
     }
   };
 
+  /**
+   * GET detalhe consolidado (tiers, progresso, %) de uma conquista para o usuario.
+   *
+   * @param request Requisicao com o id da conquista na rota.
+   * @param response Resposta com o detalhe consolidado da conquista.
+   * @param next Repasse de erro ao middleware central.
+   */
   buscarDetalhe = async (
     request: Request<{ id: string }>,
     response: Response<ProgressoConquistaConsolidadoDto>,
@@ -143,6 +195,13 @@ export class ConquistaController {
     }
   };
 
+  /**
+   * PATCH marca/desmarca uma conquista como destaque (limite de 3, validado no service).
+   *
+   * @param request Requisicao com o id na rota e o flag destaque no corpo.
+   * @param response Resposta confirmando a operacao.
+   * @param next Repasse de erro ao middleware central.
+   */
   alterarDestaque = async (
     request: Request<{ id: string }, unknown, AlterarDestaqueConquistaDto>,
     response: Response<RespostaApiSucesso<{ sucesso: boolean }>>,

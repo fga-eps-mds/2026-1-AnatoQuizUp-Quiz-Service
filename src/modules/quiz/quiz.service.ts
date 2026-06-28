@@ -19,23 +19,42 @@ import { converterResolucaoQuestaoBancoToApi } from "./dto/mappers/historico_qui
 import type { Dificuldade } from "@prisma/client";
 import type { ConquistaService } from "../conquistas/conquistas.service";
 
+// Recompensa em moedas por acerto, conforme a dificuldade da questao.
 const MOEDAS_POR_DIFICULDADE: Record<Dificuldade, number> = {
   FACIL: 10,
   MEDIA: 25,
   DIFICIL: 50,
 };
 
+/**
+ * Service do quiz (modo de pratica do aluno).
+ *
+ * Sorteia questoes para o quiz, processa respostas (corrige, registra tentativa,
+ * concede moedas e dispara conquistas), consulta saldo, quantidades por tema e o
+ * historico de respostas do usuario.
+ */
 export class QuizService {
   constructor(
     private readonly quizRepository: QuizRepository,
     private readonly conquistaService: ConquistaService,
   ) {}
 
+  /**
+   * Busca uma leva de questoes para o quiz, com filtros e ordem aleatoria.
+   *
+   * Usa um deslocamento (skip) aleatorio sobre o total filtrado para variar as
+   * questoes a cada chamada, e ainda embaralha o resultado retornado.
+   *
+   * @param query Filtros do quiz (tema, dificuldade etc.) e paginacao.
+   * @returns Pagina de questoes do quiz embaralhadas.
+   * @throws ErroAplicacao 404 quando nenhuma questao atende aos filtros.
+   */
   async buscarQuestoesQuiz(
     query: FiltroListarQuestoesQueryDto,
   ): Promise<RespostaPaginada<RespostaQuestaoQuizDto>> {
     const paginacao = resolverParametrosPaginacao(query);
 
+    // Sorteia um ponto de inicio aleatorio para nao trazer sempre as mesmas questoes.
     const num_questoes_quiz = await this.quizRepository.contarQuestoesQuiz(query);
     if (num_questoes_quiz) {
       const randomSkip = Math.floor(Math.random() * num_questoes_quiz);
@@ -51,6 +70,7 @@ export class QuizService {
       });
     }
 
+    // Converte para o DTO do quiz (sem expor o gabarito) e embaralha a ordem.
     const questoes_quiz = data.map(converterParaRespostaQuestaoQuiz);
     const questoes_quiz_embaralhadas = this.embaralhar<RespostaQuestaoQuizDto>(questoes_quiz);
 
@@ -60,6 +80,19 @@ export class QuizService {
     };
   }
 
+  /**
+   * Processa a resposta de uma questao no quiz e devolve o feedback.
+   *
+   * Valida o gabarito, registra a tentativa, corrige a resposta e, somente para
+   * ALUNO, processa conquistas e concede moedas (uma vez por questao). Retorna a
+   * correcao, o "saiba mais", o saldo e as conquistas eventualmente desbloqueadas.
+   *
+   * @param data Questao e alternativa marcada.
+   * @param id_usuario Aluno que respondeu.
+   * @param papel_usuario Papel do usuario (so ALUNO ganha recompensas).
+   * @returns Feedback da resposta.
+   * @throws ErroAplicacao 401 conforme autenticacao/registro.
+   */
   async responderQuestaoQuiz(
     data: ResponderQuestaoQuizDto,
     id_usuario: string,
@@ -73,6 +106,7 @@ export class QuizService {
       });
     }
 
+    // Gabarito (resposta correta + metadados) da questao respondida.
     const gabarito = await this.quizRepository.buscarResposta(data.questaoId);
 
     if (!gabarito) {
@@ -83,6 +117,7 @@ export class QuizService {
       });
     }
 
+    // Registra a tentativa (compoe o historico do aluno).
     const tentativa_registrada = await this.quizRepository.registrarTentativa(data, id_usuario);
 
     if (!tentativa_registrada) {
@@ -93,9 +128,11 @@ export class QuizService {
       });
     }
 
+    // Correcao = alternativa marcada igual ao gabarito. So aluno ganha recompensas.
     const correcao = gabarito.respostaCorreta === data.respostaMarcada;
     const alunoPodeReceberRecompensas = papel_usuario === PAPEIS.ALUNO;
 
+    // Conquistas so sao processadas para alunos (professor/admin nao pontuam).
     const conquistas = alunoPodeReceberRecompensas
       ? await this.conquistaService.processarRespostaQuestao(
           id_usuario,
@@ -108,6 +145,7 @@ export class QuizService {
     let moedasConcedidas = 0;
     let moedasJaConcedidas = false;
 
+    // Moedas so no primeiro acerto da questao (o repository evita pagar duas vezes).
     if (correcao && alunoPodeReceberRecompensas) {
       const resultado = await this.quizRepository.concederMoedasPorAcerto(
         id_usuario,
@@ -132,6 +170,7 @@ export class QuizService {
     };
   }
 
+  // Retorna o saldo de moedas do usuario (exige autenticacao).
   async buscarSaldoMoedas(id_usuario: string): Promise<{ saldoMoedas: number }> {
     if (id_usuario === "") {
       throw new ErroAplicacao({
@@ -146,6 +185,7 @@ export class QuizService {
     return { saldoMoedas };
   }
 
+  // Embaralha um array (Fisher-Yates) sem mutar o original, para variar a ordem das questoes.
   private embaralhar<T>(array: T[]): T[] {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -155,6 +195,7 @@ export class QuizService {
     return arr;
   }
 
+  // Agrega, por tema, o total de questoes e a contagem por dificuldade (para a tela inicial).
   async buscarQuantidadeDeQuestoesPorTema(): Promise<QuantidadeQuestoesPorTema[]> {
     const temas = await this.quizRepository.buscarQuantidadeDeQuestoesPorTema();
 
@@ -167,6 +208,7 @@ export class QuizService {
     }
 
     return temas.map((tema) => {
+      // Conta as questoes do tema por faixa de dificuldade.
       const quantidadePorDificuldade = { FACIL: 0, MEDIA: 0, DIFICIL: 0 };
       tema.questoes.forEach((questao) => {
         quantidadePorDificuldade[questao.dificuldade]++;
@@ -180,6 +222,7 @@ export class QuizService {
     });
   }
 
+  // Lista paginada do historico de questoes respondidas pelo usuario (com filtros).
   async buscarHistorico(
     usuarioId: string | undefined,
     query: FiltroListarQuestoesQueryDto,

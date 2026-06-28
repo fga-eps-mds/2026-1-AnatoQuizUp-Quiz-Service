@@ -1,5 +1,6 @@
 import type { ValorCodigoDeErro } from "@/shared/errors/codigos-de-erro";
 
+// Parametros para construir um erro de aplicacao.
 type ParametrosErroAplicacao = {
   mensagem: string;
 
@@ -10,6 +11,7 @@ type ParametrosErroAplicacao = {
   detalhes?: unknown;
 };
 
+// Erro de dominio com status HTTP e codigo, tratado pelo middleware central.
 export class ErroAplicacao extends Error {
   public readonly codigo: ValorCodigoDeErro;
 

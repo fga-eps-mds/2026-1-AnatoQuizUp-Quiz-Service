@@ -2,15 +2,29 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Repository do dashboard da turma: consultas Prisma para o professor montar metricas.
 export class TurmaDashboardRepository {
+  /**
+   * Retorna apenas os ids dos alunos matriculados na turma.
+   *
+   * @param turmaId Id da turma.
+   * @returns Lista de ids de alunos.
+   */
   async findAlunosByTurmaId(turmaId: string) {
     const matriculas = await prisma.turmaAluno.findMany({
       where: { turmaId },
       select: { alunoId: true },
     });
+    // Achata o resultado para uma lista simples de ids.
     return matriculas.map((m) => m.alunoId);
   }
 
+  /**
+   * Busca as resolucoes desses alunos, com a questao e o tema para agrupar desempenho.
+   *
+   * @param alunosIds Ids dos alunos.
+   * @returns Resolucoes com questao e tema embutidos.
+   */
   async findResolucoesByAlunos(alunosIds: string[]) {
     return await prisma.resolucaoQuestao.findMany({
       where: {
@@ -26,6 +40,12 @@ export class TurmaDashboardRepository {
     });
   }
 
+  /**
+   * Busca cada lista da turma com suas resolucoes submetidas (base do desempenho por lista).
+   *
+   * @param turmaId Id da turma.
+   * @returns Listas da turma com as resolucoes submetidas.
+   */
   async findDesempenhoPorListasDaTurma(turmaId: string) {
     return await prisma.listaTurma.findMany({
       where: { turmaId },
@@ -36,6 +56,7 @@ export class TurmaDashboardRepository {
           },
         },
         resolucoes: {
+          // Apenas listas efetivamente entregues contam para o desempenho.
           where: { status: 'SUBMETIDA' },
           include: {
             respostas: {
@@ -56,10 +77,18 @@ export class TurmaDashboardRepository {
     });
   }
 
+  /**
+   * Localiza uma lista da turma com as resolucoes e itens (detalhe por lista).
+   *
+   * @param turmaId Id da turma.
+   * @param idDaLista Id da lista-turma ou da lista de questoes base.
+   * @returns A lista-turma com resolucoes e itens, ou null.
+   */
   async findListaTurmaById(turmaId: string, idDaLista: string) {
     return await prisma.listaTurma.findFirst({
       where: {
         turmaId: turmaId,
+        // Aceita tanto o id da lista-turma quanto o id da lista de questoes base.
         OR: [
           { id: idDaLista },
           { listaQuestaoId: idDaLista }

@@ -6,6 +6,9 @@ import type {
   ResolucaoQuestaoUsuarioDto,
 } from "../responses/resolucao_questao_usuario_dto";
 
+// Mappers do historico do quiz: convertem o registro do banco no DTO da API.
+
+// Formato cru das alternativas vindas do banco (sempre as cinco colunas).
 type Alternativas = {
   alternativaA: string;
   alternativaB: string;
@@ -14,6 +17,7 @@ type Alternativas = {
   alternativaE: string;
 };
 
+// Seleciona apenas as alternativas relevantes ao tipo da questao.
 export function montarAlternativasResolucao(
   tipo: TipoQuestaoApi,
   alternativas: Alternativas | null,
@@ -22,6 +26,7 @@ export function montarAlternativasResolucao(
     return null;
   }
 
+  // Certo/errado usa apenas C e E.
   if (tipo === TIPO_QUESTAO_API.CERTO_ERRADO) {
     return {
       alternativaC: alternativas.alternativaC,
@@ -29,6 +34,7 @@ export function montarAlternativasResolucao(
     };
   }
 
+  // Multipla escolha expoe as cinco alternativas.
   return {
     alternativaA: alternativas.alternativaA,
     alternativaB: alternativas.alternativaB,
@@ -38,6 +44,7 @@ export function montarAlternativasResolucao(
   };
 }
 
+// Converte a resolucao do banco no DTO da API, agregando tentativas e distribuicao.
 export function converterResolucaoQuestaoBancoToApi(
   resolucaoQuestaoUsuarioBanco: ListarQuestoesRespondidasItem,
   tentativas: number,

@@ -7,9 +7,17 @@ import type {
   ListarInventarioQueryDto,
 } from "./loja.schemas";
 
+// Controller HTTP da loja: catalogo de cosmeticos, inventario do aluno e compra.
 export class LojaController {
   constructor(private readonly lojaService: LojaService) {}
 
+  /**
+   * GET catalogo de itens; usa o id do usuario para marcar o que ele ja possui.
+   *
+   * @param request Requisicao com filtros/paginacao na query (usuario vem do token).
+   * @param response Resposta com o catalogo paginado.
+   * @param next Repasse de erro ao middleware central.
+   */
   listarCatalogo = async (
     request: Request<unknown, unknown, unknown, ListarCatalogoQueryDto>,
     response: Response,
@@ -24,6 +32,13 @@ export class LojaController {
     }
   };
 
+  /**
+   * GET itens que o aluno ja adquiriu (com filtros opcionais na query).
+   *
+   * @param request Requisicao com a paginacao na query (usuario vem do token).
+   * @param response Resposta com o inventario paginado.
+   * @param next Repasse de erro ao middleware central.
+   */
   listarInventario = async (
     request: Request<unknown, unknown, unknown, ListarInventarioQueryDto>,
     response: Response,
@@ -41,6 +56,13 @@ export class LojaController {
     }
   };
 
+  /**
+   * POST compra um item; o service valida saldo e debita as moedas.
+   *
+   * @param request Requisicao com o itemLojaId no corpo (usuario vem do token).
+   * @param response Resposta com o resultado da compra.
+   * @param next Repasse de erro ao middleware central.
+   */
   comprar = async (
     request: Request<unknown, unknown, ComprarItemDto>,
     response: Response,

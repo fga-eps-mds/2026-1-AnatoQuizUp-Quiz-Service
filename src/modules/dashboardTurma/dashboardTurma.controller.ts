@@ -1,15 +1,24 @@
 import type { Request, Response } from 'express';
 import type { TurmaDashboardService } from './dashboardTurma.service';
 
+// Controller HTTP do dashboard da turma (visao do professor): metricas macro e por aluno/lista.
+// Aqui os erros sao tratados localmente (status 401/500) em vez de delegar ao middleware.
 export class TurmaDashboardController {
   constructor(private readonly service: TurmaDashboardService) {}
 
+  /**
+   * GET visao macro da turma: indicadores gerais de desempenho.
+   *
+   * @param req Requisicao com o id da turma na rota (professor vem do token).
+   * @param res Resposta HTTP (200 com os dados macro; 401/500 em erro).
+   */
   listarMacro = async (req: Request, res: Response) => {
     try {
       const turmaId = req.params.id as string;
 
       const professorId = req.usuario?.id;
 
+      // Exige professor autenticado para acessar dados da turma.
       if (!professorId) {
         return res.status(401).json({ error: 'Usuário não autenticado ou sessão expirada.' });
       }
@@ -23,6 +32,12 @@ export class TurmaDashboardController {
     }
   };
 
+  /**
+   * GET desempenho individual de cada aluno da turma.
+   *
+   * @param req Requisicao com o id da turma na rota.
+   * @param res Resposta HTTP (200 com o desempenho individual; 401/500 em erro).
+   */
   listarIndividual = async (req: Request, res: Response) => {
     try {
       const turmaId = req.params.id as string;
@@ -40,6 +55,12 @@ export class TurmaDashboardController {
     }
   };
 
+  /**
+   * GET desempenho da turma agregado por lista de questoes.
+   *
+   * @param req Requisicao com o id da turma na rota (professor vem do token).
+   * @param res Resposta HTTP (200 com o desempenho por lista; 401/500 em erro).
+   */
   listarPorListas = async (req: Request, res: Response) => {
     try {
       const turmaId = req.params.id as string;
@@ -58,6 +79,12 @@ export class TurmaDashboardController {
     }
   };
 
+  /**
+   * GET desempenho de cada aluno em uma lista especifica da turma.
+   *
+   * @param req Requisicao com o id da turma e o listaId na rota.
+   * @param res Resposta HTTP (200 com o desempenho; 404 se a lista nao pertence a turma).
+   */
   listarDesempenhoListaIndividual = async (req: Request, res: Response) => {
     try {
       const turmaId = req.params.id as string;
@@ -73,14 +100,14 @@ export class TurmaDashboardController {
       return res.status(200).json(data);
     } catch (error: unknown) {
       console.error('Erro no TurmaDashboardController [lista individual]:', error);
-      
+
       console.error('Erro no TurmaDashboardController [lista individual]:', error);
-      
+
       // Verificamos se é uma instância de Error antes de acessar a propriedade .message
       if (error instanceof Error && error.message === 'Lista não encontrada ou não pertence a esta turma.') {
         return res.status(404).json({ error: error.message });
       }
-      
+
       return res.status(500).json({ error: 'Erro ao buscar desempenho dos alunos na lista.' });
     }
   };

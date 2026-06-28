@@ -23,12 +23,20 @@ import type { AlternativaQuestao, Dificuldade } from "@prisma/client";
 import type { MinioService } from "./minio.service";
 import { eventEmitter } from "@/shared/events/event-emitter";
 
+/**
+ * Service de questoes.
+ *
+ * Cuida do CRUD de questoes (com upload de imagem no MinIO), validacao por tipo de
+ * questao e da consolidacao para o DTO de resposta. Ao criar uma questao com tema
+ * novo, emite o evento "tema.criado" (consumido pelas conquistas de tema).
+ */
 export class QuestionService {
   constructor(
     private readonly questionRepository: QuestionRepository,
     private readonly minioService: MinioService,
   ) {}
 
+  // Lista paginada de questoes, ja convertidas para o DTO de resposta.
   async listar(query: ListarQuestoesQueryDto): Promise<RespostaPaginada<RespostaQuestaoDto>> {
     const paginacao = resolverParametrosPaginacao(query);
     const { data, total } = await this.questionRepository.listar(paginacao);
@@ -39,6 +47,7 @@ export class QuestionService {
     };
   }
 
+  // Busca uma questao por id (404 se nao existir).
   async buscarPorId(id: string): Promise<RespostaQuestaoDto> {
     const questao = await this.questionRepository.buscarPorId(id);
 
@@ -49,6 +58,7 @@ export class QuestionService {
     return converterParaRespostaQuestao(questao);
   }
 
+  // Lista paginada com filtros (tema, dificuldade etc.) aplicados no repository.
   async filtrar(
     query: FiltroListarQuestoesQueryDto,
   ): Promise<RespostaPaginada<RespostaQuestaoDto>> {
@@ -61,6 +71,18 @@ export class QuestionService {
     };
   }
 
+  /**
+   * Cria uma questao, com upload opcional de imagem.
+   *
+   * Valida o autor e as regras do tipo de questao, sobe a imagem ao MinIO (se houver)
+   * e persiste. Se o tema foi criado junto, emite o evento que dispara a conquista do tema.
+   *
+   * @param data Dados da questao.
+   * @param arquivoImagem Imagem enviada (opcional).
+   * @param criadoPorId Professor autor.
+   * @returns A questao criada no formato de resposta.
+   * @throws ErroAplicacao 401/400 conforme autor/validacao.
+   */
   async criar(
     data: CriarQuestaoDto,
     arquivoImagem: Express.Multer.File | undefined,
@@ -74,8 +96,10 @@ export class QuestionService {
       });
     }
 
+    // Regras de obrigatoriedade variam conforme o tipo de questao.
     this.validarQuestao(data);
 
+    // Sobe a imagem ao MinIO quando enviada; senao mantem a URL/valor que veio.
     let urlImagemMinio: string | undefined = undefined;
 
     if (arquivoImagem) {
@@ -89,6 +113,7 @@ export class QuestionService {
 
     const resultado = await this.questionRepository.criar(dadosParaSalvar, criadoPorId);
 
+    // Tema novo => avisa o modulo de conquistas para criar a conquista do tema.
     if (resultado.temaCriado) {
       eventEmitter.emit("tema.criado", {
         temaId: resultado.questao.tema.id,
@@ -99,6 +124,19 @@ export class QuestionService {
     return converterParaRespostaQuestao(resultado.questao);
   }
 
+  /**
+   * Atualiza uma questao existente (edicao parcial com merge dos campos).
+   *
+   * Cada campo nao informado mantem o valor atual da questao; a imagem so e trocada
+   * se um novo arquivo vier. As alternativas atuais sao reaproveitadas quando nao enviadas.
+   *
+   * @param id Questao a atualizar.
+   * @param data Campos a alterar (parciais).
+   * @param arquivoImagem Nova imagem (opcional).
+   * @param usuarioId Autor da edicao.
+   * @returns A questao atualizada no formato de resposta.
+   * @throws ErroAplicacao 404 se a questao nao existir.
+   */
   async atualizar(
     id: string,
     data: AtualizarQuestaoDto,
@@ -114,6 +152,7 @@ export class QuestionService {
       urlImagemFinal = await this.minioService.uploadImagem(arquivoImagem);
     }
 
+    // Merge: usa o valor enviado ou, na ausencia, o valor atual da questao.
     const dadosNovaQuestao: CriarQuestaoDto = {
       tema: data.tema ?? questaoAntiga.tema.nome,
       enunciado: data.enunciado ?? questaoAntiga.enunciado,
@@ -136,6 +175,7 @@ export class QuestionService {
     return converterParaRespostaQuestao(novaQuestao);
   }
 
+  // Remove a questao (desativacao/soft delete no repository); 404 se nao existir.
   async remover(id: string): Promise<RespostaQuestaoDto> {
     const questao = await this.questionRepository.buscarPorId(id);
 
@@ -148,6 +188,15 @@ export class QuestionService {
     return converterParaRespostaQuestao(questaoRemovida);
   }
 
+  /**
+   * Valida as regras de cada tipo de questao antes de salvar.
+   *
+   * Exige gabarito e alternativas; em MULTIPLA_ESCOLHA cobra A-E preenchidas; em
+   * CERTO_ERRADO cobra as opcoes C/E e que o gabarito seja C ou E.
+   *
+   * @param data Dados da questao a validar.
+   * @throws ErroAplicacao 400 quando alguma regra do tipo nao e satisfeita.
+   */
   private validarQuestao(data: CriarQuestaoDto) {
     if (!data.alternativaCorreta) {
       throw new ErroAplicacao({
@@ -165,6 +214,7 @@ export class QuestionService {
       });
     }
 
+    // Multipla escolha: exige as cinco alternativas (A-E) preenchidas.
     if (data.tipo === TIPO_QUESTAO_API.MULTIPLA_ESCOLHA) {
       const alternativasObrigatorias = ["A", "B", "C", "D", "E"] as const;
       const possuiTodas = alternativasObrigatorias.every((alternativa) => {
@@ -182,6 +232,7 @@ export class QuestionService {
       }
     }
 
+    // Certo/errado: exige as opcoes C e E preenchidas e o gabarito sendo C ou E.
     if (data.tipo === TIPO_QUESTAO_API.CERTO_ERRADO) {
       const alternativas = data.alternativas;
       const possuiVerdadeiroFalso =
@@ -208,6 +259,7 @@ export class QuestionService {
     }
   }
 
+  // Erro 404 padronizado de questao nao encontrada.
   private erroQuestaoNaoEncontrada(id: string) {
     return new ErroAplicacao({
       codigoStatus: 404,
@@ -217,6 +269,7 @@ export class QuestionService {
     });
   }
 
+  // Extrai as alternativas atuais no formato A-E (ou C/E p/ certo-errado) para o merge da edicao.
   private extrairAlternativasAtuais(
     questao: Awaited<ReturnType<QuestionRepository["buscarPorId"]>>,
   ) {

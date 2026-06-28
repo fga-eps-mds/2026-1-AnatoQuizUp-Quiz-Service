@@ -1,3 +1,4 @@
+// Catalogo de codigos de erro da aplicacao, usados nas respostas padronizadas.
 export const CodigoDeErro = {
   REQUISICAO_INVALIDA: "REQUISICAO_INVALIDA",
 
@@ -39,4 +40,5 @@ export const CodigoDeErro = {
   
 } as const;
 
+// Uniao dos valores possiveis de codigo de erro (derivada do objeto acima).
 export type ValorCodigoDeErro = (typeof CodigoDeErro)[keyof typeof CodigoDeErro];

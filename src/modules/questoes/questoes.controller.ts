@@ -6,9 +6,18 @@ import type { RespostaApiSucesso, RespostaPaginada } from "@/shared/types/api.ty
 import type { ListarQuestoesQueryDto, RespostaQuestaoDto } from "./dto/question.types";
 import type { QuestionService } from "./questoes.service";
 
+// Controller HTTP de questoes: CRUD com upload de imagem; delega ao service e
+// padroniza respostas/erros (erros via next para o middleware central).
 export class QuestionController {
   constructor(private readonly questionService: QuestionService) {}
 
+  /**
+   * GET lista paginada de questoes.
+   *
+   * @param request Requisicao com a paginacao na query.
+   * @param response Resposta paginada com as questoes.
+   * @param next Repasse de erro ao middleware central.
+   */
   listar = async (
     request: Request<unknown, unknown, unknown, ListarQuestoesQueryDto>,
     response: Response<RespostaPaginada<RespostaQuestaoDto>>,
@@ -23,6 +32,13 @@ export class QuestionController {
     }
   };
 
+  /**
+   * GET busca uma questao por id.
+   *
+   * @param request Requisicao com o id da questao na rota.
+   * @param response Resposta com a questao encontrada.
+   * @param next Repasse de erro ao middleware central.
+   */
   buscarPorId = async (
     request: Request<{ id: string }>,
     response: Response<RespostaApiSucesso<RespostaQuestaoDto>>,
@@ -40,6 +56,13 @@ export class QuestionController {
     }
   };
 
+  /**
+   * GET lista paginada com filtros (tema/dificuldade/tipo).
+   *
+   * @param request Requisicao com os filtros na query.
+   * @param response Resposta paginada com as questoes filtradas.
+   * @param next Repasse de erro ao middleware central.
+   */
   filtrar = async (request: Request, response: Response, next: NextFunction) => {
     try {
       const questoes = await this.questionService.filtrar(request.query);
@@ -49,6 +72,13 @@ export class QuestionController {
     }
   };
 
+  /**
+   * POST cria questao; a imagem vem em request.file (multipart) e o autor do token.
+   *
+   * @param request Requisicao com os dados no corpo e a imagem em request.file.
+   * @param response Resposta com a questao criada (201).
+   * @param next Repasse de erro ao middleware central.
+   */
   criar = async (request: Request, response: Response, next: NextFunction) => {
     try {
       const dadosQuestao = request.body;
@@ -66,6 +96,13 @@ export class QuestionController {
     }
   };
 
+  /**
+   * PUT atualiza questao; reconstroi as alternativas quando vem "achatadas" no form-data.
+   *
+   * @param request Requisicao com o id na rota, dados no corpo e imagem opcional.
+   * @param response Resposta com a questao atualizada.
+   * @param next Repasse de erro ao middleware central.
+   */
   atualizar = async (request: Request, response: Response, next: NextFunction) => {
     try {
       const id = request.params.id as string;
@@ -112,6 +149,13 @@ export class QuestionController {
     }
   };
 
+  /**
+   * DELETE remove (desativa) uma questao por id.
+   *
+   * @param request Requisicao com o id da questao na rota.
+   * @param response Resposta confirmando a remocao.
+   * @param next Repasse de erro ao middleware central.
+   */
   remover = async (
     request: Request<{ id: string }>,
     response: Response<RespostaApiSucesso<RespostaQuestaoDto>>,

@@ -10,6 +10,10 @@ import type {
   OrigemQuestao,
 } from "@prisma/client";
 
+// Tipos, DTOs e conversores do dominio de questoes (entrada da API, registro do
+// banco e resposta), alem do helper que monta o filtro Prisma a partir da query.
+
+// Tipos de questao expostos pela API.
 export const TIPO_QUESTAO_API = {
   MULTIPLA_ESCOLHA: "MULTIPLA_ESCOLHA",
   CERTO_ERRADO: "CERTO_ERRADO",
@@ -17,6 +21,7 @@ export const TIPO_QUESTAO_API = {
 
 export type TipoQuestaoApi = (typeof TIPO_QUESTAO_API)[keyof typeof TIPO_QUESTAO_API];
 
+// Niveis de dificuldade expostos pela API.
 export const DIFICULDADE_API = {
   FACIL: "FACIL",
   MEDIA: "MEDIA",
@@ -38,10 +43,12 @@ export type AlternativasCertoErradoDto = {
   E: string;
 };
 
+// Alternativas conforme o tipo: A-E (multipla escolha) ou C/E (certo-errado).
 export type AlternativasQuestaoDto =
   | AlternativasMultiplaEscolhaDto
   | AlternativasCertoErradoDto;
 
+// Payload de criacao de questao (entrada ja validada).
 export type CriarQuestaoDto = {
   tema: string;
   enunciado: string;
@@ -57,13 +64,16 @@ export type CriarQuestaoDto = {
   alternativas: AlternativasQuestaoDto;
 };
 
+// Edicao: versao parcial do payload de criacao.
 export type AtualizarQuestaoDto = Partial<CriarQuestaoDto>;
 
+// Query de listagem simples (so paginacao).
 export type ListarQuestoesQueryDto = {
   page?: number;
   limit?: number;
 };
 
+// Query de filtros do banco de questoes.
 export type FiltroListarQuestoesQueryDto = {
   page?: number;
   limit?: number;
@@ -73,11 +83,13 @@ export type FiltroListarQuestoesQueryDto = {
   taxonomiaBloom?: TaxonomiaBloom;
 };
 
+// Questao do banco com tema e alternativas carregados (forma "completa").
 export type RegistroQuestaoCompleta = Questao & {
   tema: Tema;
   alternativas: QuestaoAlternativa | null;
 };
 
+// Questao no formato de resposta da API (datas em string, alternativas normalizadas).
 export type RespostaQuestaoDto = {
   id: string;
   tema: {
@@ -102,6 +114,7 @@ export type RespostaQuestaoDto = {
   excluidoEm: string | null;
 };
 
+// Monta o objeto de alternativas para a resposta conforme o tipo (C/E ou A-E).
 export function montarAlternativas(tipo: TipoQuestaoApi, alternativas: QuestaoAlternativa | null) {
   if (tipo === TIPO_QUESTAO_API.CERTO_ERRADO) {
     return {
@@ -119,6 +132,7 @@ export function montarAlternativas(tipo: TipoQuestaoApi, alternativas: QuestaoAl
   };
 }
 
+// Converte a questao completa do banco para o DTO de resposta (datas em ISO).
 export function converterParaRespostaQuestao(questao: RegistroQuestaoCompleta): RespostaQuestaoDto {
   const tipo = questao.tipoQuestao;
   const alternativas = montarAlternativas(tipo, questao.alternativas);
@@ -148,6 +162,7 @@ export function converterParaRespostaQuestao(questao: RegistroQuestaoCompleta): 
   };
 }
 
+// Traduz os filtros da query em um where do Prisma (base: questoes ativas).
 export function montarFiltroPrisma(
   filtros: FiltroListarQuestoesQueryDto,
 ): Prisma.QuestaoWhereInput {
@@ -156,6 +171,7 @@ export function montarFiltroPrisma(
     status: "ATIVO",
   };
 
+  // Cada filtro presente acrescenta uma condicao ao where.
   if (filtros.tema) {
     where.tema = { nome: { contains: filtros.tema, mode: "insensitive" } };
   }

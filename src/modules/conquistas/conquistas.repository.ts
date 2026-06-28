@@ -7,7 +7,16 @@ import {
   TipoConquista,
 } from "@prisma/client";
 
+// Repository de conquistas: acesso a dados (Prisma) do dominio de gamificacao -
+// conquistas, progresso por usuario, desbloqueios e suas recompensas (moedas/itens).
 export class ConquistaRepository {
+  /**
+   * Cria a conquista padrao "Especialista em <tema>" para um tema.
+   *
+   * @param temaId Id do tema associado.
+   * @param nomeTema Nome do tema (compoe nome/descricao da conquista).
+   * @returns A conquista criada.
+   */
   async criarConquistaTema(temaId: string, nomeTema: string) {
     return prisma.conquista.create({
       data: {
@@ -19,6 +28,12 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Verifica se ja existe a conquista de acertos para o tema.
+   *
+   * @param temaId Id do tema.
+   * @returns A conquista do tema (com o tema) ou null.
+   */
   async existeConquistaTema(temaId: string) {
     return prisma.conquista.findFirst({
       where: {
@@ -31,6 +46,11 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Conquista global de total de acertos (ativa).
+   *
+   * @returns A conquista de total de acertos ativa, ou null.
+   */
   async buscarConquistaTotalAcertos() {
     return prisma.conquista.findFirst({
       where: {
@@ -40,6 +60,11 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Conquista de sequencia de acertos (streak) ativa.
+   *
+   * @returns A conquista de streak ativa, ou null.
+   */
   async buscarConquistaStreak() {
     return prisma.conquista.findFirst({
       where: {
@@ -49,6 +74,12 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Conquista de acertos ativa de um tema especifico.
+   *
+   * @param temaId Id do tema.
+   * @returns A conquista de acertos do tema ativa, ou null.
+   */
   async buscarConquistaTema(temaId: string) {
     return prisma.conquista.findFirst({
       where: {
@@ -59,6 +90,13 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Garante (upsert) o registro de progresso do usuario na conquista, iniciando em 0.
+   *
+   * @param usuarioId Id do usuario.
+   * @param conquistaId Id da conquista.
+   * @returns O registro de progresso (existente ou recem-criado).
+   */
   async buscarOuCriarProgresso(usuarioId: string, conquistaId: string) {
     return prisma.conquistaUsuario.upsert({
       where: {
@@ -78,6 +116,14 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Grava o novo valor de progresso do usuario na conquista.
+   *
+   * @param usuarioId Id do usuario.
+   * @param conquistaId Id da conquista.
+   * @param valor Novo valor de progresso.
+   * @returns O registro de progresso atualizado.
+   */
   async atualizarProgresso(usuarioId: string, conquistaId: string, valor: number) {
     return prisma.conquistaUsuario.update({
       where: {
@@ -93,6 +139,14 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Indica se o usuario ja possui o desbloqueio de um tier especifico.
+   *
+   * @param usuarioId Id do usuario.
+   * @param conquistaId Id da conquista.
+   * @param tier Tier consultado.
+   * @returns O desbloqueio existente ou null.
+   */
   async possuiTier(usuarioId: string, conquistaId: string, tier: TierConquista) {
     return prisma.desbloqueioConquista.findUnique({
       where: {
@@ -105,6 +159,20 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Desbloqueia um tier e concede suas recompensas, tudo numa unica transacao.
+   *
+   * Idempotente por desenho: usa createMany com skipDuplicates para o desbloqueio, a
+   * transacao de moedas e o item de inventario. Se o desbloqueio ja existia, retorna
+   * null (nada e concedido novamente); o saldo so e incrementado quando a transacao
+   * de moedas e de fato criada, evitando recompensa em dobro.
+   *
+   * @param usuarioId Aluno que desbloqueou.
+   * @param conquistaId Conquista desbloqueada.
+   * @param tier Tier alcancado.
+   * @param quantidadeMoedas Moedas da recompensa do tier.
+   * @returns Desbloqueio + moedas concedidas + saldo + item concedido, ou null se ja existia.
+   */
   async criarDesbloqueioComRecompensas(
     usuarioId: string,
     conquistaId: string,
@@ -112,6 +180,7 @@ export class ConquistaRepository {
     quantidadeMoedas: number,
   ) {
     return prisma.$transaction(async (tx) => {
+      // Tenta criar o desbloqueio; duplicado e ignorado (skipDuplicates).
       const desbloqueioCriado = await tx.desbloqueioConquista.createMany({
         data: {
           usuarioId,
@@ -121,6 +190,7 @@ export class ConquistaRepository {
         skipDuplicates: true,
       });
 
+      // Nada criado = tier ja desbloqueado antes; aborta sem conceder recompensa.
       if (desbloqueioCriado.count === 0) {
         return null;
       }
@@ -135,12 +205,14 @@ export class ConquistaRepository {
         },
       });
 
+      // Garante que o usuario tenha uma carteira antes de creditar moedas.
       await tx.carteiraMoedas.upsert({
         where: { usuarioId },
         create: { usuarioId, saldo: 0 },
         update: {},
       });
 
+      // Registra a transacao de moedas (idempotente por desbloqueio).
       const transacaoMoedas = await tx.transacaoMoeda.createMany({
         data: {
           usuarioId,
@@ -152,6 +224,7 @@ export class ConquistaRepository {
         skipDuplicates: true,
       });
 
+      // So credita se a transacao foi realmente criada agora (evita credito duplo).
       const moedasConcedidas = transacaoMoedas.count === 1 ? quantidadeMoedas : 0;
 
       if (moedasConcedidas > 0) {
@@ -165,6 +238,7 @@ export class ConquistaRepository {
         });
       }
 
+      // Verifica se este tier tem um item de loja como recompensa associada.
       const recompensaItem = await tx.recompensaItemConquista.findUnique({
         where: {
           conquistaId_tier: {
@@ -179,6 +253,7 @@ export class ConquistaRepository {
 
       let itemConcedido = null;
 
+      // Havendo item, adiciona ao inventario (sem duplicar) e marca como concedido.
       if (recompensaItem) {
         const inventarioCriado = await tx.inventarioItem.createMany({
           data: {
@@ -209,6 +284,14 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Marca/desmarca um desbloqueio como destaque (updateMany garante posse via where).
+   *
+   * @param usuarioId Id do usuario (garante que o desbloqueio e dele).
+   * @param desbloqueioId Id do desbloqueio.
+   * @param destaque Novo estado de destaque.
+   * @returns Resultado do updateMany (count de registros afetados).
+   */
   async alterarDestaque(usuarioId: string, desbloqueioId: string, destaque: boolean) {
     return prisma.desbloqueioConquista.updateMany({
       where: {
@@ -222,6 +305,12 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Conta quantas conquistas o usuario tem em destaque (para o limite de 3).
+   *
+   * @param usuarioId Id do usuario.
+   * @returns Quantidade de desbloqueios em destaque.
+   */
   async contarConquistasDestacadas(usuarioId: string) {
     return prisma.desbloqueioConquista.count({
       where: {
@@ -231,6 +320,13 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Busca um desbloqueio do usuario pelo id (valida posse).
+   *
+   * @param usuarioId Id do usuario.
+   * @param desbloqueioId Id do desbloqueio.
+   * @returns O desbloqueio do usuario ou null.
+   */
   async buscarDesbloqueioPorId(usuarioId: string, desbloqueioId: string) {
     return prisma.desbloqueioConquista.findFirst({
       where: {
@@ -240,6 +336,12 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Lista os desbloqueios destacados do usuario, com a conquista e o tema, recentes primeiro.
+   *
+   * @param usuarioId Id do usuario.
+   * @returns Desbloqueios destacados (com conquista e tema).
+   */
   async buscarConquistasDestacadas(usuarioId: string) {
     return prisma.desbloqueioConquista.findMany({
       where: {
@@ -261,6 +363,14 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Lista paginada de conquistas ativas, cada uma ja com o progresso/desbloqueios do
+   * usuario e as recompensas por tier embutidos (consolidacao feita no service).
+   *
+   * @param usuarioId Id do usuario.
+   * @param paginacao Parametros de paginacao (skip/take).
+   * @returns Pagina de conquistas com dados do usuario e o total.
+   */
   async listarProgressoUsuario(usuarioId: string, paginacao: ParametrosPaginacao) {
     const [data, total] = await prisma.$transaction([
       prisma.conquista.findMany({
@@ -273,12 +383,14 @@ export class ConquistaRepository {
           nome: true,
           descricao: true,
           tipoConquista: true,
+          // Tema associado (presente apenas nas conquistas por tema).
           tema: {
             select: {
               id: true,
               nome: true,
             },
           },
+          // Progresso do proprio usuario nesta conquista (1 registro).
           usuarios: {
             where: {
               usuarioId,
@@ -288,6 +400,7 @@ export class ConquistaRepository {
             },
             take: 1,
           },
+          // Tiers que o usuario ja desbloqueou nesta conquista.
           desbloqueios: {
             where: {
               usuarioId,
@@ -299,6 +412,7 @@ export class ConquistaRepository {
               conquistadoEm: true,
             },
           },
+          // Itens de loja oferecidos como recompensa por tier.
           recompensasItens: {
             select: {
               tier: true,
@@ -321,6 +435,7 @@ export class ConquistaRepository {
         skip: paginacao.skip,
         take: paginacao.limit,
 
+        // Ordena alfabeticamente para uma listagem estavel.
         orderBy: {
           nome: "asc",
         },
@@ -339,6 +454,13 @@ export class ConquistaRepository {
     };
   }
 
+  /**
+   * Mesma consolidacao de listarProgressoUsuario, porem para uma unica conquista.
+   *
+   * @param usuarioId Id do usuario.
+   * @param conquistaId Id da conquista.
+   * @returns A conquista com progresso/desbloqueios/recompensas do usuario, ou null.
+   */
   async buscarProgressoConquistaUsuario(usuarioId: string, conquistaId: string) {
     return prisma.conquista.findFirst({
       where: {
@@ -350,12 +472,14 @@ export class ConquistaRepository {
         nome: true,
         descricao: true,
         tipoConquista: true,
+        // Tema associado (quando a conquista e por tema).
         tema: {
           select: {
             id: true,
             nome: true,
           },
         },
+        // Progresso do usuario nesta conquista.
         usuarios: {
           where: {
             usuarioId,
@@ -365,6 +489,7 @@ export class ConquistaRepository {
           },
           take: 1,
         },
+        // Tiers ja desbloqueados pelo usuario.
         desbloqueios: {
           where: {
             usuarioId,
@@ -376,6 +501,7 @@ export class ConquistaRepository {
             conquistadoEm: true,
           },
         },
+        // Recompensas em item por tier.
         recompensasItens: {
           select: {
             tier: true,
@@ -397,6 +523,12 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Busca em lote os desbloqueios destacados de varios usuarios (uso social/ranking).
+   *
+   * @param usuarioIds Ids dos usuarios consultados.
+   * @returns Desbloqueios destacados de cada usuario, recentes primeiro.
+   */
   async listarDestaquesUsuarios(usuarioIds: string[]) {
     return prisma.desbloqueioConquista.findMany({
       where: {
@@ -434,6 +566,13 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Progresso bruto do usuario numa conquista (valor + desbloqueios ja obtidos).
+   *
+   * @param usuarioId Id do usuario.
+   * @param minhaConquistaId Id da conquista.
+   * @returns O progresso do usuario na conquista, ou null.
+   */
   async listarMeuProgressoEmConquista(usuarioId: string, minhaConquistaId: string) {
     return await prisma.conquistaUsuario.findUnique({
       where: {
@@ -466,6 +605,13 @@ export class ConquistaRepository {
     });
   }
 
+  /**
+   * Lista paginada dos desbloqueios do usuario (conquistas ja obtidas), recentes primeiro.
+   *
+   * @param usuarioId Id do usuario.
+   * @param paginacao Parametros de paginacao (skip/take).
+   * @returns Pagina de desbloqueios (com a conquista) e o total.
+   */
   async listarDesbloqueadasUsuario(usuarioId: string, paginacao: ParametrosPaginacao) {
     const [data, total] = await prisma.$transaction([
       prisma.desbloqueioConquista.findMany({
@@ -498,6 +644,12 @@ export class ConquistaRepository {
     };
   }
 
+  /**
+   * Lista paginada do catalogo de conquistas ativas (com o tema associado).
+   *
+   * @param paginacao Parametros de paginacao (skip/take).
+   * @returns Pagina de conquistas ativas e o total.
+   */
   async listarConquistas(paginacao: ParametrosPaginacao) {
     const [data, total] = await prisma.$transaction([
       prisma.conquista.findMany({
