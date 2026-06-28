@@ -38,7 +38,7 @@ async function main() {
   const PROFESSOR_ID = "professor-seed";
   const ALUNO_1_ID = "cmp7fx99d00044hyqq4msqsyt";
   const ALUNO_2_ID = "cmp7fx99d00044hyqq4mswgsr";
-  const MEU_USUARIO_ID = "d56fd5df-29f0-4319-a4b1-b4c0d326226c"; // <--- SEU USUARIO
+  const MEU_USUARIO_ID = "aluno-joao"; // <--- SEU USUARIO
 
   await prisma.conquista.upsert({
     where: {
@@ -345,7 +345,7 @@ async function main() {
     }
   });
 
-  await prisma.turma.create({
+  const turma2 = await prisma.turma.create({
     data: {
       codigo: "NEURO-02-2026",
       nome: "Turma B - Neuroanatomia",
@@ -684,7 +684,8 @@ async function main() {
       turmas: {
         create: [
           // Tem prazo futuro, está ativa
-          { turmaId: turma4.id, prazo: prazoFuturo }
+          { turmaId: turma4.id, prazo: prazoFuturo },
+          { turmaId: turma2.id, prazo: prazoFuturo, gabaritoLiberado: true},
         ]
       }
     }
