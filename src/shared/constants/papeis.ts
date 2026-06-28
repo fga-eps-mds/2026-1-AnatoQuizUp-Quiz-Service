@@ -1,3 +1,4 @@
+// Papeis de acesso do sistema, usados nos middlewares de autorizacao.
 export const PAPEIS = {
   ALUNO: "ALUNO",
 
@@ -6,8 +7,10 @@ export const PAPEIS = {
   ADMINISTRADOR: "ADMINISTRADOR",
 } as const;
 
+// Uniao dos valores possiveis de papel.
 export type Papel = (typeof PAPEIS)[keyof typeof PAPEIS];
 
+// Status possiveis do cadastro de um usuario.
 export const STATUS_USUARIO = {
   PENDENTE: "PENDENTE",
 
@@ -18,4 +21,5 @@ export const STATUS_USUARIO = {
   RECUSADO: "RECUSADO",
 } as const;
 
+// Uniao dos valores possiveis de status de usuario.
 export type StatusUsuario = (typeof STATUS_USUARIO)[keyof typeof STATUS_USUARIO];

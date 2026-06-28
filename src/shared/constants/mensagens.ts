@@ -1,4 +1,6 @@
+// Mensagens de resposta centralizadas (texto unico em toda a API).
 export const MENSAGENS = {
+  // Mensagens gerais de infraestrutura e erros transversais.
   apiEmExecucao: "API do AnatoQuizUp em execucao.",
 
   erroInterno: "Ocorreu um erro interno inesperado.",
@@ -13,6 +15,7 @@ export const MENSAGENS = {
 
   exemploEncontrado: "Exemplo encontrado com sucesso.",
 
+  // Mensagens do dominio de questoes.
   questaoCriada: "Questao criada com sucesso.",
 
   questaoEncontrada: "Questao encontrada com sucesso.",
@@ -27,6 +30,7 @@ export const MENSAGENS = {
 
   questaoGabaritoObrigatorio: "A questao deve possuir gabarito definido.",
 
+  // Mensagens de usuario, cadastro e administracao.
   usuarioNaoEncontrado: "Usuario nao encontrado.",
 
   usuarioEncontrado: "Usuario encontrado com sucesso.",
@@ -71,6 +75,7 @@ export const MENSAGENS = {
 
   origemCorsNaoPermitida: "Origem nao permitida pelo CORS.",
 
+  // Mensagens de autenticacao e sessao.
   loginRealizado: "Login realizado com sucesso.",
 
   sessaoRenovada: "Sessao renovada com sucesso.",
@@ -92,6 +97,7 @@ export const MENSAGENS = {
   permissaoPorPapelNaoImplementada:
     "O middleware de permissao por papel ainda nao foi implementado.",
 
+  // Mensagens de quiz, temas e conquistas.
   erroTentativa: "Erro ao registrar tentativa de resposta",
 
   erroFeedback: "Erro no feedback da questão",

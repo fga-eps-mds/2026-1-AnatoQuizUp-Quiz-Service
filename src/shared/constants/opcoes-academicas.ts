@@ -1,5 +1,9 @@
+// Opcoes academicas exibidas no cadastro/perfil do aluno.
+
+// Valor padrao para quem nao se enquadra nas opcoes (ex.: publico geral).
 export const VALOR_NAO_SE_APLICA = "Não se aplica";
 
+// Codigos internos de escolaridade (persistidos no banco).
 export const ESCOLARIDADES_ALUNO = [
   "ENSINO_FUNDAMENTAL",
 
@@ -12,6 +16,7 @@ export const ESCOLARIDADES_ALUNO = [
   "OUTRO",
 ] as const;
 
+// Rotulos legiveis de escolaridade (exibidos na interface).
 export const ESCOLARIDADES_ALUNO_OPCOES = [
   "Ensino Fundamental",
 
@@ -24,6 +29,7 @@ export const ESCOLARIDADES_ALUNO_OPCOES = [
   "Outro",
 ] as const;
 
+// Instituicoes de ensino disponiveis para selecao.
 export const INSTITUICOES_ALUNO_OPCOES = [
   VALOR_NAO_SE_APLICA,
 
@@ -36,6 +42,7 @@ export const INSTITUICOES_ALUNO_OPCOES = [
   "Instituto Federal de Brasilia",
 ] as const;
 
+// Cursos disponiveis para selecao.
 export const CURSOS_ALUNO_OPCOES = [
   VALOR_NAO_SE_APLICA,
 
@@ -50,6 +57,7 @@ export const CURSOS_ALUNO_OPCOES = [
   "Educacao Fisica",
 ] as const;
 
+// Periodos/semestres letivos disponiveis para selecao.
 export const PERIODOS_ALUNO_OPCOES = [
   VALOR_NAO_SE_APLICA,
 
@@ -78,4 +86,5 @@ export const PERIODOS_ALUNO_OPCOES = [
   "12o Periodo",
 ] as const;
 
+// Uniao dos codigos de escolaridade aceitos.
 export type EscolaridadeAluno = (typeof ESCOLARIDADES_ALUNO)[number];

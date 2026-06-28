@@ -1,3 +1,6 @@
+// Dados de localidades do Brasil usados no cadastro/perfil (estados e capitais).
+
+// Siglas das UFs, na ordem alfabetica padrao.
 export const ESTADOS_BRASILEIROS = [
   "AC",
 
@@ -54,8 +57,10 @@ export const ESTADOS_BRASILEIROS = [
   "TO",
 ] as const;
 
+// Uniao das siglas validas de UF.
 export type UfBrasileira = (typeof ESTADOS_BRASILEIROS)[number];
 
+// Estados com sigla e nome por extenso (para exibicao em selects).
 export const ESTADOS_BRASIL: { sigla: UfBrasileira; nome: string }[] = [
   { sigla: "AC", nome: "Acre" },
 
@@ -112,6 +117,7 @@ export const ESTADOS_BRASIL: { sigla: UfBrasileira; nome: string }[] = [
   { sigla: "TO", nome: "Tocantins" },
 ];
 
+// Capital de cada UF (lista por estado para preenchimento de cidade).
 export const CIDADES_CAPITAIS_POR_UF: Record<UfBrasileira, string[]> = {
   AC: ["Rio Branco"],
 
