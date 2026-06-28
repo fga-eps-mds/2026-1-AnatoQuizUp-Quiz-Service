@@ -4,6 +4,10 @@ import { prisma } from '@/config/db';
 
 import type { FiltrosListaDTO } from './dto/lista.types';
 
+// Repository de listas de questoes (Prisma). Reune projecoes (include) reutilizaveis
+// e os metodos de leitura/escrita; quase tudo respeita o soft delete (excluidoEm).
+
+// Projecao completa: itens ordenados com a questao (tema/alternativas) e as turmas.
 const incluirListaCompleta = {
   itens: {
     include: {
@@ -21,6 +25,7 @@ const incluirListaCompleta = {
   },
 } satisfies Prisma.ListaQuestaoInclude;
 
+// Projecao de resumo: so a contagem de itens e as turmas (para a listagem).
 const incluirResumoLista = {
   _count: {
     select: { itens: true },
@@ -71,6 +76,7 @@ type AtualizarVinculoListaTurmaRepositorioDTO = {
 };
 
 export class ListaQuestaoRepository {
+  // Busca uma lista nao excluida pelo id, com a projecao completa.
   async buscarPorId(id: string): Promise<ListaQuestaoComDetalhes | null> {
     return prisma.listaQuestao.findFirst({
       where: { id, excluidoEm: null },
@@ -78,6 +84,7 @@ export class ListaQuestaoRepository {
     });
   }
 
+  // Lista as listas do professor (resumo), com filtro opcional por nome e status.
   async listarDoProfessor(
     professorId: string,
     filtros?: FiltrosListaDTO,
@@ -87,6 +94,7 @@ export class ListaQuestaoRepository {
       excluidoEm: null,
     };
 
+    // Filtro textual por nome (case-insensitive).
     if (filtros?.busca) {
       where.nome = {
         contains: filtros.busca,
@@ -94,6 +102,7 @@ export class ListaQuestaoRepository {
       };
     }
 
+    // PUBLICADA = tem ao menos uma turma; RASCUNHO = nenhuma turma vinculada.
     if (filtros?.status === 'PUBLICADA') {
       where.turmas = { some: {} };
     } else if (filtros?.status === 'RASCUNHO') {
@@ -107,6 +116,7 @@ export class ListaQuestaoRepository {
     });
   }
 
+  // Lista (completa) as listas do professor publicadas em uma turma especifica.
   async listarPorTurma(turmaId: string, professorId: string): Promise<ListaQuestaoComDetalhes[]> {
     return prisma.listaQuestao.findMany({
       where: {
@@ -121,6 +131,7 @@ export class ListaQuestaoRepository {
     });
   }
 
+  // Lista os vinculos lista-turma de uma turma (apenas das listas do professor).
   async listarVinculosDaTurma(
     turmaId: string,
     professorId: string,
@@ -138,6 +149,7 @@ export class ListaQuestaoRepository {
     });
   }
 
+  // Cria a lista ja criando, em cascata, os itens (com ordem) e os vinculos de turma.
   async criar(data: CriarListaQuestaoRepositorioDTO): Promise<ListaQuestaoComDetalhes> {
     return prisma.listaQuestao.create({
       data: {
@@ -165,6 +177,7 @@ export class ListaQuestaoRepository {
     });
   }
 
+  // Atualiza apenas o nome da lista.
   async atualizarNome(id: string, nome: string): Promise<ListaQuestaoComDetalhes> {
     return prisma.listaQuestao.update({
       where: { id },
@@ -173,6 +186,7 @@ export class ListaQuestaoRepository {
     });
   }
 
+  // Remove a lista via soft delete (marca excluidoEm).
   async deletar(id: string) {
     return prisma.listaQuestao.update({
       where: { id },
@@ -180,6 +194,7 @@ export class ListaQuestaoRepository {
     });
   }
 
+  // Retorna os ids, dentre os informados, que correspondem a questoes ativas.
   async listarQuestoesAtivasPorIds(ids: string[]) {
     return prisma.questao.findMany({
       where: {
@@ -191,6 +206,7 @@ export class ListaQuestaoRepository {
     });
   }
 
+  // Retorna os ids, dentre os informados, que sao turmas ativas do professor.
   async listarTurmasAtivasDoProfessorPorIds(ids: string[], professorId: string) {
     return prisma.turma.findMany({
       where: {
@@ -203,6 +219,7 @@ export class ListaQuestaoRepository {
     });
   }
 
+  // Adiciona questoes a lista a partir de ordemInicial e recarrega a lista completa.
   async vincularQuestoes(
     listaQuestaoId: string,
     questoesIds: string[],
@@ -219,6 +236,7 @@ export class ListaQuestaoRepository {
     return this.buscarPorIdObrigatorio(listaQuestaoId);
   }
 
+  // Remove a questao da lista e renumera a ordem das restantes, tudo numa transacao.
   async desvincularQuestao(
     listaQuestaoId: string,
     questaoId: string,
@@ -228,6 +246,7 @@ export class ListaQuestaoRepository {
         where: { listaQuestaoId, questaoId },
       });
 
+      // Recompacta a ordem (1..n) para nao deixar buracos apos a remocao.
       const itensRestantes = await transacao.listaQuestaoItem.findMany({
         where: { listaQuestaoId },
         select: { id: true },
@@ -247,6 +266,7 @@ export class ListaQuestaoRepository {
     return this.buscarPorIdObrigatorio(listaQuestaoId);
   }
 
+  // Aplica a nova ordem: atribui ordem 1..n na sequencia dos ids recebidos (transacional).
   async reordenarQuestoes(
     listaQuestaoId: string,
     questoesIds: string[],
@@ -268,6 +288,7 @@ export class ListaQuestaoRepository {
     return this.buscarPorIdObrigatorio(listaQuestaoId);
   }
 
+  // Cria os vinculos lista-turma, aceitando ids simples ou objetos com prazo/gabarito.
   async vincularTurmas(
     listaQuestaoId: string,
     turmas: string[] | VinculoTurmaListaRepositorioDTO[],
@@ -281,6 +302,7 @@ export class ListaQuestaoRepository {
           turmaId: vinculo.turmaId,
         };
 
+        // So inclui prazo/gabarito quando informados, preservando os defaults do schema.
         if (Object.prototype.hasOwnProperty.call(vinculo, 'prazo')) {
           dados.prazo = vinculo.prazo;
         }
@@ -296,6 +318,7 @@ export class ListaQuestaoRepository {
     return this.buscarPorIdObrigatorio(listaQuestaoId);
   }
 
+  // Atualiza prazo/gabarito de um vinculo lista-turma (so os campos informados).
   async atualizarVinculo(
     listaQuestaoId: string,
     turmaId: string,
@@ -323,6 +346,7 @@ export class ListaQuestaoRepository {
     });
   }
 
+  // Remove o vinculo da lista com a turma (despublica) e recarrega a lista.
   async desvincularTurma(
     listaQuestaoId: string,
     turmaId: string,
@@ -334,19 +358,32 @@ export class ListaQuestaoRepository {
     return this.buscarPorIdObrigatorio(listaQuestaoId);
   }
 
+  /**
+   * Coleta os dados crus para as estatisticas da turma na lista.
+   *
+   * Retorna os alunos da turma e as resolucoes (com a questao) das questoes da lista;
+   * a agregacao de acertos/erros e feita no service.
+   *
+   * @param listaId Lista avaliada.
+   * @param turmaId Turma avaliada.
+   * @returns Ids dos alunos da turma e suas resolucoes das questoes da lista.
+   */
   async buscarEstatisticasTurma(listaId: string, turmaId: string) {
+    // Questoes que compoem a lista.
     const itens = await prisma.listaQuestaoItem.findMany({
       where: { listaQuestaoId: listaId },
       select: { questaoId: true },
     });
     const questoesIds = itens.map((i) => i.questaoId);
 
+    // Alunos atualmente matriculados na turma.
     const alunosTurma = await prisma.turmaAluno.findMany({
       where: { turmaId, excluidoEm: null },
       select: { alunoId: true },
     });
     const alunosIds = alunosTurma.map((a) => a.alunoId);
 
+    // Resolucoes desses alunos para as questoes da lista (com a questao p/ o gabarito).
     const resolucoes = await prisma.resolucaoQuestao.findMany({
       where: {
         questaoId: { in: questoesIds },
@@ -358,6 +395,7 @@ export class ListaQuestaoRepository {
     return { alunosIds, resolucoes };
   }
 
+  // Recarrega a lista apos uma operacao; lanca se sumiu (estado inesperado).
   private async buscarPorIdObrigatorio(id: string): Promise<ListaQuestaoComDetalhes> {
     const lista = await this.buscarPorId(id);
 
@@ -368,6 +406,7 @@ export class ListaQuestaoRepository {
     return lista;
   }
 
+  // Uniformiza a entrada de turmas (ids simples ou objetos) em vinculos detalhados.
   private normalizarVinculosTurmas(
     turmas: string[] | VinculoTurmaListaRepositorioDTO[],
   ): VinculoTurmaListaRepositorioDTO[] {

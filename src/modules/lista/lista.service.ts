@@ -20,9 +20,26 @@ import type {
   VincularTurmasListaPayloadDTO,
 } from './dto/lista.types';
 
+/**
+ * Service de listas de questoes.
+ *
+ * Concentra as regras do professor sobre listas: criar/editar, vincular questoes e
+ * turmas, reordenar, gerar estatisticas e PDF. Toda operacao confere a posse da lista
+ * e o vinculo do professor com as turmas antes de delegar a persistencia ao repository.
+ */
 export class ListaQuestaoService {
   constructor(private readonly repository: ListaQuestaoRepository) {}
 
+  /**
+   * Cria uma lista de questoes do professor, opcionalmente ja vinculada a turmas.
+   *
+   * Normaliza e valida os ids (questoes ativas; turmas ativas do proprio professor)
+   * antes de persistir.
+   *
+   * @param data Nome e ids de questoes/turmas iniciais.
+   * @param professorId Dono da lista.
+   * @returns A lista criada com seus detalhes.
+   */
   async criarLista(
     data: CriarListaQuestaoDTO,
     professorId: string,
@@ -30,6 +47,7 @@ export class ListaQuestaoService {
     const questoesIds = this.normalizarIds(data.questoesIds ?? [], 'questoesIds');
     const turmasIds = this.normalizarIds(data.turmasIds ?? [], 'turmasIds');
 
+    // Garante que as questoes existem/ativas e que as turmas sao do professor.
     await this.validarQuestoesAtivas(questoesIds);
     await this.validarTurmasAtivasDoProfessor(turmasIds, professorId);
 
@@ -41,6 +59,7 @@ export class ListaQuestaoService {
     });
   }
 
+  // Atualiza o nome da lista (exige posse e que um nome seja informado).
   async atualizarLista(
     id: string,
     professorId: string,
@@ -59,10 +78,12 @@ export class ListaQuestaoService {
     return this.repository.atualizarNome(lista.id, data.nome);
   }
 
+  // Busca uma lista do professor pelo id (com seus detalhes).
   async buscarLista(id: string, professorId: string): Promise<ListaQuestaoComDetalhes> {
     return this.obterListaDoProfessor(id, professorId);
   }
 
+  // Lista as listas do professor em formato de resumo (para a tela de listagem).
   async listarMinhasListas(
     professorId: string,
     filtros?: FiltrosListaDTO,
@@ -73,6 +94,7 @@ export class ListaQuestaoService {
       id: lista.id,
       nome: lista.nome,
       quantidadeQuestoes: lista._count.itens,
+      // Lista com ao menos uma turma vinculada e considerada PUBLICADA; senao, RASCUNHO.
       status: lista.turmas.length > 0 ? 'PUBLICADA' : 'RASCUNHO',
       turmas: lista.turmas.map((t) => ({
         id: t.turma.id,
@@ -83,6 +105,7 @@ export class ListaQuestaoService {
     }));
   }
 
+  // Lista as listas publicadas em uma turma (visao do professor dono da turma).
   async listarListasDaTurma(
     turmaId: string,
     professorId: string,
@@ -92,6 +115,7 @@ export class ListaQuestaoService {
     return this.repository.listarPorTurma(turmaId, professorId);
   }
 
+  // Lista os vinculos lista-turma (com datas de disponibilidade) de uma turma.
   async listarVinculosDaTurma(
     turmaId: string,
     professorId: string,
@@ -103,12 +127,14 @@ export class ListaQuestaoService {
     return vinculos.map((vinculo) => this.mapearVinculoListaTurma(vinculo));
   }
 
+  // Remove uma lista do professor (exige posse).
   async deletarLista(id: string, professorId: string): Promise<void> {
     const lista = await this.obterListaDoProfessor(id, professorId);
 
     await this.repository.deletar(lista.id);
   }
 
+  // Vincula questoes a uma lista, ao final da ordem atual, sem duplicar as ja vinculadas.
   async vincularQuestoes(
     id: string,
     professorId: string,
@@ -120,11 +146,13 @@ export class ListaQuestaoService {
     await this.validarQuestoesAtivas(questoesIds);
     this.validarQuestoesAindaNaoVinculadas(lista, questoesIds);
 
+    // Continua a numeracao de ordem a partir da ultima questao ja vinculada.
     const proximaOrdem = this.obterProximaOrdem(lista);
 
     return this.repository.vincularQuestoes(lista.id, questoesIds, proximaOrdem);
   }
 
+  // Remove uma questao da lista (404 se ela nao estiver vinculada).
   async desvincularQuestao(
     id: string,
     questaoId: string,
@@ -143,6 +171,7 @@ export class ListaQuestaoService {
     return this.repository.desvincularQuestao(lista.id, questaoId);
   }
 
+  // Redefine a ordem das questoes da lista (a nova ordem deve conter exatamente as mesmas).
   async reordenarQuestoes(
     id: string,
     professorId: string,
@@ -156,6 +185,8 @@ export class ListaQuestaoService {
     return this.repository.reordenarQuestoes(lista.id, questoesIds);
   }
 
+  // Publica a lista em turmas. Aceita dois formatos de payload: lista de ids
+  // (turmasIds) ou um unico vinculo detalhado (turmaId + datas de disponibilidade).
   async vincularTurmas(
     id: string,
     professorId: string,
@@ -163,6 +194,7 @@ export class ListaQuestaoService {
   ): Promise<ListaQuestaoComDetalhes> {
     const lista = await this.obterListaDoProfessor(id, professorId);
 
+    // Formato 1: varias turmas por id.
     if ('turmasIds' in data) {
       const turmasIds = this.normalizarIds(data.turmasIds, 'turmasIds');
 
@@ -172,6 +204,7 @@ export class ListaQuestaoService {
       return this.repository.vincularTurmas(lista.id, turmasIds);
     }
 
+    // Formato 2: um unico vinculo detalhado (com datas), repassado como objeto.
     const turmasIds = this.normalizarIds([data.turmaId], 'turmaId');
 
     await this.validarTurmasAtivasDoProfessor(turmasIds, professorId);
@@ -180,6 +213,7 @@ export class ListaQuestaoService {
     return this.repository.vincularTurmas(lista.id, [data]);
   }
 
+  // Atualiza um vinculo lista-turma (ex.: datas de disponibilidade); 404 se nao vinculada.
   async atualizarVinculo(
     id: string,
     turmaId: string,
@@ -203,6 +237,7 @@ export class ListaQuestaoService {
     return this.mapearVinculoListaTurma(vinculoAtualizado);
   }
 
+  // Despublica a lista de uma turma (remove o vinculo); 404 se nao vinculada.
   async desvincularTurma(
     id: string,
     turmaId: string,
@@ -223,6 +258,18 @@ export class ListaQuestaoService {
     return this.repository.desvincularTurma(lista.id, turmaId);
   }
 
+  /**
+   * Gera as estatisticas de desempenho de uma turma em uma lista publicada.
+   *
+   * Exige posse da lista e que ela esteja publicada na turma. Calcula, por aluno,
+   * acertos/erros a partir das resolucoes registradas.
+   *
+   * @param listaId Lista avaliada.
+   * @param turmaId Turma avaliada.
+   * @param professorId Dono da lista.
+   * @returns Estatisticas agregadas da turma na lista.
+   * @throws ErroAplicacao 404 se a lista nao estiver publicada na turma.
+   */
   async gerarEstatisticasTurma(
     listaId: string,
     turmaId: string,
@@ -242,12 +289,14 @@ export class ListaQuestaoService {
 
     const { alunosIds, resolucoes } = await this.repository.buscarEstatisticasTurma(listaId, turmaId);
 
+    // Para cada aluno, agrega acertos/erros a partir das suas resolucoes.
     const estatisticasAlunos = alunosIds.map((alunoId) => {
       const respostasAluno = resolucoes.filter((r) => r.usuarioId === alunoId);
 
       let acertos = 0;
       let erros = 0;
 
+      // Acerto = resposta marcada igual ao gabarito da questao.
       respostasAluno.forEach((resposta) => {
         if (resposta.respostaMarcada === resposta.questao.respostaCorreta) {
           acertos++;
@@ -256,6 +305,7 @@ export class ListaQuestaoService {
         }
       });
 
+      // Taxa de acerto em %, protegida contra divisao por zero.
       const totalRespondidas = acertos + erros;
       const taxaAcerto = totalRespondidas > 0 ? (acertos / totalRespondidas) * 100 : 0;
 
@@ -278,15 +328,26 @@ export class ListaQuestaoService {
     };
   }
 
+  // Gera o PDF da lista (template "prova") em base64, para download/impressao.
   async gerarPdfLista(id: string, professorId: string, professorEmail: string): Promise<string> {
     const lista = await this.obterListaDoProfessor(id, professorId);
-    
-    return gerarPdfBase64('prova', { 
-      lista, 
-      professorEmail 
+
+    return gerarPdfBase64('prova', {
+      lista,
+      professorEmail
     });
   }
 
+  /**
+   * Carrega uma lista garantindo que ela existe e pertence ao professor.
+   *
+   * Centraliza o controle de acesso reutilizado por quase todos os metodos.
+   *
+   * @param id Id da lista.
+   * @param professorId Professor que deve ser o dono.
+   * @returns A lista com seus detalhes.
+   * @throws ErroAplicacao 404 se nao existir; 403 se nao for do professor.
+   */
   private async obterListaDoProfessor(
     id: string,
     professorId: string,
@@ -301,6 +362,7 @@ export class ListaQuestaoService {
       });
     }
 
+    // So o dono pode acessar/alterar a lista.
     if (lista.criadoPorId !== professorId) {
       throw new ErroAplicacao({
         codigo: CodigoDeErro.PROIBIDO,
@@ -312,6 +374,7 @@ export class ListaQuestaoService {
     return lista;
   }
 
+  // Remove duplicatas dos ids; se havia duplicado, rejeita a requisicao (400).
   private normalizarIds(ids: string[], campo: string): string[] {
     const idsUnicos = [...new Set(ids)];
 
@@ -326,6 +389,7 @@ export class ListaQuestaoService {
     return idsUnicos;
   }
 
+  // Garante que todas as questoes informadas existem e estao ativas (senao 404).
   private async validarQuestoesAtivas(questoesIds: string[]): Promise<void> {
     if (questoesIds.length === 0) return;
 
@@ -343,6 +407,7 @@ export class ListaQuestaoService {
     }
   }
 
+  // Garante que todas as turmas existem, estao ativas e pertencem ao professor (senao 404).
   private async validarTurmasAtivasDoProfessor(
     turmasIds: string[],
     professorId: string,
@@ -363,6 +428,7 @@ export class ListaQuestaoService {
     }
   }
 
+  // Impede vincular novamente questoes que ja estao na lista (conflito 409).
   private validarQuestoesAindaNaoVinculadas(
     lista: ListaQuestaoComDetalhes,
     questoesIds: string[],
@@ -380,6 +446,7 @@ export class ListaQuestaoService {
     }
   }
 
+  // Impede publicar a lista numa turma onde ela ja esta vinculada (conflito 409).
   private validarTurmasAindaNaoVinculadas(
     lista: ListaQuestaoComDetalhes,
     turmasIds: string[],
@@ -397,8 +464,10 @@ export class ListaQuestaoService {
     }
   }
 
+  // A reordenacao deve conter exatamente o mesmo conjunto de questoes ja vinculadas.
   private validarReordenacao(lista: ListaQuestaoComDetalhes, questoesIds: string[]): void {
     const questoesAtuais = new Set(lista.itens.map((item) => item.questaoId));
+    // Mesmo tamanho e mesmos elementos => e uma permutacao valida das questoes atuais.
     const contemTodasQuestoes =
       questoesIds.length === questoesAtuais.size &&
       questoesIds.every((questaoId) => questoesAtuais.has(questaoId));
@@ -412,12 +481,14 @@ export class ListaQuestaoService {
     }
   }
 
+  // Calcula a proxima posicao de ordem (maior ordem atual + 1; 1 quando vazia).
   private obterProximaOrdem(lista: ListaQuestaoComDetalhes): number {
     const maiorOrdem = Math.max(0, ...lista.itens.map((item) => item.ordem));
 
     return maiorOrdem + 1;
   }
 
+  // Converte o vinculo lista-turma do banco no DTO de resposta.
   private mapearVinculoListaTurma(vinculo: ListaTurmaComResumo): VinculoListaTurmaDTO {
     return {
       id: vinculo.id,

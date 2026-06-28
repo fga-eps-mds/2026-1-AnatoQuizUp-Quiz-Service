@@ -11,15 +11,25 @@ import type {
 } from './dto/lista.types';
 import type { ListaQuestaoService } from './lista.service';
 
+// Controller HTTP de listas de questoes (visao do professor). Extrai o professor do
+// token, delega ao service e padroniza respostas; erros via next ao middleware central.
 export class ListaQuestaoController {
   constructor(private readonly service: ListaQuestaoService) {}
 
+  /**
+   * POST cria uma lista de questoes para o professor autenticado.
+   *
+   * @param req Requisicao com os dados da lista no corpo.
+   * @param res Resposta HTTP (201 com a lista criada).
+   * @param next Repasse de erro ao middleware central.
+   */
   criar = async (
     req: Request<unknown, unknown, CriarListaQuestaoDTO>,
     res: Response,
     next: NextFunction,
   ) => {
     try {
+      // O dono da lista e o professor autenticado.
       const professorId = req.usuario!.id;
       const lista = await this.service.criarLista(req.body, professorId);
 
@@ -32,6 +42,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * PUT atualiza dados da lista (ex.: nome).
+   *
+   * @param req Requisicao com o id na rota e os campos a atualizar no corpo.
+   * @param res Resposta HTTP (200 com a lista atualizada).
+   * @param next Repasse de erro ao middleware central.
+   */
   atualizar = async (
     req: Request<{ id: string }, unknown, AtualizarListaQuestaoDTO>,
     res: Response,
@@ -50,6 +67,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * GET detalhe de uma lista do professor.
+   *
+   * @param req Requisicao com o id da lista na rota.
+   * @param res Resposta HTTP (200 com a lista).
+   * @param next Repasse de erro ao middleware central.
+   */
   buscar = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
     try {
       const professorId = req.usuario!.id;
@@ -64,6 +88,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * GET lista as listas do proprio professor, aplicando filtros opcionais.
+   *
+   * @param req Requisicao com filtros (busca/status) na query.
+   * @param res Resposta HTTP (200 com as listas).
+   * @param next Repasse de erro ao middleware central.
+   */
   listarDoUsuario = async (
     req: Request<unknown, unknown, unknown, FiltrosListaDTO>,
     res: Response,
@@ -82,6 +113,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * GET lista as listas publicadas em uma turma.
+   *
+   * @param req Requisicao com o turmaId na rota.
+   * @param res Resposta HTTP (200 com as listas da turma).
+   * @param next Repasse de erro ao middleware central.
+   */
   listarPorTurma = async (req: Request<{ turmaId: string }>, res: Response, next: NextFunction) => {
     try {
       const professorId = req.usuario!.id;
@@ -96,6 +134,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * GET lista os vinculos lista-turma (com prazos/gabarito) de uma turma.
+   *
+   * @param req Requisicao com o turmaId na rota.
+   * @param res Resposta HTTP (200 com os vinculos).
+   * @param next Repasse de erro ao middleware central.
+   */
   listarVinculosDaTurma = async (
     req: Request<{ turmaId: string }>,
     res: Response,
@@ -114,6 +159,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * DELETE remove (soft delete) uma lista do professor.
+   *
+   * @param req Requisicao com o id da lista na rota.
+   * @param res Resposta HTTP (200 confirmando a remocao).
+   * @param next Repasse de erro ao middleware central.
+   */
   deletar = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
     try {
       const professorId = req.usuario!.id;
@@ -129,6 +181,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * POST vincula questoes a uma lista.
+   *
+   * @param req Requisicao com o id da lista na rota e os ids das questoes no corpo.
+   * @param res Resposta HTTP (200 com a lista atualizada).
+   * @param next Repasse de erro ao middleware central.
+   */
   vincularQuestoes = async (
     req: Request<{ id: string }, unknown, VincularQuestoesListaDTO>,
     res: Response,
@@ -147,6 +206,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * DELETE remove uma questao da lista.
+   *
+   * @param req Requisicao com o id da lista e o questaoId na rota.
+   * @param res Resposta HTTP (200 com a lista atualizada).
+   * @param next Repasse de erro ao middleware central.
+   */
   desvincularQuestao = async (
     req: Request<{ id: string; questaoId: string }>,
     res: Response,
@@ -169,6 +235,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * PUT redefine a ordem das questoes da lista.
+   *
+   * @param req Requisicao com o id da lista na rota e a nova ordem dos ids no corpo.
+   * @param res Resposta HTTP (200 com a lista reordenada).
+   * @param next Repasse de erro ao middleware central.
+   */
   reordenarQuestoes = async (
     req: Request<{ id: string }, unknown, ReordenarQuestoesListaDTO>,
     res: Response,
@@ -187,6 +260,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * POST publica a lista em uma ou mais turmas.
+   *
+   * @param req Requisicao com o id da lista na rota e os vinculos de turma no corpo.
+   * @param res Resposta HTTP (200 com a lista atualizada).
+   * @param next Repasse de erro ao middleware central.
+   */
   vincularTurmas = async (
     req: Request<{ id: string }, unknown, VincularTurmasListaPayloadDTO>,
     res: Response,
@@ -205,6 +285,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * PATCH atualiza um vinculo lista-turma (prazo/gabarito).
+   *
+   * @param req Requisicao com id da lista e turmaId na rota e os campos no corpo.
+   * @param res Resposta HTTP (200 com o vinculo atualizado).
+   * @param next Repasse de erro ao middleware central.
+   */
   atualizarVinculo = async (
     req: Request<{ id: string; turmaId: string }, unknown, AtualizarVinculoListaTurmaDTO>,
     res: Response,
@@ -228,6 +315,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * DELETE despublica a lista de uma turma.
+   *
+   * @param req Requisicao com id da lista e turmaId na rota.
+   * @param res Resposta HTTP (200 com a lista atualizada).
+   * @param next Repasse de erro ao middleware central.
+   */
   desvincularTurma = async (
     req: Request<{ id: string; turmaId: string }>,
     res: Response,
@@ -250,6 +344,13 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * GET estatisticas de desempenho da turma na lista.
+   *
+   * @param req Requisicao com id da lista e turmaId na rota.
+   * @param res Resposta HTTP (200 com as estatisticas).
+   * @param next Repasse de erro ao middleware central.
+   */
   estatisticas = async (
     req: Request<{ id: string; turmaId: string }>,
     res: Response,
@@ -272,11 +373,18 @@ export class ListaQuestaoController {
     }
   };
 
+  /**
+   * GET gera e devolve o PDF (base64) da lista para download.
+   *
+   * @param req Requisicao com o id da lista na rota (professor vem do token).
+   * @param res Resposta HTTP (200 com o PDF em base64).
+   * @param next Repasse de erro ao middleware central.
+   */
   downloadPdf = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
   try {
     const professorId = req.usuario!.id;
     const professorEmail = req.usuario!.email;
-    
+
     const pdfBase64 = await this.service.gerarPdfLista(req.params.id, professorId, professorEmail);
 
     res.status(200).json({ base64: pdfBase64 });
