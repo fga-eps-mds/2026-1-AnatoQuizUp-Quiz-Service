@@ -24,14 +24,17 @@ import { lojaRouter } from "@/modules/loja";
 import { inventarioRoutes } from "@/modules/inventario";
 import { rankingRouter } from "@/modules/ranking/ranking.routes";
 
+// Montagem da aplicacao Express: middlewares globais, rotas e tratamento de erros.
 const aplicacao = express();
 const roteadorApi = Router();
 
+// Middlewares globais: log HTTP, headers de seguranca, CORS e parse de JSON.
 aplicacao.use(loggerHttp);
 aplicacao.use(helmet());
 aplicacao.use(cors(criarOpcoesCors(env.CORS_ORIGINS)));
 aplicacao.use(express.json());
 
+// Health check publico (sem token interno) para readiness/liveness.
 aplicacao.get("/health", (_request, response) => {
   return response.status(200).json({
     mensagem: MENSAGENS.apiEmExecucao,
@@ -43,8 +46,10 @@ aplicacao.get("/health", (_request, response) => {
   });
 });
 
+// Tudo sob /api exige o token interno (servico so e chamado pelo BFF).
 aplicacao.use("/api", middlewareTokenInterno);
 
+// Roteador da API v1: autenticacao do usuario + montagem de cada modulo.
 roteadorApi.use(middlewareAutenticacao);
 roteadorApi.use("/quiz", quizRouter);
 roteadorApi.use("/questoes", questionRouter);
@@ -60,6 +65,7 @@ roteadorApi.use("/ranking", rankingRouter);
 
 aplicacao.use("/api/v1", roteadorApi);
 
+// Captura qualquer rota nao mapeada e gera um erro 404 padronizado.
 aplicacao.use((_request, _response, next) => {
   next(
     new ErroAplicacao({
@@ -70,6 +76,7 @@ aplicacao.use((_request, _response, next) => {
   );
 });
 
+// Middleware central de tratamento de erros (sempre por ultimo).
 aplicacao.use(middlewareTratamentoErros);
 
 export { aplicacao };

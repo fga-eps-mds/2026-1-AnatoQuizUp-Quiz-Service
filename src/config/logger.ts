@@ -4,6 +4,7 @@ import pinoHttp from "pino-http";
 
 import { env } from "@/config/env";
 
+// Logger base da aplicacao (Pino): nivel via env e timestamp em ISO.
 export const logger = pino({
   level: env.LOG_LEVEL,
 
@@ -16,9 +17,11 @@ export const logger = pino({
   },
 });
 
+// Middleware de log HTTP: define o nivel pelo status e enxuga req/res no log.
 export const loggerHttp = pinoHttp({
   logger,
 
+  // 5xx/erros => error; 4xx => warn; demais => info.
   customLogLevel(_request, response, error) {
     if (error || response.statusCode >= 500) {
       return "error";
@@ -31,6 +34,7 @@ export const loggerHttp = pinoHttp({
     return "info";
   },
 
+  // Loga apenas campos essenciais de requisicao e resposta.
   serializers: {
     req(request) {
       return {

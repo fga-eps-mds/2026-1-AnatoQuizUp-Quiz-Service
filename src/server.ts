@@ -4,7 +4,9 @@ import { env } from "@/config/env";
 import { logger } from "@/config/logger";
 import { configurarStorage } from "@/config/storage";
 
+// Ponto de entrada: conecta dependencias, sobe o HTTP e cuida do encerramento.
 async function iniciarServidor() {
+  // Garante banco e storage prontos antes de aceitar requisicoes.
   await conectarBancoDeDados();
   await configurarStorage();
 
@@ -12,6 +14,7 @@ async function iniciarServidor() {
     logger.info({ port: env.PORT }, "Quiz-Service em execucao.");
   });
 
+  // Encerramento gracioso: para de aceitar conexoes e fecha o banco antes de sair.
   const encerrarServidor = async (signal: NodeJS.Signals) => {
     logger.info({ signal }, "Sinal de encerramento recebido.");
 
@@ -22,6 +25,7 @@ async function iniciarServidor() {
     });
   };
 
+  // Sinais de parada (Ctrl+C e orquestrador) disparam o encerramento gracioso.
   process.on("SIGINT", () => {
     void encerrarServidor("SIGINT");
   });
@@ -31,6 +35,7 @@ async function iniciarServidor() {
   });
 }
 
+// Se o boot falhar, registra o erro, fecha o banco e sai com codigo de erro.
 void iniciarServidor().catch(async (error) => {
   logger.error({ error }, "Falha ao iniciar o Quiz-Service.");
   await desconectarBancoDeDados();
