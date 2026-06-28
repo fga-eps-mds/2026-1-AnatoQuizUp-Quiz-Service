@@ -14,12 +14,22 @@ type InventarioBanco = Prisma.InventarioItemGetPayload<{
   };
 }>;
 
+// Repository da loja de cosmeticos (Prisma): catalogo, inventario e compra de itens.
 export class LojaRepository {
+  /**
+   * Lista o catalogo de itens a venda, marcando quais o usuario ja possui.
+   *
+   * @param usuarioId Usuario (para cruzar com o inventario).
+   * @param paginacao Skip/take.
+   * @param filtros Filtro opcional por tipo de item.
+   * @returns Pagina de itens, total e o conjunto de ids ja adquiridos pelo usuario.
+   */
   async listarCatalogo(
     usuarioId: string,
     paginacao: ParametrosPaginacao,
     filtros: ListarCatalogoQueryDto,
   ) {
+    // So itens ativos, disponiveis na loja e nao excluidos (filtro opcional por tipo).
     const where: Prisma.ItemLojaWhereInput = {
       ativo: true,
       disponivelNaLoja: true,
@@ -49,6 +59,7 @@ export class LojaRepository {
       },
     });
 
+    // Conjunto de ids ja no inventario, para o service marcar "adquirido" no catalogo.
     const itensAdquiridos = new Set(inventario.map((item) => item.itemLojaId));
 
     return {
@@ -58,6 +69,7 @@ export class LojaRepository {
     };
   }
 
+  // Lista paginada do inventario do usuario (itens nao excluidos), recentes primeiro.
   async listarInventario(usuarioId: string, paginacao: ParametrosPaginacao) {
     const where: Prisma.InventarioItemWhereInput = {
       usuarioId,
@@ -85,12 +97,25 @@ export class LojaRepository {
     return { data, total };
   }
 
+  /**
+   * Compra um item da loja de forma atomica e segura contra concorrencia.
+   *
+   * Valida o item (existe, ativo, compravel), evita compra duplicada (createMany com
+   * skipDuplicates), debita o saldo so se for suficiente (updateMany condicional) e
+   * registra a transacao de moedas. Qualquer falha aborta toda a compra.
+   *
+   * @param usuarioId Comprador.
+   * @param itemLojaId Item desejado.
+   * @returns Saldo atualizado e o item adicionado ao inventario.
+   * @throws ErroAplicacao 404/422/409 conforme item invalido, saldo ou duplicidade.
+   */
   async comprarItem(usuarioId: string, itemLojaId: string) {
     return await prisma.$transaction(async (tx) => {
       const item = await tx.itemLoja.findUnique({
         where: { id: itemLojaId },
       });
 
+      // Item precisa existir e nao estar excluido.
       if (!item || item.excluidoEm !== null) {
         throw new ErroAplicacao({
           codigoStatus: 404,
@@ -115,6 +140,7 @@ export class LojaRepository {
         });
       }
 
+      // Adiciona ao inventario; skipDuplicates impede comprar o mesmo item duas vezes.
       const inventarioCriado = await tx.inventarioItem.createMany({
         data: [
           {
@@ -126,6 +152,7 @@ export class LojaRepository {
         skipDuplicates: true,
       });
 
+      // Nada criado = ja possui o item: conflito.
       if (inventarioCriado.count === 0) {
         throw new ErroAplicacao({
           codigoStatus: 409,
@@ -134,6 +161,7 @@ export class LojaRepository {
         });
       }
 
+      // Garante a carteira antes de tentar debitar.
       await tx.carteiraMoedas.upsert({
         where: { usuarioId },
         create: {
@@ -143,6 +171,8 @@ export class LojaRepository {
         update: {},
       });
 
+      // Debita o preco somente se o saldo for suficiente (condicao no proprio where),
+      // o que evita corrida de saldo negativo sem precisar de lock explicito.
       const carteiraAtualizada = await tx.carteiraMoedas.updateMany({
         where: {
           usuarioId,
@@ -157,6 +187,7 @@ export class LojaRepository {
         },
       });
 
+      // Nenhuma linha atualizada = saldo insuficiente.
       if (carteiraAtualizada.count === 0) {
         throw new ErroAplicacao({
           codigoStatus: 422,
@@ -165,6 +196,7 @@ export class LojaRepository {
         });
       }
 
+      // Registra a transacao de moedas (negativa, pois e um gasto).
       await tx.transacaoMoeda.create({
         data: {
           usuarioId,
