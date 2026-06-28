@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// Schemas Zod dos params dos dashboards de turma.
+
+// Params do dashboard da turma: apenas o id da turma.
 export const schemaParamsDashboard = z.object({
   id: z.string({
     message: 'O ID da turma é obrigatório e deve ser um texto válido.',
@@ -8,6 +11,7 @@ export const schemaParamsDashboard = z.object({
   }),
 });
 
+// Params do desempenho por lista: turma + lista.
 export const schemaParamsListaDashboard = z.object({
   id: z.string({
     message: 'O ID da turma é obrigatório.',

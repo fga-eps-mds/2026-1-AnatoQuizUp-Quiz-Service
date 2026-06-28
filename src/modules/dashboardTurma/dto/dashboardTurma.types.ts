@@ -1,17 +1,22 @@
+// DTOs do dashboard da turma (visao do professor).
+
+// Desempenho medio da turma em um tema.
 export interface TemaDesempenhoDTO {
   nome: string;
   totalRespondidas: number;
-  taxaAcerto: number; 
+  taxaAcerto: number;
   status: 'Tranquilo' | 'Atenção' | 'Crítico';
 }
 
+// Visao macro da turma: totais e desempenho por tema.
 export interface DashboardMacroResponseDTO {
   totalAlunos: number;
   totalQuestoesRespondidas: number;
-  taxaMediaAcertos: number; 
+  taxaMediaAcertos: number;
   desempenhoPorTema: TemaDesempenhoDTO[];
 }
 
+// Desempenho da turma em uma lista (entregas, pendencias e taxa media).
 export interface DesempenhoListaDTO {
   listaTurmaId: string;
   nomeLista: string;

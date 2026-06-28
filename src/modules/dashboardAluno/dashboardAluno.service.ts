@@ -10,15 +10,21 @@ import type {
   DesempenhoListaAlunoDto,
 } from "./dto/dashboardAluno.types";
 
+// Service do dashboard do aluno: agrega as proprias resolucoes e listas em metricas
+// de desempenho (geral, por tema e por lista).
+
+// Faixas de classificacao da taxa de acerto por tema.
 const LIMITE_TRANQUILO = 70;
 const LIMITE_ATENCAO = 40;
 
+// Classifica a taxa de acerto em status visual (Tranquilo/Atencao/Critico).
 function classificarStatus(taxaAcerto: number): StatusDesempenhoTema {
   if (taxaAcerto >= LIMITE_TRANQUILO) return "Tranquilo";
   if (taxaAcerto >= LIMITE_ATENCAO) return "Atenção";
   return "Crítico";
 }
 
+// Percentual inteiro de "parte" sobre "total", protegido contra divisao por zero.
 function calcularPercentual(parte: number, total: number): number {
   if (total === 0) return 0;
   return Math.round((parte / total) * 100);
@@ -29,6 +35,16 @@ type EstatisticaTema = { nome: string; total: number; acertos: number };
 export class DashboardAlunoService {
   constructor(private readonly repository: DashboardAlunoRepository) {}
 
+  /**
+   * Monta o dashboard de desempenho do proprio aluno.
+   *
+   * Agrega as resolucoes em totais e estatisticas por tema, e as listas em desempenho
+   * por lista (acertos/taxa/status). Busca resolucoes e listas em paralelo.
+   *
+   * @param usuarioId Aluno autenticado.
+   * @returns Metricas gerais, por tema e por lista.
+   * @throws ErroAplicacao 401 se nao houver usuario.
+   */
   async obterDashboard(usuarioId: string | undefined): Promise<DashboardAlunoDto> {
     if (!usuarioId) {
       throw new ErroAplicacao({
@@ -43,6 +59,7 @@ export class DashboardAlunoService {
       this.repository.buscarListasDoUsuario(usuarioId),
     ]);
 
+    // Acumula acertos totais e estatisticas por tema percorrendo as resolucoes.
     let totalAcertos = 0;
     const temasMap = new Map<string, EstatisticaTema>();
 
@@ -77,9 +94,10 @@ export class DashboardAlunoService {
 
     porTema.sort((a, b) => b.taxaAcerto - a.taxaAcerto);
 
+    // Desempenho por lista: status, acertos e taxa (so quem tem resolucao registrada).
     const porLista: DesempenhoListaAlunoDto[] = listas.map((lista) => {
       const totalQuestoes = lista.listaQuestao._count.itens;
-      const resolucao = lista.resolucoes[0]; 
+      const resolucao = lista.resolucoes[0];
 
       let acertos = 0;
       let taxaAcerto = 0;
