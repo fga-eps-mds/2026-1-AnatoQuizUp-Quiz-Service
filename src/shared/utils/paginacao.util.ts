@@ -1,11 +1,15 @@
 import type { MetadadosPaginacao } from "@/shared/types/api.types";
 
+// Utilitarios de paginacao compartilhados pelos repositories/services.
+
+// Entrada crua de paginacao (pode vir incompleta da query).
 export type EntradaPaginacao = {
   page?: number;
 
   limit?: number;
 };
 
+// Parametros normalizados, ja com o "skip" calculado para o Prisma.
 export type ParametrosPaginacao = {
   page: number;
 
@@ -14,12 +18,14 @@ export type ParametrosPaginacao = {
   skip: number;
 };
 
+// Valores padrao e teto do limite por pagina.
 const DEFAULT_PAGE = 1;
 
 const DEFAULT_LIMIT = 10;
 
 const MAX_LIMIT = 100;
 
+// Normaliza page/limit (aplicando padroes e teto) e calcula o skip.
 export function resolverParametrosPaginacao(input: EntradaPaginacao): ParametrosPaginacao {
   const pagina = input.page && input.page > 0 ? input.page : DEFAULT_PAGE;
 
@@ -34,6 +40,7 @@ export function resolverParametrosPaginacao(input: EntradaPaginacao): Parametros
   };
 }
 
+// Monta os metadados de paginacao da resposta (inclui o total de paginas).
 export function montarMetadadosPaginacao(
   paginacao: ParametrosPaginacao,
 
