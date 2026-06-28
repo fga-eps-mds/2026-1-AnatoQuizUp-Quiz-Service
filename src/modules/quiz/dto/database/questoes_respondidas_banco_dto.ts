@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
+// Tipo derivado do Prisma: formato exato da resolucao+questao retornada do banco
+// no historico, com tema e alternativas. Mantem o select e o tipo em sincronia.
 export type ListarQuestoesRespondidasItem = Prisma.ResolucaoQuestaoGetPayload<{
   select: {
     id: true;

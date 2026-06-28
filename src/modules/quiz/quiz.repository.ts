@@ -9,11 +9,16 @@ import type { ResponderQuestaoQuizDto } from "./dto/requests/responder_questao_q
 import type { Prisma } from "@prisma/client";
 import { FonteMoeda } from "@prisma/client";
 
+// Repository do quiz (Prisma): consulta questoes para o quiz, registra tentativas,
+// concede moedas por acerto e monta o historico de respostas do usuario.
+
+// Projecao da questao com tema e alternativas (usada ao montar o quiz).
 const includeQuestaoCompleta = {
   tema: true,
   alternativas: true,
 };
 
+// Projecao do historico: a resolucao + a questao com tema e alternativas.
 const selectListarQuestoesRespondidas = {
   id: true,
   questaoId: true,
@@ -44,12 +49,21 @@ const selectListarQuestoesRespondidas = {
 };
 
 export class QuizRepository {
+  /**
+   * Busca questoes (ativas) que atendem aos filtros, paginadas, com tema/alternativas.
+   *
+   * @param paginacao Parametros de paginacao (skip/take).
+   * @param filtros Filtros de tema/dificuldade/tipo.
+   * @returns Pagina de questoes completas e o total de questoes filtradas.
+   */
   async filtrarQuestoesQuiz(paginacao: ParametrosPaginacao, filtros: FiltroListarQuestoesQueryDto) {
     const where = montarFiltroPrisma(filtros);
 
+    // Filtro de tema por nome (case-insensitive), alem dos filtros base.
     if (filtros.tema) {
       where.tema = { nome: { equals: filtros.tema, mode: "insensitive" } };
     }
+    // So entram no quiz questoes ativas e nao excluidas.
     where.status = "ATIVO";
     where.excluidoEm = null;
 
@@ -66,6 +80,13 @@ export class QuizRepository {
     return { data: data as RegistroQuestaoCompleta[], total };
   }
 
+  /**
+   * Registra a tentativa do usuario (uma linha de resolucao por resposta).
+   *
+   * @param data Resposta enviada (questao, tipo e alternativa).
+   * @param usuarioId Aluno que respondeu.
+   * @returns A resolucao criada.
+   */
   async registrarTentativa(data: ResponderQuestaoQuizDto, usuarioId: string) {
     return await prisma.resolucaoQuestao.create({
       data: {
@@ -76,6 +97,12 @@ export class QuizRepository {
     });
   }
 
+  /**
+   * Busca o gabarito da questao (resposta correta + metadados para o feedback).
+   *
+   * @param id Id da questao.
+   * @returns Resposta correta, dificuldade e tema, ou null se nao encontrada.
+   */
   async buscarResposta(id: string) {
     return await prisma.questao.findUnique({
       where: { id, excluidoEm: null },
@@ -89,6 +116,12 @@ export class QuizRepository {
     });
   }
 
+  /**
+   * Saldo de moedas do usuario (0 se ainda nao tem carteira).
+   *
+   * @param usuarioId Id do usuario.
+   * @returns Saldo atual de moedas.
+   */
   async buscarSaldoMoedas(usuarioId: string) {
     const carteira = await prisma.carteiraMoedas.findUnique({
       where: { usuarioId },
@@ -98,14 +131,28 @@ export class QuizRepository {
     return carteira?.saldo ?? 0;
   }
 
+  /**
+   * Credita moedas por acerto, garantindo pagamento unico por questao.
+   *
+   * Numa transacao: garante a carteira, tenta registrar a transacao de moedas com
+   * skipDuplicates (questaoId + fonte) e so incrementa o saldo se ela foi criada
+   * agora. Se ja existia, retorna moedasJaConcedidas = true sem creditar de novo.
+   *
+   * @param usuarioId Aluno que acertou.
+   * @param questaoId Questao acertada (chave da idempotencia).
+   * @param quantidade Moedas a conceder.
+   * @returns Moedas concedidas, saldo atual e se ja havia sido concedido antes.
+   */
   async concederMoedasPorAcerto(usuarioId: string, questaoId: string, quantidade: number) {
     return await prisma.$transaction(async (tx) => {
+      // Garante a carteira do usuario antes de creditar.
       await tx.carteiraMoedas.upsert({
         where: { usuarioId },
         create: { usuarioId, saldo: 0 },
         update: {},
       });
 
+      // Idempotente: duplicado (mesma questao/fonte) e ignorado.
       const transacao = await tx.transacaoMoeda.createMany({
         data: [
           {
@@ -118,6 +165,7 @@ export class QuizRepository {
         skipDuplicates: true,
       });
 
+      // Nada criado = ja havia recompensa por esta questao; nao credita de novo.
       if (transacao.count === 0) {
         const carteira = await tx.carteiraMoedas.findUnique({
           where: { usuarioId },
@@ -145,6 +193,12 @@ export class QuizRepository {
     });
   }
 
+  /**
+   * Conta as questoes que atendem aos filtros (base para o sorteio aleatorio do quiz).
+   *
+   * @param filtros Filtros de tema/dificuldade/tipo.
+   * @returns Total de questoes ativas que satisfazem os filtros.
+   */
   async contarQuestoesQuiz(filtros: FiltroListarQuestoesQueryDto) {
     const where = montarFiltroPrisma(filtros);
 
@@ -157,6 +211,11 @@ export class QuizRepository {
     return await prisma.questao.count({ where });
   }
 
+  /**
+   * Lista temas que tem questoes ativas, com a dificuldade de cada e a contagem total.
+   *
+   * @returns Temas com suas questoes (dificuldade) e o total por tema.
+   */
   async buscarQuantidadeDeQuestoesPorTema() {
     return await prisma.tema.findMany({
       where: { questoes: { some: { status: "ATIVO", excluidoEm: null } } },
@@ -173,6 +232,15 @@ export class QuizRepository {
     });
   }
 
+  /**
+   * Lista paginada das resolucoes do usuario (historico), com filtros opcionais por
+   * tema/dificuldade/tipo, mais recentes primeiro.
+   *
+   * @param usuarioId Id do usuario.
+   * @param paginacao Parametros de paginacao (skip/take).
+   * @param filtros Filtros opcionais de tema/dificuldade/tipo.
+   * @returns Pagina de resolucoes e o total filtrado.
+   */
   async listarQuestoesRespondidas(
     usuarioId: string,
     paginacao: ParametrosPaginacao,

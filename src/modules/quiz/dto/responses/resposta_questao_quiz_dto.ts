@@ -5,6 +5,7 @@ import type {
 } from "@/modules/questoes/dto/question.types";
 import type { StatusQuestao } from "@prisma/client";
 
+// Questao como entregue ao quiz: sem gabarito, apenas o necessario para responder.
 export type RespostaQuestaoQuizDto = {
   id: string;
   tema: {

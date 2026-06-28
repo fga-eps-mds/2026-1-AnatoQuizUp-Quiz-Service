@@ -1,6 +1,7 @@
 import type { DificuldadeApi, TipoQuestaoApi } from "@/modules/questoes/dto/question.types";
 import type { AlternativaQuestao, OrigemQuestao, StatusQuestao } from "@prisma/client";
 
+// Alternativas parciais: certo/errado traz so C/E, multipla escolha traz A-E.
 export type AlternativasDto = Partial<{
   alternativaA: string;
   alternativaB: string;
@@ -9,6 +10,7 @@ export type AlternativasDto = Partial<{
   alternativaE: string;
 }>;
 
+// Item do historico: a resolucao do usuario com a questao e suas estatisticas.
 export type ResolucaoQuestaoUsuarioDto = {
   id: string;
   criadoEm: Date;
