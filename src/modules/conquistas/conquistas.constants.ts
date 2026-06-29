@@ -2,7 +2,7 @@ import { TierConquista, type TipoConquista } from "@prisma/client";
 
 // Configuracao das conquistas: objetivos de cada tier e recompensa em ATP.
 
-// Objetivo (valor a atingir) por tipo de conquista e por tier (bronze/prata/ouro).
+// Objetivo (valor a atingir) por tipo de conquista e por tier (bronze/prata/ouro)
 export const CONFIG_TIERS: Partial<Record<TipoConquista, Record<TierConquista, number>>> = {
   // Total de acertos acumulados no quiz inteiro.
   TOTAL_ACERTOS: {
